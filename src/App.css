@@ -1,0 +1,145 @@
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  #root {
+    padding: 0.5rem;
+    padding-top: 1rem;
+    font-size: 14px;
+  }
+}
+
+/* Lobby */
+.lobby {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.lobby h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.connection-status {
+  text-align: center;
+  padding: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #888;
+}
+
+.create-room {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.create-room input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background-color: #2a2a2a;
+  color: white;
+  font-size: 1rem;
+}
+
+.create-room input::placeholder {
+  color: #888;
+}
+
+.create-room button {
+  padding: 0.75rem 1.5rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.create-room button:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.create-room button:disabled {
+  background-color: #3a3a3a;
+  cursor: not-allowed;
+}
+
+.room-list {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.room-list h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+}
+
+.room-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.room-item:last-child {
+  margin-bottom: 0;
+}
+
+.room-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.room-players {
+  color: #888;
+  margin-right: 1rem;
+}
+
+.join-btn {
+  padding: 0.5rem 1rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.join-btn:hover {
+  background-color: #535bf2;
+}
+
+.no-rooms {
+  color: #888;
+  text-align: center;
+  padding: 2rem;
+  margin: 0;
+}
+
+.error-message {
+  background-color: #ff4444;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
