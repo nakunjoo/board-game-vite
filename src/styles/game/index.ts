@@ -33,7 +33,7 @@ export const GameBoard = styled.div`
   position: relative;
   background-color: #2a2a2a;
   border-radius: 8px;
-  container-type: size;
+  overflow: visible;
 
   @media (max-width: 1080px) {
     max-width: 100%;
@@ -69,7 +69,7 @@ export const MyHandArea = styled.div`
   z-index: 10;
 
   @media (max-width: 768px) {
-    bottom: 55px;
+    bottom: 45px;
   }
 `;
 
@@ -115,8 +115,8 @@ export const CardDeck = styled.div`
   z-index: 1;
 
   @media (max-width: 768px) {
-    width: 40px;
-    height: 56px;
+    width: 30px;
+    height: 42px;
   }
 `;
 
@@ -150,7 +150,7 @@ export const CardWrapper = styled.div<{
     backface-visibility: hidden;
     border-radius: 4px;
     overflow: hidden;
-    
+
     img {
       width: 100%;
       height: 100%;

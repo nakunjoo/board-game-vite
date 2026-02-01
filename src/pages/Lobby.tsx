@@ -53,6 +53,7 @@ export default function Lobby() {
             memberCount?: number;
             players?: { nickname: string; order: number }[];
           };
+          sessionStorage.setItem(`joined:${joinData.name}`, "true");
           navigate(`/room/${joinData.name}`, {
             state: {
               memberCount: joinData.memberCount,

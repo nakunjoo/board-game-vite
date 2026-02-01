@@ -63,6 +63,16 @@ export default function Room() {
   const location = useLocation();
   const locationState = location.state as LocationState | null;
 
+  // Lobby에서 진입 시 플래그가 있고, 소비 후 삭제. 새로고침 시에는 플래그 없음
+  const [isRefresh] = useState(() => {
+    const key = `joined:${roomName}`;
+    if (sessionStorage.getItem(key)) {
+      sessionStorage.removeItem(key);
+      return false;
+    }
+    return true;
+  });
+
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [memberCount, setMemberCount] = useState(
@@ -91,6 +101,7 @@ export default function Room() {
 
   useEffect(() => {
     const unsubscribe = subscribe((event, data) => {
+      console.log("[Room] 이벤트 수신:", event, data);
       switch (event) {
         case "roomMessage": {
           const msgData = data as {
@@ -137,13 +148,13 @@ export default function Room() {
                 }))
               );
             }
-            if (joinData.deck) {
+            if (joinData.deck && joinData.deck.length > 0) {
               setDeck(joinData.deck);
             }
             if (joinData.playerHands) {
               setPlayerHands(joinData.playerHands);
             }
-            if (joinData.myHand) {
+            if (joinData.myHand && joinData.myHand.length > 0) {
               setMyHand(joinData.myHand);
             }
           }
@@ -257,11 +268,8 @@ export default function Room() {
             playerHands: PlayerHand[];
           };
           if (cardData.roomName === roomName) {
-            // 덱 전체 동기화
             setDeck(cardData.deck);
-            // 플레이어 손패 정보 동기화
             setPlayerHands(cardData.playerHands);
-            // 내가 뽑은 카드면 손패에 추가
             if (cardData.playerNickname === nickname) {
               setMyHand((prev) => [...prev, cardData.card]);
             }
@@ -273,12 +281,16 @@ export default function Room() {
     return unsubscribe;
   }, [subscribe, roomName, navigate, nickname]);
 
-  // 새로고침 시에만 재입장 (Lobby에서 넘어온 경우 locationState가 존재)
+  // 새로고침 시에만 재입장 (Lobby에서 진입 시 joined 플래그가 있음)
   useEffect(() => {
-    if (connected && roomName && !locationState) {
-      send("joinRoom", { name: roomName, nickname });
+    if (connected && roomName && isRefresh) {
+      const timer = setTimeout(() => {
+        console.log("[Room] 재연결 joinRoom 전송:", { roomName, nickname });
+        send("joinRoom", { name: roomName, nickname });
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [connected, roomName, send, nickname, locationState]);
+  }, [connected, roomName, send, nickname, isRefresh]);
 
   const sendMessage = () => {
     if (!inputMessage.trim() || !roomName) return;
@@ -293,6 +305,7 @@ export default function Room() {
     if (roomName) {
       send("leaveRoom", { name: roomName });
       clearNicknameForRoom(roomName);
+      sessionStorage.removeItem(`joined:${roomName}`);
     }
   };
 
@@ -363,15 +376,6 @@ export default function Room() {
         <GameArea>
           <GameBoard>
             <CardDeck cards={deck} cardBack={gameConfig.cardBack} onClick={handleDeckClick} />
-            {myHand.length > 0 && (
-              <MyHandArea>
-                {myHand.map((card) => (
-                  <HandCard key={getCardName(card)}>
-                    <img src={getCardImage(card)} alt={getCardName(card)} />
-                  </HandCard>
-                ))}
-              </MyHandArea>
-            )}
             <PlayerCircle>
               {playerSeats.map(({ player, seatIndex }) => {
                 const handInfo = playerHands.find(
@@ -409,6 +413,15 @@ export default function Room() {
                 );
               })}
             </PlayerCircle>
+            {myHand.length > 0 && (
+              <MyHandArea>
+                {myHand.map((card) => (
+                  <HandCard key={getCardName(card)}>
+                    <img src={getCardImage(card)} alt={getCardName(card)} />
+                  </HandCard>
+                ))}
+              </MyHandArea>
+            )}
           </GameBoard>
         </GameArea>
 

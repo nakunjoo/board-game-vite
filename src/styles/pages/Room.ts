@@ -16,7 +16,6 @@ export const RoomPage = styled.div`
   @media (max-width: 768px) {
     height: calc(100vh - 1.5rem);
     position: relative;
-    overflow: hidden;
   }
 `;
 
