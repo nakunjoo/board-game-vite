@@ -329,7 +329,7 @@ const getChipColor = (state: number) => {
   }
 };
 
-export const Chip = styled.div<{ $state: number; $isSelected: boolean }>`
+export const Chip = styled.div<{ $state: number; $isSelected: boolean; $isLocked?: boolean }>`
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -342,12 +342,13 @@ export const Chip = styled.div<{ $state: number; $isSelected: boolean }>`
   font-weight: bold;
   color: ${({ $state }) => getChipColor($state).color};
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  cursor: ${({ $isSelected }) => ($isSelected ? 'not-allowed' : 'pointer')};
-  opacity: ${({ $isSelected }) => ($isSelected ? 0.5 : 1)};
+  cursor: ${({ $isLocked }) => ($isLocked ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $isSelected, $isLocked }) => ($isSelected ? 0.5 : $isLocked ? 0.7 : 1)};
   transition: transform 0.2s;
+  filter: ${({ $isLocked }) => ($isLocked ? 'brightness(0.8)' : 'none')};
 
   &:hover {
-    transform: ${({ $isSelected }) => ($isSelected ? 'none' : 'scale(1.1)')};
+    transform: ${({ $isLocked }) => ($isLocked ? 'none' : 'scale(1.1)')};
   }
 
   @media (max-width: 768px) {
@@ -416,5 +417,138 @@ export const PlayerChip = styled.div<{ $state: number; $isVertical: boolean }>`
         : `
       right: -38px;
     `}
+  }
+`;
+
+export const NotificationToast = styled.div<{ $show: boolean }>`
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: ${({ $show }) => ($show ? 1 : 0)};
+  transition: opacity 0.3s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+    padding: 0.75rem 1.25rem;
+    top: 15px;
+  }
+`;
+
+export const HandRankDisplay = styled.div`
+  position: absolute;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+
+  @media (max-width: 768px) {
+    bottom: 110px;
+    font-size: 0.85rem;
+    padding: 0.6rem 1.2rem;
+  }
+`;
+
+export const ReadyButton = styled.button<{ $disabled: boolean }>`
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  background: ${({ $disabled }) =>
+    $disabled
+      ? "linear-gradient(135deg, #555 0%, #333 100%)"
+      : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
+  border: none;
+  border-radius: 8px;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+
+  &:hover {
+    transform: ${({ $disabled }) => ($disabled ? "" : "scale(1.05)")};
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+    bottom: 15px;
+    right: 15px;
+  }
+`;
+
+export const PreviousChips = styled.div<{ $isVertical: boolean }>`
+  position: absolute;
+  display: flex;
+  flex-direction: ${({ $isVertical }) => ($isVertical ? "column" : "row")};
+  gap: 4px;
+
+  ${({ $isVertical }) =>
+    $isVertical
+      ? `
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+  `
+      : `
+    left: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+  `}
+
+  @media (max-width: 768px) {
+    gap: 3px;
+    ${({ $isVertical }) =>
+      $isVertical
+        ? `
+      bottom: -50px;
+    `
+        : `
+      left: -40px;
+    `}
+  }
+`;
+
+export const PreviousChip = styled.div<{ $state: number }>`
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: ${({ $state }) => getChipColor($state).bg};
+  border: 2px solid ${({ $state }) => getChipColor($state).border};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: ${({ $state }) => getChipColor($state).color};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 768px) {
+    width: 20px;
+    height: 20px;
+    font-size: 0.6rem;
+    border: 1.5px solid ${({ $state }) => getChipColor($state).border};
   }
 `;
