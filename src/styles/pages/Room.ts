@@ -6,15 +6,15 @@ import { SEAT_POSITIONS } from "../../utils/constants";
 export const RoomPage = styled.div`
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 4rem);
+  height: 100%;
 
   @media (max-width: 1080px) {
     height: auto;
-    min-height: calc(100vh - 4rem);
+    min-height: 100%;
   }
 
   @media (max-width: 768px) {
-    height: calc(100vh - 1.5rem);
+    height: 100%;
     position: relative;
   }
 `;
@@ -103,6 +103,7 @@ export const RoomContent = styled.div`
   flex: 1;
   gap: 1rem;
   min-height: 0;
+  overflow: hidden;
 
   @media (max-width: 1080px) {
     flex-direction: column;

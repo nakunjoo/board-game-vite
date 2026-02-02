@@ -22,6 +22,15 @@ import {
   HandCard,
   CardImageWrapper,
   CardLabel,
+  StartGameButton,
+  OpenCardsArea,
+  OpenCard,
+  OpenCardImage,
+  OpenCardLabel,
+  ChipsArea,
+  Chip,
+  MyChipsArea,
+  PlayerChip,
 } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
 import CardDeck from "../components/CardDeck";
@@ -50,6 +59,12 @@ interface Player {
   nickname: string;
   isMe: boolean;
   order?: number;
+}
+
+interface ChipData {
+  number: number;
+  state: number;
+  owner: string | null;
 }
 
 interface LocationState {
@@ -85,6 +100,10 @@ export default function Room() {
   const [deck, setDeck] = useState<Card[]>(() => gameConfig.createDeck());
   const [myHand, setMyHand] = useState<Card[]>([]);
   const [playerHands, setPlayerHands] = useState<PlayerHand[]>([]);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [openCards, setOpenCards] = useState<Card[]>([]);
+  const [hostNickname, setHostNickname] = useState<string>("");
+  const [chips, setChips] = useState<ChipData[]>([]);
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {
       return locationState.players.map((p) => ({
@@ -132,6 +151,10 @@ export default function Room() {
             playerHands?: PlayerHand[];
             myHand?: Card[];
             gameType?: string;
+            gameStarted?: boolean;
+            openCards?: Card[];
+            hostNickname?: string;
+            chips?: ChipData[];
           };
           if (joinData.name === roomName) {
             if (joinData.gameType) {
@@ -158,6 +181,18 @@ export default function Room() {
             }
             if (joinData.myHand && joinData.myHand.length > 0) {
               setMyHand(joinData.myHand);
+            }
+            if (joinData.gameStarted !== undefined) {
+              setGameStarted(joinData.gameStarted);
+            }
+            if (joinData.openCards) {
+              setOpenCards(joinData.openCards);
+            }
+            if (joinData.hostNickname !== undefined) {
+              setHostNickname(joinData.hostNickname);
+            }
+            if (joinData.chips) {
+              setChips(joinData.chips);
             }
           }
           break;
@@ -259,6 +294,14 @@ export default function Room() {
         case "error": {
           const errorData = data as { message: string };
           alert(errorData.message);
+          // 방이 존재하지 않으면 로비로 이동
+          if (errorData.message.includes("방이 존재하지 않습니다")) {
+            if (roomName) {
+              clearNicknameForRoom(roomName);
+              sessionStorage.removeItem(`joined:${roomName}`);
+            }
+            navigate("/");
+          }
           break;
         }
         case "cardDrawn": {
@@ -275,6 +318,43 @@ export default function Room() {
             if (cardData.playerNickname === nickname) {
               setMyHand((prev) => [...prev, cardData.card]);
             }
+          }
+          break;
+        }
+        case "gameStarted": {
+          const gameData = data as {
+            roomName: string;
+            deck: Card[];
+            myHand?: Card[];
+            playerHands?: PlayerHand[];
+            openCards?: Card[];
+            chips?: ChipData[];
+          };
+          if (gameData.roomName === roomName) {
+            setGameStarted(true);
+            setDeck(gameData.deck);
+            if (gameData.myHand) {
+              setMyHand(gameData.myHand);
+            }
+            if (gameData.playerHands) {
+              setPlayerHands(gameData.playerHands);
+            }
+            if (gameData.openCards) {
+              setOpenCards(gameData.openCards);
+            }
+            if (gameData.chips) {
+              setChips(gameData.chips);
+            }
+          }
+          break;
+        }
+        case "chipSelected": {
+          const chipData = data as {
+            roomName: string;
+            chips: ChipData[];
+          };
+          if (chipData.roomName === roomName) {
+            setChips(chipData.chips);
           }
           break;
         }
@@ -324,10 +404,21 @@ export default function Room() {
   };
 
   const playerSeats = getPlayerSeats();
+  // 방장 여부 확인: hostNickname이 설정되지 않았으면(빈 문자열) 첫 번째 플레이어가 방장
+  const isHost = hostNickname
+    ? nickname === hostNickname
+    : players.length > 0 && players[0]?.nickname === nickname;
 
-  const handleDeckClick = () => {
-    if (deck.length === 0 || !roomName) return;
-    send("drawCard", { roomName, nickname });
+  const handleStartGame = () => {
+    if (!roomName || memberCount < 3) return;
+    send("startGame", { roomName });
+  };
+
+  const handleChipClick = (chipNumber: number) => {
+    if (!roomName) return;
+    const chip = chips.find((c) => c.number === chipNumber);
+    if (!chip || chip.owner !== null) return;
+    send("selectChip", { roomName, chipNumber });
   };
 
   return (
@@ -377,7 +468,48 @@ export default function Room() {
       <RoomContent>
         <GameArea>
           <GameBoard>
-            <CardDeck cards={deck} cardBack={gameConfig.cardBack} onClick={handleDeckClick} />
+            {!gameStarted && isHost ? (
+              <StartGameButton
+                $disabled={memberCount < 3}
+                onClick={handleStartGame}
+                disabled={memberCount < 3}
+              >
+                게임 시작
+                {memberCount < 3 && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>({memberCount}/3명)</div>}
+              </StartGameButton>
+            ) : gameStarted ? (
+              <>
+                {openCards.length > 0 && (
+                  <OpenCardsArea>
+                    {openCards.map((card, index) => (
+                      <OpenCard key={`${card.name}-${index}`}>
+                        <OpenCardImage>
+                          <img src={getCardImage(card)} alt={getCardName(card)} />
+                        </OpenCardImage>
+                        <OpenCardLabel $suit={card.type}>{getCardLabel(card)}</OpenCardLabel>
+                      </OpenCard>
+                    ))}
+                  </OpenCardsArea>
+                )}
+                <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
+                {chips.length > 0 && (
+                  <ChipsArea>
+                    {chips.map((chip) => (
+                      <Chip
+                        key={chip.number}
+                        $state={chip.state}
+                        $isSelected={chip.owner !== null}
+                        onClick={() => handleChipClick(chip.number)}
+                      >
+                        {chip.number}
+                      </Chip>
+                    ))}
+                  </ChipsArea>
+                )}
+              </>
+            ) : (
+              <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
+            )}
             <PlayerCircle>
               {playerSeats.map(({ player, seatIndex }) => {
                 const handInfo = playerHands.find(
@@ -386,6 +518,7 @@ export default function Room() {
                 const cardCount = handInfo?.cardCount ?? 0;
                 const pos = getSeatPosition(players.length, seatIndex);
                 const isVertical = pos.left === "0" || pos.right === "0";
+                const playerChip = chips.find((c) => c.owner === player.nickname);
 
                 return (
                   <PlayerSeat
@@ -401,6 +534,11 @@ export default function Room() {
                     >
                       {player.nickname}
                     </PlayerAvatar>
+                    {playerChip && (
+                      <PlayerChip $state={playerChip.state} $isVertical={isVertical}>
+                        {playerChip.number}
+                      </PlayerChip>
+                    )}
                     {!player.isMe && cardCount > 0 && (
                       <OtherPlayerHand
                         $totalPlayers={players.length}

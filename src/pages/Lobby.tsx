@@ -14,6 +14,7 @@ import {
 interface Room {
   name: string;
   memberCount: number;
+  gameStarted?: boolean;
 }
 
 const GAME_TYPES = [
@@ -99,7 +100,12 @@ export default function Lobby() {
     setShowModal(true);
   };
 
-  const openJoinModal = (name: string) => {
+  const openJoinModal = (name: string, gameStarted?: boolean) => {
+    if (gameStarted) {
+      setError("이미 게임이 시작된 방입니다");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
     setModalMode("join");
     setJoinTargetRoom(name);
     setNicknameInput("");
@@ -152,10 +158,18 @@ export default function Lobby() {
           <ul>
             {rooms.map((room) => (
               <li key={room.name} className="room-item">
-                <span className="room-name">{room.name}</span>
+                <span className="room-name">
+                  {room.name}
+                  {room.gameStarted && <span style={{ marginLeft: '8px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
+                </span>
                 <span className="room-players">{room.memberCount}명</span>
-                <button className="join-btn" onClick={() => openJoinModal(room.name)}>
-                  입장
+                <button
+                  className="join-btn"
+                  onClick={() => openJoinModal(room.name, room.gameStarted)}
+                  disabled={room.gameStarted}
+                  style={{ opacity: room.gameStarted ? 0.5 : 1, cursor: room.gameStarted ? 'not-allowed' : 'pointer' }}
+                >
+                  {room.gameStarted ? '진행중' : '입장'}
                 </button>
               </li>
             ))}

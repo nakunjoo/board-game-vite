@@ -9,8 +9,8 @@ export const SEAT_POSITIONS: Record<number, SeatPosition[]> = {
   ],
   3: [
     { bottom: "0", left: "50%" },
-    { top: "25%", left: "0" },
-    { top: "25%", right: "0" },
+    { top: "15%", left: "0" },
+    { top: "15%", right: "0" },
   ],
   4: [
     { bottom: "0", left: "50%" },
@@ -21,8 +21,8 @@ export const SEAT_POSITIONS: Record<number, SeatPosition[]> = {
   5: [
     { bottom: "0", left: "50%" },
     { bottom: "25%", left: "0" },
-    { top: "20%", left: "0" },
-    { top: "20%", right: "0" },
+    { top: "15%", left: "0" },
+    { top: "15%", right: "0" },
     { bottom: "25%", right: "0" },
   ],
   6: [
