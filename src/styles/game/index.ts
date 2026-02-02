@@ -222,13 +222,17 @@ export const StartGameButton = styled.button<{ $disabled: boolean }>`
   z-index: 100;
 
   &:hover {
-    transform: translate(-50%, -50%) ${({ $disabled }) => ($disabled ? "" : "scale(1.05)")};
+    transform: translate(-50%, -50%)
+      ${({ $disabled }) => ($disabled ? "" : "scale(1.05)")};
     box-shadow: ${({ $disabled }) =>
-      $disabled ? "0 4px 15px rgba(0, 0, 0, 0.3)" : "0 6px 20px rgba(0, 0, 0, 0.4)"};
+      $disabled
+        ? "0 4px 15px rgba(0, 0, 0, 0.3)"
+        : "0 6px 20px rgba(0, 0, 0, 0.4)"};
   }
 
   &:active {
-    transform: translate(-50%, -50%) ${({ $disabled }) => ($disabled ? "" : "scale(0.98)")};
+    transform: translate(-50%, -50%)
+      ${({ $disabled }) => ($disabled ? "" : "scale(0.98)")};
   }
 
   @media (max-width: 768px) {
@@ -317,19 +321,43 @@ export const ChipsArea = styled.div`
 const getChipColor = (state: number) => {
   switch (state) {
     case 0:
-      return { bg: 'linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)', border: '#999', color: '#333' };
+      return {
+        bg: "linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)",
+        border: "#999",
+        color: "#333",
+      };
     case 1:
-      return { bg: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)', border: '#ff8c00', color: '#8b4513' };
+      return {
+        bg: "linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)",
+        border: "#ff8c00",
+        color: "#8b4513",
+      };
     case 2:
-      return { bg: 'linear-gradient(135deg, #ff8c00 0%, #ffa500 100%)', border: '#ff6600', color: '#fff' };
+      return {
+        bg: "linear-gradient(135deg, #ff8c00 0%, #ffa500 100%)",
+        border: "#ff6600",
+        color: "#fff",
+      };
     case 3:
-      return { bg: 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)', border: '#990000', color: '#fff' };
+      return {
+        bg: "linear-gradient(135deg, #ff4444 0%, #cc0000 100%)",
+        border: "#990000",
+        color: "#fff",
+      };
     default:
-      return { bg: 'linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)', border: '#999', color: '#333' };
+      return {
+        bg: "linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)",
+        border: "#999",
+        color: "#333",
+      };
   }
 };
 
-export const Chip = styled.div<{ $state: number; $isSelected: boolean; $isLocked?: boolean }>`
+export const Chip = styled.div<{
+  $state: number;
+  $isSelected: boolean;
+  $isLocked?: boolean;
+}>`
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -342,13 +370,13 @@ export const Chip = styled.div<{ $state: number; $isSelected: boolean; $isLocked
   font-weight: bold;
   color: ${({ $state }) => getChipColor($state).color};
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  cursor: ${({ $isLocked }) => ($isLocked ? 'not-allowed' : 'pointer')};
-  opacity: ${({ $isSelected, $isLocked }) => ($isSelected ? 0.5 : $isLocked ? 0.7 : 1)};
+  cursor: pointer;
+  opacity: ${({ $isSelected }) => ($isSelected ? 0.5 : 1)};
   transition: transform 0.2s;
-  filter: ${({ $isLocked }) => ($isLocked ? 'brightness(0.8)' : 'none')};
+  filter: ${({ $isLocked }) => ($isLocked ? "brightness(0.9)" : "none")};
 
   &:hover {
-    transform: ${({ $isLocked }) => ($isLocked ? 'none' : 'scale(1.1)')};
+    transform: scale(1.1);
   }
 
   @media (max-width: 768px) {
@@ -445,33 +473,42 @@ export const NotificationToast = styled.div<{ $show: boolean }>`
   }
 `;
 
-export const HandRankDisplay = styled.div`
+export const HandRankContainer = styled.div`
   position: absolute;
   bottom: 140px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    bottom: 110px;
+    gap: 8px;
+  }
+`;
+
+export const HandRankDisplay = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: bold;
-  z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.3);
 
   @media (max-width: 768px) {
-    bottom: 110px;
     font-size: 0.85rem;
     padding: 0.6rem 1.2rem;
   }
 `;
 
 export const ReadyButton = styled.button<{ $disabled: boolean }>`
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-weight: bold;
   color: white;
@@ -485,48 +522,60 @@ export const ReadyButton = styled.button<{ $disabled: boolean }>`
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   transition: all 0.3s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 100;
 
   &:hover {
     transform: ${({ $disabled }) => ($disabled ? "" : "scale(1.05)")};
   }
 
   @media (max-width: 768px) {
-    padding: 0.6rem 1.5rem;
-    font-size: 0.9rem;
-    bottom: 15px;
-    right: 15px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
   }
 `;
 
-export const PreviousChips = styled.div<{ $isVertical: boolean }>`
+export const PreviousChips = styled.div<{
+  $isVertical: boolean;
+  $isLeftSide?: boolean;
+  $chipCount?: number;
+}>`
   position: absolute;
   display: flex;
-  flex-direction: ${({ $isVertical }) => ($isVertical ? "column" : "row")};
+  flex-direction: row;
   gap: 4px;
+  justify-content: flex-start;
 
-  ${({ $isVertical }) =>
+  ${({ $isVertical, $isLeftSide, $chipCount = 1 }) =>
     $isVertical
-      ? `
-    bottom: -60px;
-    left: 50%;
-    transform: translateX(-50%);
+      ? $isLeftSide
+        ? `
+    top: -60px;
+    left: ${($chipCount - 1) * 25}px;
+  `
+        : `
+    top: -60px;
+    right: ${($chipCount - 1) * 25}px;
   `
       : `
-    left: -50px;
+    left: ${-50 - ($chipCount - 1) * 25}px;
     top: 50%;
     transform: translateY(-50%);
   `}
 
   @media (max-width: 768px) {
     gap: 3px;
-    ${({ $isVertical }) =>
+    ${({ $isVertical, $isLeftSide, $chipCount = 1 }) =>
       $isVertical
-        ? `
-      bottom: -50px;
+        ? $isLeftSide
+          ? `
+      top: -50px;
+      left: ${($chipCount - 1) * 10}px;
+    `
+          : `
+      top: -50px;
+      right: ${($chipCount - 1) * 10}px;
     `
         : `
-      left: -40px;
+      left: ${-40 - ($chipCount - 1) * 20}px;
     `}
   }
 `;
@@ -550,5 +599,281 @@ export const PreviousChip = styled.div<{ $state: number }>`
     height: 20px;
     font-size: 0.6rem;
     border: 1.5px solid ${({ $state }) => getChipColor($state).border};
+  }
+`;
+
+export const GameFinishContainer = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 700px;
+  max-height: 80%;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  z-index: 100;
+
+  @media (max-width: 768px) {
+    width: 95%;
+    padding: 20px;
+    max-height: 85%;
+  }
+`;
+
+export const GameFinishHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    margin-bottom: 15px;
+  }
+`;
+
+export const GameFinishTitle = styled.h2<{ $isSuccess?: boolean }>`
+  color: ${({ $isSuccess }) => ($isSuccess ? '#4caf50' : '#f44336')};
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-shadow: 0 2px 10px ${({ $isSuccess }) =>
+    $isSuccess ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)'};
+  margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+`;
+
+export const GameFinishCloseButton = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.2rem;
+  padding: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 768px) {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+`;
+
+export const OpenCardsDisplay = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: 6px;
+    margin-bottom: 15px;
+  }
+`;
+
+export const OpenCardDisplayImage = styled.img`
+  width: 55px;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+
+  @media (max-width: 768px) {
+    width: 40px;
+  }
+`;
+
+export const PlayerResultItem = styled.div<{ $isWinner?: boolean; $isLoser?: boolean }>`
+  background: ${({ $isWinner, $isLoser }) =>
+    $isWinner
+      ? 'rgba(76, 175, 80, 0.15)'
+      : $isLoser
+      ? 'rgba(244, 67, 54, 0.15)'
+      : 'rgba(255, 255, 255, 0.05)'};
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  border: 2px solid ${({ $isWinner, $isLoser }) =>
+    $isWinner
+      ? 'rgba(76, 175, 80, 0.5)'
+      : $isLoser
+      ? 'rgba(244, 67, 54, 0.5)'
+      : 'rgba(255, 255, 255, 0.1)'};
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+`;
+
+export const PlayerResultHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+`;
+
+export const PlayerResultNickname = styled.div`
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+export const PlayerResultChips = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+`;
+
+export const PlayerResultCards = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+`;
+
+export const PlayerResultCard = styled.img`
+  width: 50px;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 768px) {
+    width: 38px;
+  }
+`;
+
+export const PlayerResultRank = styled.div<{ $isWinner?: boolean; $isLoser?: boolean }>`
+  color: ${({ $isWinner, $isLoser }) =>
+    $isWinner ? '#4caf50' : $isLoser ? '#f44336' : '#ffd700'};
+  font-size: 1rem;
+  font-weight: bold;
+  text-shadow: 0 1px 5px ${({ $isWinner, $isLoser }) =>
+    $isWinner
+      ? 'rgba(76, 175, 80, 0.5)'
+      : $isLoser
+      ? 'rgba(244, 67, 54, 0.5)'
+      : 'rgba(255, 215, 0, 0.3)'};
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+`;
+
+export const ResultStatus = styled.span<{ $isWinner?: boolean }>`
+  color: ${({ $isWinner }) => ($isWinner ? '#4caf50' : '#f44336')};
+  font-size: 0.85rem;
+  margin-left: 6px;
+  font-weight: normal;
+`;
+
+export const GameFinishActions = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  z-index: 100;
+
+  @media (max-width: 768px) {
+    gap: 15px;
+  }
+`;
+
+export const GameFinishActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  background: ${({ $variant }) =>
+    $variant === 'secondary'
+      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      : 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)'};
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.9rem 2rem;
+    font-size: 1.1rem;
+    min-width: 180px;
+  }
+`;
+
+export const GameFinishBottomButton = styled.button`
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  margin-top: 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg, #555 0%, #333 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #666 0%, #444 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.8rem 1.2rem;
+    font-size: 0.95rem;
+    margin-top: 15px;
   }
 `;

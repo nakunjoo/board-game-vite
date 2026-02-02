@@ -18,6 +18,7 @@ export interface HandResult {
   detailName: string; // 상세 정보 (예: "A 하이카드", "K 원페어", "A 탑 스트레이트")
   cards: Card[];
   score: number;
+  tiebreakers: number[]; // 같은 족보일 때 비교용 값들 (높은 순서대로)
 }
 
 // value는 1-13 (Ace=1, Jack=11, Queen=12, King=13)
@@ -220,7 +221,8 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
       rankName: HAND_NAMES["royal-straight-flush"],
       detailName: "10-J-Q-K-A 로얄 스트레이트 플러시",
       cards,
-      score: HAND_SCORES["royal-straight-flush"]
+      score: HAND_SCORES["royal-straight-flush"],
+      tiebreakers: [14] // A
     };
   }
 
@@ -233,7 +235,8 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
       rankName: HAND_NAMES["straight-flush"],
       detailName: `${getValueDisplayName(topCard.value)} 탑 스트레이트 플러시`,
       cards,
-      score: HAND_SCORES["straight-flush"]
+      score: HAND_SCORES["straight-flush"],
+      tiebreakers: [getRankValue(topCard.value)]
     };
   }
 
@@ -253,7 +256,8 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
       rankName: HAND_NAMES["four-of-a-kind"],
       detailName: `${getValueDisplayName(value)} 포카드`,
       cards: countArray[0][1],
-      score: HAND_SCORES["four-of-a-kind"]
+      score: HAND_SCORES["four-of-a-kind"],
+      tiebreakers: [getRankValue(value)]
     };
   }
 
@@ -266,7 +270,8 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
       rankName: HAND_NAMES["full-house"],
       detailName: `${getValueDisplayName(tripleValue)} 풀하우스 (${getValueDisplayName(pairValue)} 페어)`,
       cards: [...countArray[0][1], ...countArray[1][1].slice(0, 2)],
-      score: HAND_SCORES["full-house"]
+      score: HAND_SCORES["full-house"],
+      tiebreakers: [getRankValue(tripleValue), getRankValue(pairValue)]
     };
   }
 
@@ -274,12 +279,14 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
   if (isFlush(allCards)) {
     const flushCards = getFlushCards(allCards);
     const topCard = flushCards[0];
+    const sortedValues = flushCards.map(c => getRankValue(c.value)).sort((a, b) => b - a);
     return {
       rank: "flush",
       rankName: HAND_NAMES["flush"],
       detailName: `${getValueDisplayName(topCard.value)} 탑 플러시`,
       cards: flushCards,
-      score: HAND_SCORES["flush"]
+      score: HAND_SCORES["flush"],
+      tiebreakers: sortedValues
     };
   }
 
@@ -294,19 +301,47 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
       rankName: HAND_NAMES["straight"],
       detailName: isBackStraight ? "5 탑 스트레이트" : `${getValueDisplayName(topCard.value)} 탑 스트레이트`,
       cards: straightCards,
-      score: HAND_SCORES["straight"]
+      score: HAND_SCORES["straight"],
+      tiebreakers: isBackStraight ? [5] : [getRankValue(topCard.value)]
     };
   }
 
   // 트리플
   if (countArray.length > 0 && countArray[0][1].length === 3) {
     const value = countArray[0][0];
+    const tripleCards = countArray[0][1];
+    const myCardInTriple = tripleCards.some(c => myCards.some(mc => mc.name === c.name));
+
+    if (!myCardInTriple) {
+      // 내 카드가 트리플에 기여하지 않은 경우: 하이카드로 취급
+      const myHighCard = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+      const sortedMyCards = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value));
+      const tiebreakers = sortedMyCards.map(c => getRankValue(c.value));
+
+      return {
+        rank: "high-card",
+        rankName: HAND_NAMES["high-card"],
+        detailName: myHighCard ? `${getValueDisplayName(myHighCard.value)} 하이` : "하이카드",
+        cards: sortedMyCards.slice(0, 5),
+        score: HAND_SCORES["high-card"],
+        tiebreakers
+      };
+    }
+
+    // 내 카드가 트리플에 기여한 경우: 정상 트리플
+    const kickers = allCards
+      .filter(c => !tripleCards.some(tc => tc.name === c.name))
+      .sort((a, b) => getRankValue(b.value) - getRankValue(a.value))
+      .slice(0, 2)
+      .map(c => getRankValue(c.value));
+
     return {
       rank: "three-of-a-kind",
       rankName: HAND_NAMES["three-of-a-kind"],
       detailName: `${getValueDisplayName(value)} 트리플`,
-      cards: countArray[0][1],
-      score: HAND_SCORES["three-of-a-kind"]
+      cards: tripleCards,
+      score: HAND_SCORES["three-of-a-kind"],
+      tiebreakers: [getRankValue(value), ...kickers]
     };
   }
 
@@ -314,34 +349,90 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
   if (countArray.length >= 2 && countArray[0][1].length === 2 && countArray[1][1].length === 2) {
     const highValue = countArray[0][0];
     const lowValue = countArray[1][0];
+    const pairCards = [...countArray[0][1], ...countArray[1][1]];
+    const myCardInPair = pairCards.some(c => myCards.some(mc => mc.name === c.name));
+
+    if (!myCardInPair) {
+      // 내 카드가 투페어에 기여하지 않은 경우: 하이카드로 취급
+      const myHighCard = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+      const sortedMyCards = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value));
+      const tiebreakers = sortedMyCards.map(c => getRankValue(c.value));
+
+      return {
+        rank: "high-card",
+        rankName: HAND_NAMES["high-card"],
+        detailName: myHighCard ? `${getValueDisplayName(myHighCard.value)} 하이` : "하이카드",
+        cards: sortedMyCards.slice(0, 5),
+        score: HAND_SCORES["high-card"],
+        tiebreakers
+      };
+    }
+
+    // 내 카드가 투페어에 기여한 경우: 정상 투페어
+    const kicker = allCards
+      .filter(c => !pairCards.some(pc => pc.name === c.name))
+      .sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+
     return {
       rank: "two-pair",
       rankName: HAND_NAMES["two-pair"],
       detailName: `${getValueDisplayName(highValue)}-${getValueDisplayName(lowValue)} 투페어`,
-      cards: [...countArray[0][1], ...countArray[1][1]],
-      score: HAND_SCORES["two-pair"]
+      cards: pairCards,
+      score: HAND_SCORES["two-pair"],
+      tiebreakers: [getRankValue(highValue), getRankValue(lowValue), kicker ? getRankValue(kicker.value) : 0]
     };
   }
 
   // 원페어
   if (countArray.length > 0 && countArray[0][1].length === 2) {
     const value = countArray[0][0];
+    const pairCards = countArray[0][1];
+    const myCardInPair = pairCards.some(c => myCards.some(mc => mc.name === c.name));
+
+    if (!myCardInPair) {
+      // 내 카드가 원페어에 기여하지 않은 경우: 하이카드로 취급
+      const myHighCard = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+      const sortedMyCards = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value));
+      const tiebreakers = sortedMyCards.map(c => getRankValue(c.value));
+
+      return {
+        rank: "high-card",
+        rankName: HAND_NAMES["high-card"],
+        detailName: myHighCard ? `${getValueDisplayName(myHighCard.value)} 하이` : "하이카드",
+        cards: sortedMyCards.slice(0, 5),
+        score: HAND_SCORES["high-card"],
+        tiebreakers
+      };
+    }
+
+    // 내 카드가 원페어에 기여한 경우: 정상 원페어
+    const kickers = allCards
+      .filter(c => !pairCards.some(pc => pc.name === c.name))
+      .sort((a, b) => getRankValue(b.value) - getRankValue(a.value))
+      .slice(0, 3)
+      .map(c => getRankValue(c.value));
+
     return {
       rank: "one-pair",
       rankName: HAND_NAMES["one-pair"],
       detailName: `${getValueDisplayName(value)} 원페어`,
-      cards: countArray[0][1],
-      score: HAND_SCORES["one-pair"]
+      cards: pairCards,
+      score: HAND_SCORES["one-pair"],
+      tiebreakers: [getRankValue(value), ...kickers]
     };
   }
 
-  // 하이카드
-  const highCard = allCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+  // 하이카드 - 내 손패 중 가장 높은 카드 우선
+  const myCardsSorted = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value));
+  const highCard = myCardsSorted.length > 0 ? myCardsSorted[0] : allCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+  const allSorted = allCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value)).slice(0, 5);
+
   return {
     rank: "high-card",
     rankName: HAND_NAMES["high-card"],
     detailName: `${getValueDisplayName(highCard.value)} 하이카드`,
     cards: [highCard],
-    score: HAND_SCORES["high-card"]
+    score: HAND_SCORES["high-card"],
+    tiebreakers: allSorted.map(c => getRankValue(c.value))
   };
 }

@@ -1,6 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useWebSocket, getNicknameForRoom, clearNicknameForRoom } from "../contexts/WebSocketContext";
+import {
+  useWebSocket,
+  getNicknameForRoom,
+  clearNicknameForRoom,
+} from "../contexts/WebSocketContext";
 import {
   RoomPage,
   RoomHeader,
@@ -32,10 +36,28 @@ import {
   MyChipsArea,
   PlayerChip,
   NotificationToast,
+  HandRankContainer,
   HandRankDisplay,
   ReadyButton,
   PreviousChips,
   PreviousChip,
+  GameFinishContainer,
+  GameFinishHeader,
+  GameFinishTitle,
+  GameFinishCloseButton,
+  GameFinishActions,
+  GameFinishActionButton,
+  GameFinishBottomButton,
+  PlayerResultItem,
+  PlayerResultHeader,
+  PlayerResultNickname,
+  PlayerResultChips,
+  PlayerResultCards,
+  PlayerResultCard,
+  PlayerResultRank,
+  OpenCardsDisplay,
+  OpenCardDisplayImage,
+  ResultStatus,
 } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
 import CardDeck from "../components/CardDeck";
@@ -77,6 +99,12 @@ interface PreviousChipsData {
   [nickname: string]: number[];
 }
 
+interface PlayerResult {
+  nickname: string;
+  hand: Card[];
+  chips: number[];
+}
+
 interface LocationState {
   memberCount?: number;
   players?: { nickname: string; order: number }[];
@@ -103,10 +131,12 @@ export default function Room() {
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [memberCount, setMemberCount] = useState(
-    locationState?.memberCount ?? 0
+    locationState?.memberCount ?? 0,
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [gameConfig, setGameConfig] = useState<GameConfig>(() => getGameConfig("gang"));
+  const [gameConfig, setGameConfig] = useState<GameConfig>(() =>
+    getGameConfig("gang"),
+  );
   const [deck, setDeck] = useState<Card[]>(() => gameConfig.createDeck());
   const [myHand, setMyHand] = useState<Card[]>([]);
   const [playerHands, setPlayerHands] = useState<PlayerHand[]>([]);
@@ -130,8 +160,13 @@ export default function Room() {
   });
   const [notification, setNotification] = useState<string>("");
   const [showNotification, setShowNotification] = useState(false);
+  const [gameFinished, setGameFinished] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,7 +222,7 @@ export default function Room() {
                   nickname: p.nickname,
                   isMe: p.nickname === nickname,
                   order: p.order,
-                }))
+                })),
               );
             }
             if (joinData.deck && joinData.deck.length > 0) {
@@ -225,7 +260,7 @@ export default function Room() {
                 nickname: p.nickname,
                 isMe: p.nickname === nickname,
                 order: p.order,
-              }))
+              })),
             );
           }
           break;
@@ -246,7 +281,7 @@ export default function Room() {
                   nickname: p.nickname,
                   isMe: p.nickname === nickname,
                   order: p.order,
-                }))
+                })),
               );
             } else if (joinData.nickname) {
               setPlayers((prev) => {
@@ -282,7 +317,7 @@ export default function Room() {
             setMemberCount(leftData.memberCount);
             if (leftData.nickname) {
               setPlayers((prev) =>
-                prev.filter((p) => p.nickname !== leftData.nickname)
+                prev.filter((p) => p.nickname !== leftData.nickname),
               );
             }
             setMessages((prev) => [
@@ -362,6 +397,9 @@ export default function Room() {
             if (gameData.chips) {
               setChips(gameData.chips);
             }
+            // 게임 시작 시 준비 상태 초기화
+            setIsReady(false);
+            setReadyPlayers([]);
           }
           break;
         }
@@ -369,13 +407,18 @@ export default function Room() {
           const chipData = data as {
             roomName: string;
             chips: ChipData[];
+            readyPlayers?: string[];
             stolenFrom?: string;
             stolenBy?: string;
             chipNumber?: number;
           };
           if (chipData.roomName === roomName) {
             // 칩 빼앗김 감지
-            if (chipData.stolenFrom && chipData.stolenBy && chipData.chipNumber) {
+            if (
+              chipData.stolenFrom &&
+              chipData.stolenBy &&
+              chipData.chipNumber
+            ) {
               const message = `${chipData.stolenBy}님이 ${chipData.stolenFrom}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
               setNotification(message);
               setShowNotification(true);
@@ -389,9 +432,19 @@ export default function Room() {
               notificationTimerRef.current = setTimeout(() => {
                 setShowNotification(false);
               }, 3000);
+
+              // 내가 빼앗긴 경우 ready 해제
+              if (chipData.stolenFrom === nickname) {
+                setIsReady(false);
+              }
             }
 
             setChips(chipData.chips);
+
+            // 서버에서 보낸 readyPlayers 동기화
+            if (chipData.readyPlayers) {
+              setReadyPlayers(chipData.readyPlayers);
+            }
           }
           break;
         }
@@ -431,10 +484,13 @@ export default function Room() {
             roomName: string;
             finalChips: ChipData[];
             previousChips: PreviousChipsData;
+            openCards: Card[];
+            playerResults: PlayerResult[];
           };
           if (finishData.roomName === roomName) {
-            setNotification("게임이 종료되었습니다!");
-            setShowNotification(true);
+            setGameFinished(true);
+            setPlayerResults(finishData.playerResults);
+            setOpenCards(finishData.openCards);
           }
           break;
         }
@@ -502,13 +558,6 @@ export default function Room() {
 
   const handleChipClick = (chipNumber: number) => {
     if (!roomName || isReady) return; // 준비 완료 후에는 칩 선택 불가
-    const chip = chips.find((c) => c.number === chipNumber);
-    if (!chip) return;
-
-    // 준비 완료한 플레이어의 칩은 선택 불가
-    if (chip.owner && readyPlayers.includes(chip.owner)) {
-      return;
-    }
 
     send("selectChip", { roomName, chipNumber });
   };
@@ -522,10 +571,22 @@ export default function Room() {
     send("playerReady", { roomName });
   };
 
+  const handleNextRound = () => {
+    if (!roomName) return;
+    setGameFinished(false);
+    setShowResults(false);
+    send("startGame", { roomName });
+  };
+
   return (
     <RoomPage>
       <RoomHeader>
-        <h1>{roomName} <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: 400 }}>{gameConfig.displayName}</span></h1>
+        <h1>
+          {roomName}{" "}
+          <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: 400 }}>
+            {gameConfig.displayName}
+          </span>
+        </h1>
         <RoomInfo>
           <ChatToggleButton
             onClick={() => setIsChatOpen(!isChatOpen)}
@@ -579,7 +640,11 @@ export default function Room() {
                 disabled={memberCount < 3}
               >
                 게임 시작
-                {memberCount < 3 && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>({memberCount}/3명)</div>}
+                {memberCount < 3 && (
+                  <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
+                    ({memberCount}/3명)
+                  </div>
+                )}
               </StartGameButton>
             ) : gameStarted ? (
               <>
@@ -588,9 +653,14 @@ export default function Room() {
                     {openCards.map((card, index) => (
                       <OpenCard key={`${card.name}-${index}`}>
                         <OpenCardImage>
-                          <img src={getCardImage(card)} alt={getCardName(card)} />
+                          <img
+                            src={getCardImage(card)}
+                            alt={getCardName(card)}
+                          />
                         </OpenCardImage>
-                        <OpenCardLabel $suit={card.type}>{getCardLabel(card)}</OpenCardLabel>
+                        <OpenCardLabel $suit={card.type}>
+                          {getCardLabel(card)}
+                        </OpenCardLabel>
                       </OpenCard>
                     ))}
                   </OpenCardsArea>
@@ -599,7 +669,9 @@ export default function Room() {
                 {chips.length > 0 && (
                   <ChipsArea>
                     {chips.map((chip) => {
-                      const isLocked = chip.owner ? readyPlayers.includes(chip.owner) : false;
+                      const isLocked = chip.owner
+                        ? readyPlayers.includes(chip.owner)
+                        : false;
                       return (
                         <Chip
                           key={chip.number}
@@ -621,12 +693,15 @@ export default function Room() {
             <PlayerCircle>
               {playerSeats.map(({ player, seatIndex }) => {
                 const handInfo = playerHands.find(
-                  (h) => h.nickname === player.nickname
+                  (h) => h.nickname === player.nickname,
                 );
                 const cardCount = handInfo?.cardCount ?? 0;
                 const pos = getSeatPosition(players.length, seatIndex);
                 const isVertical = pos.left === "0" || pos.right === "0";
-                const playerChip = chips.find((c) => c.owner === player.nickname);
+                const isLeftSide = pos.left === "0";
+                const playerChip = chips.find(
+                  (c) => c.owner === player.nickname,
+                );
 
                 return (
                   <PlayerSeat
@@ -643,19 +718,29 @@ export default function Room() {
                       {player.nickname}
                     </PlayerAvatar>
                     {playerChip && (
-                      <PlayerChip $state={playerChip.state} $isVertical={isVertical}>
+                      <PlayerChip
+                        $state={playerChip.state}
+                        $isVertical={isVertical}
+                      >
                         {playerChip.number}
                       </PlayerChip>
                     )}
-                    {previousChips[player.nickname] && previousChips[player.nickname].length > 0 && (
-                      <PreviousChips $isVertical={isVertical}>
-                        {previousChips[player.nickname].map((chipNum, idx) => (
-                          <PreviousChip key={idx} $state={idx}>
-                            {chipNum}
-                          </PreviousChip>
-                        ))}
-                      </PreviousChips>
-                    )}
+                    {previousChips[player.nickname] &&
+                      previousChips[player.nickname].length > 0 && (
+                        <PreviousChips
+                          $isVertical={isVertical}
+                          $isLeftSide={isLeftSide}
+                          $chipCount={previousChips[player.nickname].length}
+                        >
+                          {previousChips[player.nickname].map(
+                            (chipNum, idx) => (
+                              <PreviousChip key={idx} $state={idx}>
+                                {chipNum}
+                              </PreviousChip>
+                            ),
+                          )}
+                        </PreviousChips>
+                      )}
                     {!player.isMe && cardCount > 0 && (
                       <OtherPlayerHand
                         $totalPlayers={players.length}
@@ -679,24 +764,30 @@ export default function Room() {
                     <CardImageWrapper>
                       <img src={getCardImage(card)} alt={getCardName(card)} />
                     </CardImageWrapper>
-                    <CardLabel $suit={card.type}>{getCardLabel(card)}</CardLabel>
+                    <CardLabel $suit={card.type}>
+                      {getCardLabel(card)}
+                    </CardLabel>
                   </HandCard>
                 ))}
               </MyHandArea>
             )}
-            {myHandRank && (
-              <HandRankDisplay>
-                {myHandRank.detailName}
-              </HandRankDisplay>
-            )}
-            {gameStarted && currentStep <= 4 && (
-              <ReadyButton
-                $disabled={isReady || !chips.some((c) => c.owner === nickname)}
-                onClick={handleReady}
-                disabled={isReady || !chips.some((c) => c.owner === nickname)}
-              >
-                {isReady ? `대기중 (${readyPlayers.length}/${players.length})` : "OK"}
-              </ReadyButton>
+            {(myHandRank || (gameStarted && currentStep <= 4)) && (
+              <HandRankContainer>
+                {myHandRank && (
+                  <HandRankDisplay>{myHandRank.detailName}</HandRankDisplay>
+                )}
+                {gameStarted && currentStep <= 4 && (
+                  <ReadyButton
+                    $disabled={isReady || !chips.some((c) => c.owner === nickname)}
+                    onClick={handleReady}
+                    disabled={isReady || !chips.some((c) => c.owner === nickname)}
+                  >
+                    {isReady
+                      ? `대기중 (${readyPlayers.length}/${players.length})`
+                      : "OK"}
+                  </ReadyButton>
+                )}
+              </HandRankContainer>
             )}
           </GameBoard>
         </GameArea>
@@ -751,6 +842,124 @@ export default function Room() {
           </ChatInputArea>
         </ChatArea>
       </RoomContent>
+
+      {gameFinished && !showResults && (
+        <GameFinishActions>
+          <GameFinishActionButton onClick={() => setShowResults(true)}>
+            결과 보기
+          </GameFinishActionButton>
+          <GameFinishActionButton $variant="secondary" onClick={handleNextRound}>
+            다음 라운드 진행
+          </GameFinishActionButton>
+        </GameFinishActions>
+      )}
+
+      {gameFinished && showResults && (() => {
+        // 모든 플레이어의 족보 계산
+        const allRanks = playerResults.map((r) => evaluateHand(r.hand, openCards));
+
+        // 족보 비교 함수 (a가 b보다 낮거나 같으면 true)
+        const isLowerOrEqualRank = (a: HandResult, b: HandResult): boolean => {
+          if (a.score !== b.score) return a.score < b.score;
+
+          // 같은 족보일 때 tiebreakers로 비교
+          for (let i = 0; i < Math.max(a.tiebreakers.length, b.tiebreakers.length); i++) {
+            const aVal = a.tiebreakers[i] || 0;
+            const bVal = b.tiebreakers[i] || 0;
+            if (aVal !== bVal) return aVal < bVal;
+          }
+          return true; // 완전히 같으면 true (이하 조건)
+        };
+
+        // 전체 게임 성공 여부: 모든 플레이어가 순서대로 족보가 올라가야 함 (1 <= 2 <= 3)
+        let isGameSuccess = true;
+        for (let i = 0; i < allRanks.length - 1; i++) {
+          if (!isLowerOrEqualRank(allRanks[i], allRanks[i + 1])) {
+            isGameSuccess = false;
+            break;
+          }
+        }
+
+        return (
+          <GameFinishContainer>
+            <GameFinishHeader>
+              <GameFinishTitle $isSuccess={isGameSuccess}>
+                게임 종료 - {isGameSuccess ? '성공' : '실패'}
+              </GameFinishTitle>
+              <GameFinishCloseButton onClick={() => setShowResults(false)}>
+                ✕
+              </GameFinishCloseButton>
+            </GameFinishHeader>
+            <OpenCardsDisplay>
+              {openCards.map((card, index) => (
+                <OpenCardDisplayImage
+                  key={index}
+                  src={card.image}
+                  alt={card.name}
+                />
+              ))}
+            </OpenCardsDisplay>
+            {playerResults.map((result, index) => {
+              const handRank = evaluateHand(result.hand, openCards);
+
+              let isWinner = false;
+              let isLoser = false;
+
+              // 각 플레이어는 이전 플레이어보다 높거나 같은 족보를 가져야 성공
+              if (index === 0) {
+                // 첫 번째 플레이어: 다음 플레이어보다 낮거나 같으면 성공
+                if (index < allRanks.length - 1) {
+                  isWinner = isLowerOrEqualRank(allRanks[index], allRanks[index + 1]);
+                  isLoser = !isWinner;
+                } else {
+                  isWinner = isGameSuccess;
+                }
+              } else {
+                // 나머지 플레이어: 이전 플레이어보다 높거나 같고, 다음 플레이어보다 낮거나 같으면 성공
+                const higherOrEqualThanPrev = isLowerOrEqualRank(allRanks[index - 1], allRanks[index]);
+                const lowerOrEqualThanNext = index < allRanks.length - 1 ? isLowerOrEqualRank(allRanks[index], allRanks[index + 1]) : true;
+                isWinner = higherOrEqualThanPrev && lowerOrEqualThanNext;
+                isLoser = !isWinner;
+              }
+
+              return (
+                <PlayerResultItem key={index} $isWinner={isWinner} $isLoser={isLoser}>
+                  <PlayerResultHeader>
+                    <PlayerResultNickname>
+                      {result.nickname}
+                    </PlayerResultNickname>
+                    <PlayerResultChips>
+                      {result.chips.map((chip, chipIndex) => (
+                        <PreviousChip key={chipIndex} $state={typeof chip === 'object' ? chip.state : chipIndex}>
+                          {typeof chip === 'object' ? chip.number : chip}
+                        </PreviousChip>
+                      ))}
+                    </PlayerResultChips>
+                  </PlayerResultHeader>
+                  <PlayerResultCards>
+                    {result.hand.map((card, cardIndex) => (
+                      <PlayerResultCard
+                        key={cardIndex}
+                        src={card.image}
+                        alt={card.name}
+                      />
+                    ))}
+                  </PlayerResultCards>
+                  <PlayerResultRank $isWinner={isWinner} $isLoser={isLoser}>
+                    {handRank.detailName}
+                    <ResultStatus $isWinner={isWinner}>
+                      {isLoser ? ' (실패)' : ' (성공)'}
+                    </ResultStatus>
+                  </PlayerResultRank>
+                </PlayerResultItem>
+              );
+            })}
+            <GameFinishBottomButton onClick={() => setShowResults(false)}>
+              닫기
+            </GameFinishBottomButton>
+          </GameFinishContainer>
+        );
+      })()}
     </RoomPage>
   );
 }
