@@ -20,10 +20,12 @@ import {
   PlayerCircle,
   MyHandArea,
   HandCard,
+  CardImageWrapper,
+  CardLabel,
 } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
 import CardDeck from "../components/CardDeck";
-import { getCardImage, getCardName } from "../utils/cards";
+import { getCardImage, getCardName, getCardLabel } from "../utils/cards";
 import { getGameConfig } from "../utils/games";
 import {
   ChatToggleButton,
@@ -382,6 +384,8 @@ export default function Room() {
                   (h) => h.nickname === player.nickname
                 );
                 const cardCount = handInfo?.cardCount ?? 0;
+                const pos = getSeatPosition(players.length, seatIndex);
+                const isVertical = pos.left === "0" || pos.right === "0";
 
                 return (
                   <PlayerSeat
@@ -390,25 +394,25 @@ export default function Room() {
                     $seatIndex={seatIndex}
                     $isMe={player.isMe}
                   >
-                    <PlayerAvatar $isMe={player.isMe} $colorIndex={seatIndex}>
-                      {player.nickname.slice(0, 2)}
+                    <PlayerAvatar
+                      $isMe={player.isMe}
+                      $colorIndex={seatIndex}
+                      $isVertical={isVertical}
+                    >
+                      {player.nickname}
                     </PlayerAvatar>
-                    {!player.isMe && cardCount > 0 && (() => {
-                      const pos = getSeatPosition(players.length, seatIndex);
-                      const isVertical = pos.left === "0" || pos.right === "0";
-                      return (
-                        <OtherPlayerHand
-                          $totalPlayers={players.length}
-                          $seatIndex={seatIndex}
-                        >
-                          {Array.from({ length: cardCount }).map((_, i) => (
-                            <OtherPlayerCard key={i} $vertical={isVertical}>
-                              <img src={gameConfig.cardBack} alt="카드 뒷면" />
-                            </OtherPlayerCard>
-                          ))}
-                        </OtherPlayerHand>
-                      );
-                    })()}
+                    {!player.isMe && cardCount > 0 && (
+                      <OtherPlayerHand
+                        $totalPlayers={players.length}
+                        $seatIndex={seatIndex}
+                      >
+                        {Array.from({ length: cardCount }).map((_, i) => (
+                          <OtherPlayerCard key={i} $vertical={isVertical}>
+                            <img src={gameConfig.cardBack} alt="카드 뒷면" />
+                          </OtherPlayerCard>
+                        ))}
+                      </OtherPlayerHand>
+                    )}
                   </PlayerSeat>
                 );
               })}
@@ -417,7 +421,10 @@ export default function Room() {
               <MyHandArea>
                 {myHand.map((card) => (
                   <HandCard key={getCardName(card)}>
-                    <img src={getCardImage(card)} alt={getCardName(card)} />
+                    <CardImageWrapper>
+                      <img src={getCardImage(card)} alt={getCardName(card)} />
+                    </CardImageWrapper>
+                    <CardLabel $suit={card.type}>{getCardLabel(card)}</CardLabel>
                   </HandCard>
                 ))}
               </MyHandArea>

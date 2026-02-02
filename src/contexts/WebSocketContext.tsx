@@ -66,7 +66,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3000/ws");
+    const ws = new WebSocket("ws://localhost:9030/ws");
     wsRef.current = ws;
 
     ws.onopen = () => {

@@ -125,18 +125,12 @@ export const PlayerSeat = styled.div<{
   $isMe: boolean;
 }>`
   position: absolute;
-  width: 50px;
-  height: 50px;
-
-  @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
-  }
 
   overflow: visible;
 
   ${({ $totalPlayers, $seatIndex }) => {
     const pos = getSeatPosition($totalPlayers, $seatIndex);
+
     return css`
       ${pos.top !== undefined && `top: ${pos.top};`}
       ${pos.bottom !== undefined && `bottom: ${pos.bottom};`}
@@ -172,21 +166,26 @@ const AVATAR_COLORS = [
   { bg: "#00bcd4", border: "#009aab" },
 ];
 
-export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number }>`
-  width: 100%;
-  height: 100%;
+export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number; $isVertical?: boolean }>`
   background-color: ${({ $colorIndex }) => AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].bg};
-  border-radius: 50%;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: white;
   border: 2px solid ${({ $colorIndex }) => AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].border};
+  padding: ${({ $isVertical }) => $isVertical ? '0.8rem 0.3rem' : '0.3rem 0.8rem'};
+
+  ${({ $isVertical }) => $isVertical && css`
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  `}
 
   @media (max-width: 768px) {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
+    padding: ${({ $isVertical }) => $isVertical ? '0.6rem 0.2rem' : '0.2rem 0.6rem'};
   }
 `;
 

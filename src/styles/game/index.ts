@@ -69,7 +69,7 @@ export const MyHandArea = styled.div`
   z-index: 10;
 
   @media (max-width: 768px) {
-    bottom: 45px;
+    bottom: 65px;
   }
 `;
 
@@ -78,10 +78,14 @@ export const HandCard = styled.div`
   width: 60px;
   height: 84px;
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
   transition: transform 0.2s;
   margin-left: 4px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   &:first-child {
     margin-left: 0;
@@ -91,16 +95,41 @@ export const HandCard = styled.div`
     transform: translateY(-10px);
   }
 
+  @media (max-width: 768px) {
+    width: 45px;
+    height: 63px;
+    margin-left: 3px;
+  }
+`;
+
+export const CardImageWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+
   img {
     width: 100%;
     height: 100%;
     object-fit: contain;
   }
+`;
+
+export const CardLabel = styled.div<{ $suit: string }>`
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${({ $suit }) =>
+    $suit === "hearts" || $suit === "diamonds" ? "#ff4444" : "#fff"};
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
 
   @media (max-width: 768px) {
-    width: 45px;
-    height: 63px;
-    margin-left: 3px;
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    margin-top: 2px;
   }
 `;
 
