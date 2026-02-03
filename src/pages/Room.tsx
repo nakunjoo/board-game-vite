@@ -549,7 +549,7 @@ export default function Room() {
 
   // 족보 계산
   const myHandRank: HandResult | null =
-    myHand.length > 0 && openCards.length > 0
+    myHand.length > 0
       ? evaluateHand(myHand, openCards)
       : null;
 
@@ -596,31 +596,6 @@ export default function Room() {
           </span>
         </h1>
         <RoomInfo>
-          <ChatToggleButtonWrapper>
-            <ChatToggleButton
-              onClick={() => {
-                setIsChatOpen(!isChatOpen);
-                if (!isChatOpen) {
-                  setHasUnreadMessages(false);
-                }
-              }}
-              aria-label="채팅"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </ChatToggleButton>
-            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
-          </ChatToggleButtonWrapper>
           <MemberCount>{memberCount}명 참여중</MemberCount>
           <LeaveButton onClick={leaveRoom} aria-label="나가기">
             <span className="leave-text">나가기</span>
@@ -670,6 +645,29 @@ export default function Room() {
             onReady={handleReady}
             onKickPlayer={handleKickPlayer}
           />
+          <ChatToggleButtonWrapper>
+            <ChatToggleButton
+              onClick={() => {
+                setIsChatOpen(!isChatOpen);
+                if (!isChatOpen) {
+                  setHasUnreadMessages(false);
+                }
+              }}
+              aria-label="채팅"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </ChatToggleButton>
+            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
+          </ChatToggleButtonWrapper>
         </GameArea>
 
         <ChatArea $isOpen={isChatOpen}>

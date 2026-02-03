@@ -24,6 +24,7 @@ const GAME_TYPES = [
 ];
 
 type ModalMode = "create" | "join";
+type JoinStep = "password" | "nickname";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
@@ -38,6 +39,7 @@ export default function Lobby() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
+  const [joinStep, setJoinStep] = useState<JoinStep>("password");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,6 +74,16 @@ export default function Lobby() {
         case "userLeft":
           send("getRooms");
           break;
+        case "passwordVerified": {
+          const verifyData = data as { name: string; success: boolean };
+          if (verifyData.success) {
+            setJoinStep("nickname");
+          } else {
+            setError("비밀번호가 일치하지 않습니다");
+            setTimeout(() => setError(null), 3000);
+          }
+          break;
+        }
         case "error":
           setError((data as { message: string }).message);
           setTimeout(() => setError(null), 3000);
@@ -116,6 +128,7 @@ export default function Lobby() {
     setModalMode("join");
     setJoinTargetRoom(name);
     setJoinTargetIsPrivate(isPrivateRoom || false);
+    setJoinStep(isPrivateRoom ? "password" : "nickname");
     setNicknameInput("");
     setPasswordInput("");
     setShowModal(true);
@@ -162,6 +175,13 @@ export default function Lobby() {
   const handleConfirm = () => {
     if (modalMode === "create") {
       createRoom();
+    } else if (joinTargetIsPrivate && joinStep === "password") {
+      if (!passwordInput.trim()) {
+        setError("비밀번호를 입력해주세요");
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+      send("verifyPassword", { name: joinTargetRoom, password: passwordInput.trim() });
     } else {
       joinRoom();
     }
@@ -217,26 +237,23 @@ export default function Lobby() {
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <h2>{modalMode === "create" ? "방 만들기" : `${joinTargetRoom} 입장`}</h2>
             {modalMode === "create" && (
-              <ModalInput
-                type="text"
-                value={newRoomName}
-                onChange={(e) => setNewRoomName(e.target.value)}
-                placeholder="방 이름 입력"
-                onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                autoFocus
-              />
-            )}
-            <ModalInput
-              type="text"
-              value={nicknameInput}
-              onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
-              placeholder="닉네임 (미입력 시 랜덤)"
-              maxLength={6}
-              onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-              autoFocus={modalMode === "join" && !joinTargetIsPrivate}
-            />
-            {modalMode === "create" && (
               <>
+                <ModalInput
+                  type="text"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  placeholder="방 이름 입력"
+                  onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                  autoFocus
+                />
+                <ModalInput
+                  type="text"
+                  value={nicknameInput}
+                  onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
+                  placeholder="닉네임 (미입력 시 랜덤)"
+                  maxLength={6}
+                  onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                />
                 <RadioGroup>
                   <label>게임 타입</label>
                   {GAME_TYPES.map((type) => (
@@ -262,7 +279,7 @@ export default function Lobby() {
                 </CheckboxOption>
                 {isPrivate && (
                   <ModalInput
-                    type="password"
+                    type="text"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="비밀번호 입력"
@@ -271,12 +288,23 @@ export default function Lobby() {
                 )}
               </>
             )}
-            {modalMode === "join" && joinTargetIsPrivate && (
+            {modalMode === "join" && joinTargetIsPrivate && joinStep === "password" && (
               <ModalInput
-                type="password"
+                type="text"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="비밀번호 입력"
+                onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                autoFocus
+              />
+            )}
+            {modalMode === "join" && (!joinTargetIsPrivate || joinStep === "nickname") && (
+              <ModalInput
+                type="text"
+                value={nicknameInput}
+                onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
+                placeholder="닉네임 (미입력 시 랜덤)"
+                maxLength={6}
                 onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
                 autoFocus
               />
@@ -288,7 +316,7 @@ export default function Lobby() {
                 onClick={handleConfirm}
                 disabled={isConfirmDisabled}
               >
-                {modalMode === "create" ? "만들기" : "입장"}
+                {modalMode === "create" ? "만들기" : joinTargetIsPrivate && joinStep === "password" ? "확인" : "입장"}
               </ModalButton>
             </ModalButtons>
           </ModalContent>

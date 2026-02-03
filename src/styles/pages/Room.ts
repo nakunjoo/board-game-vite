@@ -24,21 +24,22 @@ export const RoomHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid #3a3a3a;
-  margin-bottom: 1rem;
+  margin-bottom: 0.4rem;
 
   h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 
   @media (max-width: 768px) {
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
+    padding: 0.2rem;
+    padding-top: 0;
+    margin-bottom: 0.2rem;
 
     h1 {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
     }
   }
 `;
@@ -113,7 +114,7 @@ export const RoomContent = styled.div`
 // 플레이어 좌석 관련
 export const getSeatPosition = (
   totalPlayers: number,
-  seatIndex: number
+  seatIndex: number,
 ): SeatPosition => {
   const positions =
     SEAT_POSITIONS[Math.min(totalPlayers, 6)] || SEAT_POSITIONS[6];
@@ -172,8 +173,13 @@ export const PlayerAvatarWrapper = styled.div`
   display: inline-flex;
 `;
 
-export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number; $isVertical?: boolean }>`
-  background-color: ${({ $colorIndex }) => AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].bg};
+export const PlayerAvatar = styled.div<{
+  $isMe: boolean;
+  $colorIndex: number;
+  $isVertical?: boolean;
+}>`
+  background-color: ${({ $colorIndex }) =>
+    AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].bg};
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -181,17 +187,23 @@ export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number; $i
   font-size: 0.75rem;
   font-weight: 600;
   color: white;
-  border: 2px solid ${({ $colorIndex }) => AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].border};
-  padding: ${({ $isVertical }) => $isVertical ? '0.8rem 0.3rem' : '0.3rem 0.8rem'};
+  border: 2px solid
+    ${({ $colorIndex }) =>
+      AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].border};
+  padding: ${({ $isVertical }) =>
+    $isVertical ? "0.8rem 0.3rem" : "0.3rem 0.8rem"};
 
-  ${({ $isVertical }) => $isVertical && css`
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-  `}
+  ${({ $isVertical }) =>
+    $isVertical &&
+    css`
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    `}
 
   @media (max-width: 768px) {
     font-size: 0.6rem;
-    padding: ${({ $isVertical }) => $isVertical ? '0.6rem 0.2rem' : '0.2rem 0.6rem'};
+    padding: ${({ $isVertical }) =>
+      $isVertical ? "0.6rem 0.2rem" : "0.2rem 0.6rem"};
   }
 `;
 
@@ -235,7 +247,7 @@ export const KickButton = styled.button`
 // 카드 위치 계산 함수
 export const getCardPosition = (
   totalPlayers: number,
-  seatIndex: number
+  seatIndex: number,
 ): { top?: string; bottom?: string; left?: string; right?: string } => {
   const pos = getSeatPosition(totalPlayers, seatIndex);
   const offset = "60px";

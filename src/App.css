@@ -1,16 +1,21 @@
 #root {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0.5rem;
   height: 100vh;
   box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   #root {
-    padding: 0.5rem;
-    padding-top: 1rem;
+    padding: 0.3rem;
     font-size: 14px;
+    height: 100dvh;
+
+    -ms-overflow-style: none;
+    ::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 

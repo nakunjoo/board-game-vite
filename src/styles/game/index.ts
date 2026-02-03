@@ -2,6 +2,7 @@ import styled from "styled-components";
 
 export const GameArea = styled.div`
   flex: 1;
+  position: relative;
   background-color: #1a1a1a;
   border-radius: 8px;
   padding: 1rem;
@@ -28,10 +29,10 @@ export const GameArea = styled.div`
 export const GameBoard = styled.div`
   aspect-ratio: 1;
   width: 100%;
-  max-width: min(100%, calc(100vh - 200px));
+  max-width: 100%;
   max-height: 100%;
   position: relative;
-  background-color: #2a2a2a;
+  background-color: #1a5c2a;
   border-radius: 8px;
   overflow: visible;
 
@@ -343,34 +344,24 @@ export const WinLossLight = styled.div<{ $isActive: boolean; $isWin: boolean }>`
   height: 12px;
   border-radius: 50%;
   background-color: ${({ $isActive, $isWin }) =>
-    $isActive
-      ? $isWin
-        ? '#4caf50'
-        : '#f44336'
-      : '#2a2a2a'};
-  border: 2px solid ${({ $isActive, $isWin }) =>
-    $isActive
-      ? $isWin
-        ? '#45a049'
-        : '#d32f2f'
-      : '#444'};
+    $isActive ? ($isWin ? "#4caf50" : "#f44336") : "#2a2a2a"};
+  border: 2px solid
+    ${({ $isActive, $isWin }) =>
+      $isActive ? ($isWin ? "#45a049" : "#d32f2f") : "#444"};
   box-shadow: ${({ $isActive, $isWin }) =>
     $isActive
       ? $isWin
-        ? '0 0 8px rgba(76, 175, 80, 0.8)'
-        : '0 0 8px rgba(244, 67, 54, 0.8)'
-      : 'none'};
+        ? "0 0 8px rgba(76, 175, 80, 0.8)"
+        : "0 0 8px rgba(244, 67, 54, 0.8)"
+      : "none"};
   transition: all 0.3s;
 
   @media (max-width: 768px) {
     width: 10px;
     height: 10px;
-    border: 1.5px solid ${({ $isActive, $isWin }) =>
-      $isActive
-        ? $isWin
-          ? '#45a049'
-          : '#d32f2f'
-        : '#444'};
+    border: 1.5px solid
+      ${({ $isActive, $isWin }) =>
+        $isActive ? ($isWin ? "#45a049" : "#d32f2f") : "#444"};
   }
 `;
 
@@ -380,31 +371,31 @@ const getChipColor = (state: number) => {
       return {
         bg: "linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)",
         border: "#999",
-        color: "#333",
+        color: "#000",
       };
     case 1:
       return {
         bg: "linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)",
         border: "#ff8c00",
-        color: "#8b4513",
+        color: "#000",
       };
     case 2:
       return {
         bg: "linear-gradient(135deg, #ff8c00 0%, #ffa500 100%)",
         border: "#ff6600",
-        color: "#fff",
+        color: "#000",
       };
     case 3:
       return {
         bg: "linear-gradient(135deg, #ff4444 0%, #cc0000 100%)",
         border: "#990000",
-        color: "#fff",
+        color: "#000",
       };
     default:
       return {
         bg: "linear-gradient(135deg, #f0f0f0 0%, #ffffff 100%)",
         border: "#999",
-        color: "#333",
+        color: "#000",
       };
   }
 };
@@ -422,7 +413,7 @@ export const Chip = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   font-weight: bold;
   color: ${({ $state }) => getChipColor($state).color};
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -438,7 +429,7 @@ export const Chip = styled.div<{
   @media (max-width: 768px) {
     width: 40px;
     height: 40px;
-    font-size: 1rem;
+    font-size: 1.2rem;
     border: 2px solid ${({ $state }) => getChipColor($state).border};
   }
 `;
@@ -468,7 +459,7 @@ export const PlayerChip = styled.div<{ $state: number; $isVertical: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: ${({ $state }) => getChipColor($state).color};
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -490,7 +481,7 @@ export const PlayerChip = styled.div<{ $state: number; $isVertical: boolean }>`
   @media (max-width: 768px) {
     width: 28px;
     height: 28px;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     border: 1.5px solid ${({ $state }) => getChipColor($state).border};
 
     ${({ $isVertical }) =>
@@ -645,7 +636,7 @@ export const PreviousChip = styled.div<{ $state: number }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   font-weight: bold;
   color: ${({ $state }) => getChipColor($state).color};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -653,7 +644,7 @@ export const PreviousChip = styled.div<{ $state: number }>`
   @media (max-width: 768px) {
     width: 20px;
     height: 20px;
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     border: 1.5px solid ${({ $state }) => getChipColor($state).border};
   }
 `;
@@ -692,11 +683,12 @@ export const GameFinishHeader = styled.div`
 `;
 
 export const GameFinishTitle = styled.h2<{ $isSuccess?: boolean }>`
-  color: ${({ $isSuccess }) => ($isSuccess ? '#4caf50' : '#f44336')};
+  color: ${({ $isSuccess }) => ($isSuccess ? "#4caf50" : "#f44336")};
   font-size: 1.5rem;
   font-weight: bold;
-  text-shadow: 0 2px 10px ${({ $isSuccess }) =>
-    $isSuccess ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)'};
+  text-shadow: 0 2px 10px
+    ${({ $isSuccess }) =>
+      $isSuccess ? "rgba(76, 175, 80, 0.5)" : "rgba(244, 67, 54, 0.5)"};
   margin: 0;
 
   @media (max-width: 768px) {
@@ -756,22 +748,26 @@ export const OpenCardDisplayImage = styled.img`
   }
 `;
 
-export const PlayerResultItem = styled.div<{ $isWinner?: boolean; $isLoser?: boolean }>`
+export const PlayerResultItem = styled.div<{
+  $isWinner?: boolean;
+  $isLoser?: boolean;
+}>`
   background: ${({ $isWinner, $isLoser }) =>
     $isWinner
-      ? 'rgba(76, 175, 80, 0.15)'
+      ? "rgba(76, 175, 80, 0.15)"
       : $isLoser
-      ? 'rgba(244, 67, 54, 0.15)'
-      : 'rgba(255, 255, 255, 0.05)'};
+        ? "rgba(244, 67, 54, 0.15)"
+        : "rgba(255, 255, 255, 0.05)"};
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 12px;
-  border: 2px solid ${({ $isWinner, $isLoser }) =>
-    $isWinner
-      ? 'rgba(76, 175, 80, 0.5)'
-      : $isLoser
-      ? 'rgba(244, 67, 54, 0.5)'
-      : 'rgba(255, 255, 255, 0.1)'};
+  border: 2px solid
+    ${({ $isWinner, $isLoser }) =>
+      $isWinner
+        ? "rgba(76, 175, 80, 0.5)"
+        : $isLoser
+          ? "rgba(244, 67, 54, 0.5)"
+          : "rgba(255, 255, 255, 0.1)"};
 
   @media (max-width: 768px) {
     padding: 12px;
@@ -830,17 +826,21 @@ export const PlayerResultCard = styled.img`
   }
 `;
 
-export const PlayerResultRank = styled.div<{ $isWinner?: boolean; $isLoser?: boolean }>`
+export const PlayerResultRank = styled.div<{
+  $isWinner?: boolean;
+  $isLoser?: boolean;
+}>`
   color: ${({ $isWinner, $isLoser }) =>
-    $isWinner ? '#4caf50' : $isLoser ? '#f44336' : '#ffd700'};
+    $isWinner ? "#4caf50" : $isLoser ? "#f44336" : "#ffd700"};
   font-size: 1rem;
   font-weight: bold;
-  text-shadow: 0 1px 5px ${({ $isWinner, $isLoser }) =>
-    $isWinner
-      ? 'rgba(76, 175, 80, 0.5)'
-      : $isLoser
-      ? 'rgba(244, 67, 54, 0.5)'
-      : 'rgba(255, 215, 0, 0.3)'};
+  text-shadow: 0 1px 5px
+    ${({ $isWinner, $isLoser }) =>
+      $isWinner
+        ? "rgba(76, 175, 80, 0.5)"
+        : $isLoser
+          ? "rgba(244, 67, 54, 0.5)"
+          : "rgba(255, 215, 0, 0.3)"};
 
   @media (max-width: 768px) {
     font-size: 0.9rem;
@@ -848,7 +848,7 @@ export const PlayerResultRank = styled.div<{ $isWinner?: boolean; $isLoser?: boo
 `;
 
 export const ResultStatus = styled.span<{ $isWinner?: boolean }>`
-  color: ${({ $isWinner }) => ($isWinner ? '#4caf50' : '#f44336')};
+  color: ${({ $isWinner }) => ($isWinner ? "#4caf50" : "#f44336")};
   font-size: 0.85rem;
   margin-left: 6px;
   font-weight: normal;
@@ -870,16 +870,18 @@ export const GameFinishActions = styled.div`
   }
 `;
 
-export const GameFinishActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+export const GameFinishActionButton = styled.button<{
+  $variant?: "primary" | "secondary";
+}>`
   padding: 1rem 2.5rem;
   font-size: 1.2rem;
   font-weight: bold;
   color: white;
   background: ${({ $variant }) =>
-    $variant === 'secondary'
-      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-      : 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)'};
-  border: none;
+    $variant === "secondary"
+      ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+      : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
+  border: 2px solid #000;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;

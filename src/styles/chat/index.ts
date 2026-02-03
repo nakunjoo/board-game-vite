@@ -1,7 +1,10 @@
 import styled from "styled-components";
 
 export const ChatToggleButtonWrapper = styled.div`
-  position: relative;
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
   display: inline-flex;
 `;
 
@@ -37,15 +40,20 @@ export const ChatNotificationBadge = styled.span`
 `;
 
 export const ChatToggleButton = styled.button`
-  padding: 0.5rem;
+  padding: 0.75rem;
   background-color: #646cff;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
 
   &:hover {
     background-color: #535bf2;
@@ -53,11 +61,11 @@ export const ChatToggleButton = styled.button`
   }
 
   @media (max-width: 768px) {
-    padding: 0.3rem;
+    padding: 0.5rem;
 
     svg {
-      width: 16px;
-      height: 16px;
+      width: 22px;
+      height: 22px;
     }
   }
 `;
@@ -71,6 +79,7 @@ export const ChatArea = styled.div<{ $isOpen?: boolean }>`
   background-color: #1a1a1a;
   border-radius: 8px;
   overflow: hidden;
+  z-index: 200;
 
   @media (max-width: 1080px) {
     flex: none;
@@ -89,7 +98,7 @@ export const ChatArea = styled.div<{ $isOpen?: boolean }>`
     transform: translateY(${({ $isOpen }) => ($isOpen ? "0" : "100%")});
     transition: transform 0.3s ease-in-out;
     border-radius: 16px 16px 0 0;
-    z-index: 100;
+    z-index: 200;
   }
 `;
 
