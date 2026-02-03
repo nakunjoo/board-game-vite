@@ -418,6 +418,10 @@ export default function Room() {
             // 서버에서 보낸 readyPlayers 동기화
             if (chipData.readyPlayers) {
               setReadyPlayers(chipData.readyPlayers);
+              // 내가 readyPlayers에 없으면 isReady를 false로
+              if (!chipData.readyPlayers.includes(nickname)) {
+                setIsReady(false);
+              }
             }
           }
           break;
@@ -471,6 +475,7 @@ export default function Room() {
             setGameFinished(true);
             setPlayerResults(finishData.playerResults);
             setOpenCards(finishData.openCards);
+            setShowResults(true); // 결과 모달 자동으로 열기
             if (finishData.winLossRecord !== undefined) {
               setWinLossRecord(finishData.winLossRecord);
             }

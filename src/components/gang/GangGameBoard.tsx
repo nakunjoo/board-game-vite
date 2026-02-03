@@ -102,12 +102,20 @@ export default function GangGameBoard({
   onReady,
   onKickPlayer,
 }: GangGameBoardProps) {
-  const playerSeats = players
-    .filter((p) => !p.isMe)
-    .map((player, index) => ({
+  // 나를 기준으로 상대적 좌석 계산
+  const me = players.find((p) => p.isMe);
+  const myOrder = me?.order ?? 0;
+  const totalPlayers = players.length;
+
+  const playerSeats = players.map((player) => {
+    const playerOrder = player.order ?? 0;
+    // 나를 0번 자리(6시)로 하고, 다른 플레이어들의 상대적 위치 계산
+    const seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers;
+    return {
       player,
-      seatIndex: index,
-    }));
+      seatIndex,
+    };
+  });
 
   return (
     <GameBoard>
@@ -245,6 +253,7 @@ export default function GangGameBoard({
             (h) => h.nickname === player.nickname,
           );
           const cardCount = handInfo?.cardCount ?? 0;
+          // 전체 플레이어 수 기준으로 좌석 위치 계산
           const pos = getSeatPosition(players.length, seatIndex);
           const isVertical = pos.left === "0" || pos.right === "0";
           const isLeftSide = pos.left === "0";
