@@ -108,3 +108,21 @@ export const ModalButton = styled.button<{ $primary?: boolean }>`
     cursor: not-allowed;
   }
 `;
+
+// 체크박스 옵션
+export const CheckboxOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+
+  input[type="checkbox"] {
+    accent-color: #646cff;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+`;

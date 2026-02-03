@@ -9,12 +9,14 @@ import {
   RadioOption,
   ModalButtons,
   ModalButton,
+  CheckboxOption,
 } from "../styles/pages/Lobby";
 
 interface Room {
   name: string;
   memberCount: number;
   gameStarted?: boolean;
+  isPrivate?: boolean;
 }
 
 const GAME_TYPES = [
@@ -33,6 +35,9 @@ export default function Lobby() {
   const [nicknameInput, setNicknameInput] = useState("");
   const [gameType, setGameType] = useState("gang");
   const [joinTargetRoom, setJoinTargetRoom] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -97,10 +102,12 @@ export default function Lobby() {
     setNewRoomName("");
     setNicknameInput("");
     setGameType("gang");
+    setIsPrivate(false);
+    setPasswordInput("");
     setShowModal(true);
   };
 
-  const openJoinModal = (name: string, gameStarted?: boolean) => {
+  const openJoinModal = (name: string, gameStarted?: boolean, isPrivateRoom?: boolean) => {
     if (gameStarted) {
       setError("이미 게임이 시작된 방입니다");
       setTimeout(() => setError(null), 3000);
@@ -108,20 +115,47 @@ export default function Lobby() {
     }
     setModalMode("join");
     setJoinTargetRoom(name);
+    setJoinTargetIsPrivate(isPrivateRoom || false);
     setNicknameInput("");
+    setPasswordInput("");
     setShowModal(true);
   };
 
   const createRoom = () => {
     if (!newRoomName.trim()) return;
+    if (isPrivate && !passwordInput.trim()) {
+      setError("비밀번호를 입력해주세요");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
     const nick = resolveNickname(newRoomName);
-    send("createRoom", { name: newRoomName, nickname: nick, gameType });
+    const roomData: { name: string; nickname: string; gameType: string; password?: string } = {
+      name: newRoomName,
+      nickname: nick,
+      gameType,
+    };
+    if (isPrivate && passwordInput.trim()) {
+      roomData.password = passwordInput.trim();
+    }
+    send("createRoom", roomData);
     setShowModal(false);
   };
 
   const joinRoom = () => {
+    if (joinTargetIsPrivate && !passwordInput.trim()) {
+      setError("비밀번호를 입력해주세요");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
     const nick = resolveNickname(joinTargetRoom);
-    send("joinRoom", { name: joinTargetRoom, nickname: nick });
+    const joinData: { name: string; nickname: string; password?: string } = {
+      name: joinTargetRoom,
+      nickname: nick,
+    };
+    if (joinTargetIsPrivate && passwordInput.trim()) {
+      joinData.password = passwordInput.trim();
+    }
+    send("joinRoom", joinData);
     setShowModal(false);
   };
 
@@ -159,13 +193,14 @@ export default function Lobby() {
             {rooms.map((room) => (
               <li key={room.name} className="room-item">
                 <span className="room-name">
+                  {room.isPrivate && <span style={{ marginRight: '4px' }}>🔒</span>}
                   {room.name}
                   {room.gameStarted && <span style={{ marginLeft: '8px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
                 </span>
                 <span className="room-players">{room.memberCount}명</span>
                 <button
                   className="join-btn"
-                  onClick={() => openJoinModal(room.name, room.gameStarted)}
+                  onClick={() => openJoinModal(room.name, room.gameStarted, room.isPrivate)}
                   disabled={room.gameStarted}
                   style={{ opacity: room.gameStarted ? 0.5 : 1, cursor: room.gameStarted ? 'not-allowed' : 'pointer' }}
                 >
@@ -198,24 +233,53 @@ export default function Lobby() {
               placeholder="닉네임 (미입력 시 랜덤)"
               maxLength={6}
               onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-              autoFocus={modalMode === "join"}
+              autoFocus={modalMode === "join" && !joinTargetIsPrivate}
             />
             {modalMode === "create" && (
-              <RadioGroup>
-                <label>게임 타입</label>
-                {GAME_TYPES.map((type) => (
-                  <RadioOption key={type.value}>
-                    <input
-                      type="radio"
-                      name="gameType"
-                      value={type.value}
-                      checked={gameType === type.value}
-                      onChange={(e) => setGameType(e.target.value)}
-                    />
-                    {type.label}
-                  </RadioOption>
-                ))}
-              </RadioGroup>
+              <>
+                <RadioGroup>
+                  <label>게임 타입</label>
+                  {GAME_TYPES.map((type) => (
+                    <RadioOption key={type.value}>
+                      <input
+                        type="radio"
+                        name="gameType"
+                        value={type.value}
+                        checked={gameType === type.value}
+                        onChange={(e) => setGameType(e.target.value)}
+                      />
+                      {type.label}
+                    </RadioOption>
+                  ))}
+                </RadioGroup>
+                <CheckboxOption>
+                  <input
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                  />
+                  비밀방
+                </CheckboxOption>
+                {isPrivate && (
+                  <ModalInput
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="비밀번호 입력"
+                    onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                  />
+                )}
+              </>
+            )}
+            {modalMode === "join" && joinTargetIsPrivate && (
+              <ModalInput
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="비밀번호 입력"
+                onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                autoFocus
+              />
             )}
             <ModalButtons>
               <ModalButton onClick={() => setShowModal(false)}>취소</ModalButton>

@@ -12,60 +12,17 @@ import {
   MemberCount,
   LeaveButton,
   RoomContent,
-  PlayerSeat,
-  PlayerAvatar,
-  OtherPlayerHand,
-  OtherPlayerCard,
-  getSeatPosition,
 } from "../styles/pages/Room";
 import {
   GameArea,
-  GameBoard,
-  PlayerCircle,
-  MyHandArea,
-  HandCard,
-  CardImageWrapper,
-  CardLabel,
-  StartGameButton,
-  OpenCardsArea,
-  OpenCard,
-  OpenCardImage,
-  OpenCardLabel,
-  ChipsArea,
-  Chip,
-  MyChipsArea,
-  PlayerChip,
-  NotificationToast,
-  HandRankContainer,
-  HandRankDisplay,
-  ReadyButton,
-  PreviousChips,
-  PreviousChip,
-  GameFinishContainer,
-  GameFinishHeader,
-  GameFinishTitle,
-  GameFinishCloseButton,
-  GameFinishActions,
-  GameFinishActionButton,
-  GameFinishBottomButton,
-  PlayerResultItem,
-  PlayerResultHeader,
-  PlayerResultNickname,
-  PlayerResultChips,
-  PlayerResultCards,
-  PlayerResultCard,
-  PlayerResultRank,
-  OpenCardsDisplay,
-  OpenCardDisplayImage,
-  ResultStatus,
 } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
-import CardDeck from "../components/CardDeck";
-import { getCardImage, getCardName, getCardLabel } from "../utils/cards";
 import { getGameConfig } from "../utils/games";
 import { evaluateHand, type HandResult } from "../utils/poker";
 import {
   ChatToggleButton,
+  ChatToggleButtonWrapper,
+  ChatNotificationBadge,
   ChatArea,
   ChatHeaderMobile,
   ChatCloseButton,
@@ -76,33 +33,19 @@ import {
   ChatInput,
   ChatSendButton,
 } from "../styles/chat";
+import {
+  GangGameBoard,
+  GangResultModal,
+  type Player,
+  type ChipData,
+  type PreviousChipsData,
+  type PlayerResult,
+} from "../components/gang";
 
 interface ChatMessageData {
   sender?: string;
   message: string;
   isSystem?: boolean;
-}
-
-interface Player {
-  nickname: string;
-  isMe: boolean;
-  order?: number;
-}
-
-interface ChipData {
-  number: number;
-  state: number;
-  owner: string | null;
-}
-
-interface PreviousChipsData {
-  [nickname: string]: number[];
-}
-
-interface PlayerResult {
-  nickname: string;
-  hand: Card[];
-  chips: number[];
 }
 
 interface LocationState {
@@ -134,6 +77,7 @@ export default function Room() {
     locationState?.memberCount ?? 0,
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [gameConfig, setGameConfig] = useState<GameConfig>(() =>
     getGameConfig("gang"),
   );
@@ -148,6 +92,7 @@ export default function Room() {
   const [previousChips, setPreviousChips] = useState<PreviousChipsData>({});
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [winLossRecord, setWinLossRecord] = useState<Record<string, boolean[]>>({});
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {
       return locationState.players.map((p) => ({
@@ -163,6 +108,8 @@ export default function Room() {
   const [gameFinished, setGameFinished] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
+  const [nextRoundReadyPlayers, setNextRoundReadyPlayers] = useState<string[]>([]);
+  const [isNextRoundReady, setIsNextRoundReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -181,6 +128,7 @@ export default function Room() {
             roomName: string;
             message: string;
             sender?: string;
+            isSystem?: boolean;
           };
           if (msgData.roomName === roomName) {
             setMessages((prev) => [
@@ -188,8 +136,11 @@ export default function Room() {
               {
                 message: msgData.message,
                 sender: msgData.sender,
+                isSystem: msgData.isSystem,
               },
             ]);
+            // 채팅이 닫혀있을 때만 알림 표시
+            setHasUnreadMessages((prevUnread) => !isChatOpen || prevUnread);
           }
           break;
         }
@@ -207,6 +158,10 @@ export default function Room() {
             openCards?: Card[];
             hostNickname?: string;
             chips?: ChipData[];
+            currentStep?: number;
+            readyPlayers?: string[];
+            previousChips?: Record<string, number[]>;
+            winLossRecord?: Record<string, boolean[]>;
           };
           if (joinData.name === roomName) {
             if (joinData.gameType) {
@@ -243,8 +198,20 @@ export default function Room() {
             if (joinData.hostNickname !== undefined) {
               setHostNickname(joinData.hostNickname);
             }
-            if (joinData.chips) {
+            if (joinData.chips !== undefined) {
               setChips(joinData.chips);
+            }
+            if (joinData.currentStep !== undefined) {
+              setCurrentStep(joinData.currentStep);
+            }
+            if (joinData.readyPlayers !== undefined) {
+              setReadyPlayers(joinData.readyPlayers);
+            }
+            if (joinData.previousChips !== undefined) {
+              setPreviousChips(joinData.previousChips);
+            }
+            if (joinData.winLossRecord !== undefined) {
+              setWinLossRecord(joinData.winLossRecord);
             }
           }
           break;
@@ -397,9 +364,16 @@ export default function Room() {
             if (gameData.chips) {
               setChips(gameData.chips);
             }
-            // 게임 시작 시 준비 상태 초기화
+            // 게임 시작 시 모든 상태 초기화
+            setCurrentStep(1);
+            setPreviousChips({});
             setIsReady(false);
             setReadyPlayers([]);
+            setGameFinished(false);
+            setShowResults(false);
+            setPlayerResults([]);
+            setNextRoundReadyPlayers([]);
+            setIsNextRoundReady(false);
           }
           break;
         }
@@ -456,6 +430,10 @@ export default function Room() {
           };
           if (readyData.roomName === roomName) {
             setReadyPlayers(readyData.readyPlayers);
+            // 내가 준비 완료 상태였는데 목록에 없으면 준비 해제됨
+            if (isReady && !readyData.readyPlayers.includes(nickname)) {
+              setIsReady(false);
+            }
           }
           break;
         }
@@ -486,18 +464,50 @@ export default function Room() {
             previousChips: PreviousChipsData;
             openCards: Card[];
             playerResults: PlayerResult[];
+            isWinner?: boolean;
+            winLossRecord?: Record<string, boolean[]>;
           };
           if (finishData.roomName === roomName) {
             setGameFinished(true);
             setPlayerResults(finishData.playerResults);
             setOpenCards(finishData.openCards);
+            if (finishData.winLossRecord !== undefined) {
+              setWinLossRecord(finishData.winLossRecord);
+            }
+          }
+          break;
+        }
+        case "nextRoundReadyUpdate": {
+          const nextRoundData = data as {
+            roomName: string;
+            readyPlayers: string[];
+            allReady: boolean;
+          };
+          if (nextRoundData.roomName === roomName) {
+            setNextRoundReadyPlayers(nextRoundData.readyPlayers);
+            if (nextRoundData.allReady) {
+              // 모두 준비되면 상태 초기화
+              setNextRoundReadyPlayers([]);
+              setIsNextRoundReady(false);
+            }
+          }
+          break;
+        }
+        case "kicked": {
+          const kickData = data as {
+            roomName: string;
+            message: string;
+          };
+          if (kickData.roomName === roomName) {
+            alert(kickData.message);
+            navigate("/");
           }
           break;
         }
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, navigate, nickname]);
+  }, [subscribe, roomName, navigate, nickname, isChatOpen]);
 
   // 새로고침 시에만 재입장 (Lobby에서 진입 시 joined 플래그가 있음)
   useEffect(() => {
@@ -527,19 +537,6 @@ export default function Room() {
     }
   };
 
-  const getPlayerSeats = () => {
-    const totalPlayers = players.length;
-    const me = players.find((p) => p.isMe);
-    const myOrder = me?.order ?? 0;
-
-    return players.map((player) => {
-      const playerOrder = player.order ?? 0;
-      const seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers;
-      return { player, seatIndex };
-    });
-  };
-
-  const playerSeats = getPlayerSeats();
   // 방장 여부 확인: hostNickname이 설정되지 않았으면(빈 문자열) 첫 번째 플레이어가 방장
   const isHost = hostNickname
     ? nickname === hostNickname
@@ -557,7 +554,7 @@ export default function Room() {
   };
 
   const handleChipClick = (chipNumber: number) => {
-    if (!roomName || isReady) return; // 준비 완료 후에는 칩 선택 불가
+    if (!roomName) return;
 
     send("selectChip", { roomName, chipNumber });
   };
@@ -572,10 +569,16 @@ export default function Room() {
   };
 
   const handleNextRound = () => {
+    if (!roomName || isNextRoundReady) return;
+    setIsNextRoundReady(true);
+    send("readyNextRound", { roomName });
+  };
+
+  const handleKickPlayer = (targetNickname: string) => {
     if (!roomName) return;
-    setGameFinished(false);
-    setShowResults(false);
-    send("startGame", { roomName });
+    if (window.confirm(`${targetNickname}님을 강퇴하시겠습니까?`)) {
+      send("kickPlayer", { roomName, targetNickname });
+    }
   };
 
   return (
@@ -588,23 +591,31 @@ export default function Room() {
           </span>
         </h1>
         <RoomInfo>
-          <ChatToggleButton
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            aria-label="채팅"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <ChatToggleButtonWrapper>
+            <ChatToggleButton
+              onClick={() => {
+                setIsChatOpen(!isChatOpen);
+                if (!isChatOpen) {
+                  setHasUnreadMessages(false);
+                }
+              }}
+              aria-label="채팅"
             >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </ChatToggleButton>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </ChatToggleButton>
+            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
+          </ChatToggleButtonWrapper>
           <MemberCount>{memberCount}명 참여중</MemberCount>
           <LeaveButton onClick={leaveRoom} aria-label="나가기">
             <span className="leave-text">나가기</span>
@@ -629,167 +640,31 @@ export default function Room() {
 
       <RoomContent>
         <GameArea>
-          <GameBoard>
-            <NotificationToast $show={showNotification}>
-              {notification}
-            </NotificationToast>
-            {!gameStarted && isHost ? (
-              <StartGameButton
-                $disabled={memberCount < 3}
-                onClick={handleStartGame}
-                disabled={memberCount < 3}
-              >
-                게임 시작
-                {memberCount < 3 && (
-                  <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
-                    ({memberCount}/3명)
-                  </div>
-                )}
-              </StartGameButton>
-            ) : gameStarted ? (
-              <>
-                {openCards.length > 0 && (
-                  <OpenCardsArea>
-                    {openCards.map((card, index) => (
-                      <OpenCard key={`${card.name}-${index}`}>
-                        <OpenCardImage>
-                          <img
-                            src={getCardImage(card)}
-                            alt={getCardName(card)}
-                          />
-                        </OpenCardImage>
-                        <OpenCardLabel $suit={card.type}>
-                          {getCardLabel(card)}
-                        </OpenCardLabel>
-                      </OpenCard>
-                    ))}
-                  </OpenCardsArea>
-                )}
-                <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
-                {chips.length > 0 && (
-                  <ChipsArea>
-                    {chips.map((chip) => {
-                      const isLocked = chip.owner
-                        ? readyPlayers.includes(chip.owner)
-                        : false;
-                      return (
-                        <Chip
-                          key={chip.number}
-                          $state={chip.state}
-                          $isSelected={chip.owner !== null}
-                          $isLocked={isLocked}
-                          onClick={() => handleChipClick(chip.number)}
-                        >
-                          {chip.number}
-                        </Chip>
-                      );
-                    })}
-                  </ChipsArea>
-                )}
-              </>
-            ) : (
-              <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
-            )}
-            <PlayerCircle>
-              {playerSeats.map(({ player, seatIndex }) => {
-                const handInfo = playerHands.find(
-                  (h) => h.nickname === player.nickname,
-                );
-                const cardCount = handInfo?.cardCount ?? 0;
-                const pos = getSeatPosition(players.length, seatIndex);
-                const isVertical = pos.left === "0" || pos.right === "0";
-                const isLeftSide = pos.left === "0";
-                const playerChip = chips.find(
-                  (c) => c.owner === player.nickname,
-                );
-
-                return (
-                  <PlayerSeat
-                    key={player.nickname}
-                    $totalPlayers={players.length}
-                    $seatIndex={seatIndex}
-                    $isMe={player.isMe}
-                  >
-                    <PlayerAvatar
-                      $isMe={player.isMe}
-                      $colorIndex={seatIndex}
-                      $isVertical={isVertical}
-                    >
-                      {player.nickname}
-                    </PlayerAvatar>
-                    {playerChip && (
-                      <PlayerChip
-                        $state={playerChip.state}
-                        $isVertical={isVertical}
-                      >
-                        {playerChip.number}
-                      </PlayerChip>
-                    )}
-                    {previousChips[player.nickname] &&
-                      previousChips[player.nickname].length > 0 && (
-                        <PreviousChips
-                          $isVertical={isVertical}
-                          $isLeftSide={isLeftSide}
-                          $chipCount={previousChips[player.nickname].length}
-                        >
-                          {previousChips[player.nickname].map(
-                            (chipNum, idx) => (
-                              <PreviousChip key={idx} $state={idx}>
-                                {chipNum}
-                              </PreviousChip>
-                            ),
-                          )}
-                        </PreviousChips>
-                      )}
-                    {!player.isMe && cardCount > 0 && (
-                      <OtherPlayerHand
-                        $totalPlayers={players.length}
-                        $seatIndex={seatIndex}
-                      >
-                        {Array.from({ length: cardCount }).map((_, i) => (
-                          <OtherPlayerCard key={i} $vertical={isVertical}>
-                            <img src={gameConfig.cardBack} alt="카드 뒷면" />
-                          </OtherPlayerCard>
-                        ))}
-                      </OtherPlayerHand>
-                    )}
-                  </PlayerSeat>
-                );
-              })}
-            </PlayerCircle>
-            {myHand.length > 0 && (
-              <MyHandArea>
-                {myHand.map((card) => (
-                  <HandCard key={getCardName(card)}>
-                    <CardImageWrapper>
-                      <img src={getCardImage(card)} alt={getCardName(card)} />
-                    </CardImageWrapper>
-                    <CardLabel $suit={card.type}>
-                      {getCardLabel(card)}
-                    </CardLabel>
-                  </HandCard>
-                ))}
-              </MyHandArea>
-            )}
-            {(myHandRank || (gameStarted && currentStep <= 4)) && (
-              <HandRankContainer>
-                {myHandRank && (
-                  <HandRankDisplay>{myHandRank.detailName}</HandRankDisplay>
-                )}
-                {gameStarted && currentStep <= 4 && (
-                  <ReadyButton
-                    $disabled={isReady || !chips.some((c) => c.owner === nickname)}
-                    onClick={handleReady}
-                    disabled={isReady || !chips.some((c) => c.owner === nickname)}
-                  >
-                    {isReady
-                      ? `대기중 (${readyPlayers.length}/${players.length})`
-                      : "OK"}
-                  </ReadyButton>
-                )}
-              </HandRankContainer>
-            )}
-          </GameBoard>
+          <GangGameBoard
+            gameStarted={gameStarted}
+            isHost={isHost}
+            memberCount={memberCount}
+            currentStep={currentStep}
+            players={players}
+            nickname={nickname}
+            playerHands={playerHands}
+            deck={deck}
+            openCards={openCards}
+            myHand={myHand}
+            chips={chips}
+            previousChips={previousChips}
+            readyPlayers={readyPlayers}
+            winLossRecord={winLossRecord}
+            notification={notification}
+            showNotification={showNotification}
+            myHandRank={myHandRank}
+            isReady={isReady}
+            gameConfig={gameConfig}
+            onStartGame={handleStartGame}
+            onChipClick={handleChipClick}
+            onReady={handleReady}
+            onKickPlayer={handleKickPlayer}
+          />
         </GameArea>
 
         <ChatArea $isOpen={isChatOpen}>
@@ -843,123 +718,19 @@ export default function Room() {
         </ChatArea>
       </RoomContent>
 
-      {gameFinished && !showResults && (
-        <GameFinishActions>
-          <GameFinishActionButton onClick={() => setShowResults(true)}>
-            결과 보기
-          </GameFinishActionButton>
-          <GameFinishActionButton $variant="secondary" onClick={handleNextRound}>
-            다음 라운드 진행
-          </GameFinishActionButton>
-        </GameFinishActions>
+      {gameFinished && (
+        <GangResultModal
+          playerResults={playerResults}
+          openCards={openCards}
+          showResults={showResults}
+          isNextRoundReady={isNextRoundReady}
+          nextRoundReadyPlayers={nextRoundReadyPlayers}
+          memberCount={memberCount}
+          onClose={() => setShowResults(false)}
+          onShowResults={() => setShowResults(true)}
+          onNextRound={handleNextRound}
+        />
       )}
-
-      {gameFinished && showResults && (() => {
-        // 모든 플레이어의 족보 계산
-        const allRanks = playerResults.map((r) => evaluateHand(r.hand, openCards));
-
-        // 족보 비교 함수 (a가 b보다 낮거나 같으면 true)
-        const isLowerOrEqualRank = (a: HandResult, b: HandResult): boolean => {
-          if (a.score !== b.score) return a.score < b.score;
-
-          // 같은 족보일 때 tiebreakers로 비교
-          for (let i = 0; i < Math.max(a.tiebreakers.length, b.tiebreakers.length); i++) {
-            const aVal = a.tiebreakers[i] || 0;
-            const bVal = b.tiebreakers[i] || 0;
-            if (aVal !== bVal) return aVal < bVal;
-          }
-          return true; // 완전히 같으면 true (이하 조건)
-        };
-
-        // 전체 게임 성공 여부: 모든 플레이어가 순서대로 족보가 올라가야 함 (1 <= 2 <= 3)
-        let isGameSuccess = true;
-        for (let i = 0; i < allRanks.length - 1; i++) {
-          if (!isLowerOrEqualRank(allRanks[i], allRanks[i + 1])) {
-            isGameSuccess = false;
-            break;
-          }
-        }
-
-        return (
-          <GameFinishContainer>
-            <GameFinishHeader>
-              <GameFinishTitle $isSuccess={isGameSuccess}>
-                게임 종료 - {isGameSuccess ? '성공' : '실패'}
-              </GameFinishTitle>
-              <GameFinishCloseButton onClick={() => setShowResults(false)}>
-                ✕
-              </GameFinishCloseButton>
-            </GameFinishHeader>
-            <OpenCardsDisplay>
-              {openCards.map((card, index) => (
-                <OpenCardDisplayImage
-                  key={index}
-                  src={card.image}
-                  alt={card.name}
-                />
-              ))}
-            </OpenCardsDisplay>
-            {playerResults.map((result, index) => {
-              const handRank = evaluateHand(result.hand, openCards);
-
-              let isWinner = false;
-              let isLoser = false;
-
-              // 각 플레이어는 이전 플레이어보다 높거나 같은 족보를 가져야 성공
-              if (index === 0) {
-                // 첫 번째 플레이어: 다음 플레이어보다 낮거나 같으면 성공
-                if (index < allRanks.length - 1) {
-                  isWinner = isLowerOrEqualRank(allRanks[index], allRanks[index + 1]);
-                  isLoser = !isWinner;
-                } else {
-                  isWinner = isGameSuccess;
-                }
-              } else {
-                // 나머지 플레이어: 이전 플레이어보다 높거나 같고, 다음 플레이어보다 낮거나 같으면 성공
-                const higherOrEqualThanPrev = isLowerOrEqualRank(allRanks[index - 1], allRanks[index]);
-                const lowerOrEqualThanNext = index < allRanks.length - 1 ? isLowerOrEqualRank(allRanks[index], allRanks[index + 1]) : true;
-                isWinner = higherOrEqualThanPrev && lowerOrEqualThanNext;
-                isLoser = !isWinner;
-              }
-
-              return (
-                <PlayerResultItem key={index} $isWinner={isWinner} $isLoser={isLoser}>
-                  <PlayerResultHeader>
-                    <PlayerResultNickname>
-                      {result.nickname}
-                    </PlayerResultNickname>
-                    <PlayerResultChips>
-                      {result.chips.map((chip, chipIndex) => (
-                        <PreviousChip key={chipIndex} $state={typeof chip === 'object' ? chip.state : chipIndex}>
-                          {typeof chip === 'object' ? chip.number : chip}
-                        </PreviousChip>
-                      ))}
-                    </PlayerResultChips>
-                  </PlayerResultHeader>
-                  <PlayerResultCards>
-                    {result.hand.map((card, cardIndex) => (
-                      <PlayerResultCard
-                        key={cardIndex}
-                        src={card.image}
-                        alt={card.name}
-                      />
-                    ))}
-                  </PlayerResultCards>
-                  <PlayerResultRank $isWinner={isWinner} $isLoser={isLoser}>
-                    {handRank.detailName}
-                    <ResultStatus $isWinner={isWinner}>
-                      {isLoser ? ' (실패)' : ' (성공)'}
-                    </ResultStatus>
-                  </PlayerResultRank>
-                </PlayerResultItem>
-              );
-            })}
-            <GameFinishBottomButton onClick={() => setShowResults(false)}>
-              닫기
-            </GameFinishBottomButton>
-          </GameFinishContainer>
-        );
-      })()}
     </RoomPage>
   );
 }

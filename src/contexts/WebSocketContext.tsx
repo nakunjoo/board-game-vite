@@ -4,7 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
-  ReactNode,
+  type ReactNode,
 } from "react";
 
 const SUITS = ["♠", "♥", "♦", "♣"];

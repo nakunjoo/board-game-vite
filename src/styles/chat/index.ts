@@ -1,5 +1,41 @@
 import styled from "styled-components";
 
+export const ChatToggleButtonWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+export const ChatNotificationBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  background-color: #ff4444;
+  border-radius: 50%;
+  border: 2px solid #242424;
+  animation: pulse 2s infinite;
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(255, 68, 68, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+    }
+  }
+
+  @media (max-width: 768px) {
+    width: 10px;
+    height: 10px;
+    top: -3px;
+    right: -3px;
+  }
+`;
+
 export const ChatToggleButton = styled.button`
   padding: 0.5rem;
   background-color: #646cff;

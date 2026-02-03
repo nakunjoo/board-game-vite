@@ -167,6 +167,11 @@ const AVATAR_COLORS = [
   { bg: "#00bcd4", border: "#009aab" },
 ];
 
+export const PlayerAvatarWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
 export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number; $isVertical?: boolean }>`
   background-color: ${({ $colorIndex }) => AVATAR_COLORS[$colorIndex % AVATAR_COLORS.length].bg};
   border-radius: 6px;
@@ -187,6 +192,43 @@ export const PlayerAvatar = styled.div<{ $isMe: boolean; $colorIndex: number; $i
   @media (max-width: 768px) {
     font-size: 0.6rem;
     padding: ${({ $isVertical }) => $isVertical ? '0.6rem 0.2rem' : '0.2rem 0.6rem'};
+  }
+`;
+
+export const KickButton = styled.button`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background-color: #ff4444;
+  color: white;
+  border: 2px solid #1a1a1a;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  transition: all 0.2s;
+  z-index: 10;
+
+  &:hover {
+    background-color: #ff6666;
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  @media (max-width: 768px) {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+    top: -6px;
+    right: -6px;
   }
 `;
 

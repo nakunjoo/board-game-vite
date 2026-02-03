@@ -137,18 +137,17 @@ export const CardLabel = styled.div<{ $suit: string }>`
 // 카드 덱 컨테이너
 export const CardDeck = styled.div`
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50px;
-  height: 70px;
+  bottom: 10px;
+  left: 10px;
+  width: 40px;
+  height: 56px;
   z-index: 1;
-  margin-top: 30px;
 
   @media (max-width: 768px) {
     width: 30px;
     height: 42px;
-    margin-top: 25px;
+    bottom: 8px;
+    left: 8px;
   }
 `;
 
@@ -306,15 +305,72 @@ export const ChipsArea = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  z-index: 5;
+  margin-top: 30px;
+
+  @media (max-width: 768px) {
+    gap: 12px;
+    margin-top: 25px;
+  }
+`;
+
+export const ChipsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  z-index: 5;
-  margin-top: 100px;
 
   @media (max-width: 768px) {
     gap: 8px;
-    margin-top: 80px;
+  }
+`;
+
+export const WinLossIndicators = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    gap: 6px;
+  }
+`;
+
+export const WinLossLight = styled.div<{ $isActive: boolean; $isWin: boolean }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: ${({ $isActive, $isWin }) =>
+    $isActive
+      ? $isWin
+        ? '#4caf50'
+        : '#f44336'
+      : '#2a2a2a'};
+  border: 2px solid ${({ $isActive, $isWin }) =>
+    $isActive
+      ? $isWin
+        ? '#45a049'
+        : '#d32f2f'
+      : '#444'};
+  box-shadow: ${({ $isActive, $isWin }) =>
+    $isActive
+      ? $isWin
+        ? '0 0 8px rgba(76, 175, 80, 0.8)'
+        : '0 0 8px rgba(244, 67, 54, 0.8)'
+      : 'none'};
+  transition: all 0.3s;
+
+  @media (max-width: 768px) {
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid ${({ $isActive, $isWin }) =>
+      $isActive
+        ? $isWin
+          ? '#45a049'
+          : '#d32f2f'
+        : '#444'};
   }
 `;
 
@@ -830,13 +886,18 @@ export const GameFinishActionButton = styled.button<{ $variant?: 'primary' | 'se
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   min-width: 200px;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   @media (max-width: 768px) {
