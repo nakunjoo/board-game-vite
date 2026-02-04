@@ -1,6 +1,7 @@
 import type { Card } from "../../types/game";
 
 export interface Player {
+  playerId: string;
   nickname: string;
   isMe: boolean;
   order?: number;
@@ -9,14 +10,15 @@ export interface Player {
 export interface ChipData {
   number: number;
   state: number;
-  owner: string | null;
+  owner: string | null; // playerId of owner
 }
 
 export interface PreviousChipsData {
-  [nickname: string]: number[];
+  [playerId: string]: number[];
 }
 
 export interface PlayerResult {
+  playerId: string;
   nickname: string;
   hand: Card[];
   chips: number[];

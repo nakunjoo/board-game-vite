@@ -47,7 +47,7 @@ interface GangGameBoardProps {
 
   // 플레이어 정보
   players: Player[];
-  nickname: string;
+  playerId: string;
   playerHands: PlayerHand[];
 
   // 카드 정보
@@ -66,6 +66,7 @@ interface GangGameBoardProps {
   showNotification: boolean;
   myHandRank: HandResult | null;
   isReady: boolean;
+  gameOver: boolean;
 
   // 게임 설정
   gameConfig: GameConfig;
@@ -74,7 +75,7 @@ interface GangGameBoardProps {
   onStartGame: () => void;
   onChipClick: (chipNumber: number) => void;
   onReady: () => void;
-  onKickPlayer?: (targetNickname: string) => void;
+  onKickPlayer?: (targetPlayerId: string) => void;
 }
 
 export default function GangGameBoard({
@@ -83,7 +84,7 @@ export default function GangGameBoard({
   memberCount,
   currentStep,
   players,
-  nickname,
+  playerId,
   playerHands,
   deck,
   openCards,
@@ -96,6 +97,7 @@ export default function GangGameBoard({
   showNotification,
   myHandRank,
   isReady,
+  gameOver,
   gameConfig,
   onStartGame,
   onChipClick,
@@ -124,7 +126,7 @@ export default function GangGameBoard({
       </NotificationToast>
       {!gameStarted ? (
         <>
-          {isHost ? (
+          {gameOver ? null : isHost ? (
             <StartGameButton
               $disabled={memberCount < 3}
               onClick={onStartGame}
@@ -153,7 +155,7 @@ export default function GangGameBoard({
           <WinLossIndicators style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', marginTop: '30px' }}>
             {/* 승리 표시등 3개 */}
             {[0, 1, 2].map((index) => {
-              const myRecord = winLossRecord[nickname] || [];
+              const myRecord = winLossRecord[playerId] || [];
               const winCount = myRecord.filter((r) => r === true).length;
               return (
                 <WinLossLight
@@ -165,7 +167,7 @@ export default function GangGameBoard({
             })}
             {/* 패배 표시등 3개 */}
             {[0, 1, 2].map((index) => {
-              const myRecord = winLossRecord[nickname] || [];
+              const myRecord = winLossRecord[playerId] || [];
               const lossCount = myRecord.filter((r) => r === false).length;
               return (
                 <WinLossLight
@@ -221,7 +223,7 @@ export default function GangGameBoard({
             <WinLossIndicators>
               {/* 승리 표시등 3개 */}
               {[0, 1, 2].map((index) => {
-                const myRecord = winLossRecord[nickname] || [];
+                const myRecord = winLossRecord[playerId] || [];
                 const winCount = myRecord.filter((r) => r === true).length;
                 return (
                   <WinLossLight
@@ -233,7 +235,7 @@ export default function GangGameBoard({
               })}
               {/* 패배 표시등 3개 */}
               {[0, 1, 2].map((index) => {
-                const myRecord = winLossRecord[nickname] || [];
+                const myRecord = winLossRecord[playerId] || [];
                 const lossCount = myRecord.filter((r) => r === false).length;
                 return (
                   <WinLossLight
@@ -258,12 +260,12 @@ export default function GangGameBoard({
           const isVertical = pos.left === "0" || pos.right === "0";
           const isLeftSide = pos.left === "0";
           const playerChip = chips.find(
-            (c) => c.owner === player.nickname,
+            (c) => c.owner === player.playerId,
           );
 
           return (
             <PlayerSeat
-              key={player.nickname}
+              key={player.playerId}
               $totalPlayers={players.length}
               $seatIndex={seatIndex}
               $isMe={player.isMe}
@@ -278,7 +280,7 @@ export default function GangGameBoard({
                 </PlayerAvatar>
                 {isHost && !gameStarted && !player.isMe && onKickPlayer && (
                   <KickButton
-                    onClick={() => onKickPlayer(player.nickname)}
+                    onClick={() => onKickPlayer(player.playerId)}
                     title="강퇴"
                   >
                     ✕
@@ -293,14 +295,14 @@ export default function GangGameBoard({
                   {playerChip.number}
                 </PlayerChip>
               )}
-              {previousChips[player.nickname] &&
-                previousChips[player.nickname].length > 0 && (
+              {previousChips[player.playerId] &&
+                previousChips[player.playerId].length > 0 && (
                   <PreviousChips
                     $isVertical={isVertical}
                     $isLeftSide={isLeftSide}
-                    $chipCount={previousChips[player.nickname].length}
+                    $chipCount={previousChips[player.playerId].length}
                   >
-                    {previousChips[player.nickname].map(
+                    {previousChips[player.playerId].map(
                       (chipNum, idx) => (
                         <PreviousChip key={idx} $state={idx}>
                           {chipNum}
@@ -346,9 +348,9 @@ export default function GangGameBoard({
           )}
           {gameStarted && currentStep <= 4 && (
             <ReadyButton
-              $disabled={isReady || !chips.some((c) => c.owner === nickname)}
+              $disabled={isReady || !chips.some((c) => c.owner === playerId)}
               onClick={onReady}
-              disabled={isReady || !chips.some((c) => c.owner === nickname)}
+              disabled={isReady || !chips.some((c) => c.owner === playerId)}
             >
               {isReady
                 ? `대기중 (${readyPlayers.length}/${players.length})`

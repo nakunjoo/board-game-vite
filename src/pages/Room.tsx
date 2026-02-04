@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   useWebSocket,
+  getPlayerIdForRoom,
   getNicknameForRoom,
   clearNicknameForRoom,
 } from "../contexts/WebSocketContext";
@@ -50,12 +51,13 @@ interface ChatMessageData {
 
 interface LocationState {
   memberCount?: number;
-  players?: { nickname: string; order: number }[];
+  players?: { playerId: string; nickname: string; order: number }[];
 }
 
 export default function Room() {
   const { roomName } = useParams<{ roomName: string }>();
   const { connected, send, subscribe } = useWebSocket();
+  const playerId = roomName ? getPlayerIdForRoom(roomName) : "";
   const nickname = roomName ? getNicknameForRoom(roomName) : "";
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,6 +88,7 @@ export default function Room() {
   const [playerHands, setPlayerHands] = useState<PlayerHand[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const [openCards, setOpenCards] = useState<Card[]>([]);
+  const [hostPlayerId, setHostPlayerId] = useState<string>("");
   const [hostNickname, setHostNickname] = useState<string>("");
   const [chips, setChips] = useState<ChipData[]>([]);
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -96,12 +99,13 @@ export default function Room() {
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {
       return locationState.players.map((p) => ({
+        playerId: p.playerId,
         nickname: p.nickname,
-        isMe: p.nickname === nickname,
+        isMe: p.playerId === playerId,
         order: p.order,
       }));
     }
-    return [{ nickname, isMe: true, order: 0 }];
+    return [{ playerId, nickname, isMe: true, order: 0 }];
   });
   const [notification, setNotification] = useState<string>("");
   const [showNotification, setShowNotification] = useState(false);
@@ -110,6 +114,8 @@ export default function Room() {
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
   const [nextRoundReadyPlayers, setNextRoundReadyPlayers] = useState<string[]>([]);
   const [isNextRoundReady, setIsNextRoundReady] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameOverResult, setGameOverResult] = useState<'victory' | 'defeat' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -149,13 +155,14 @@ export default function Room() {
           const joinData = data as {
             name: string;
             memberCount?: number;
-            players?: { nickname: string; order: number }[];
+            players?: { playerId: string; nickname: string; order: number }[];
             deck?: Card[];
             playerHands?: PlayerHand[];
             myHand?: Card[];
             gameType?: string;
             gameStarted?: boolean;
             openCards?: Card[];
+            hostPlayerId?: string;
             hostNickname?: string;
             chips?: ChipData[];
             currentStep?: number;
@@ -174,8 +181,9 @@ export default function Room() {
             if (joinData.players) {
               setPlayers(
                 joinData.players.map((p) => ({
+                  playerId: p.playerId,
                   nickname: p.nickname,
-                  isMe: p.nickname === nickname,
+                  isMe: p.playerId === playerId,
                   order: p.order,
                 })),
               );
@@ -194,6 +202,9 @@ export default function Room() {
             }
             if (joinData.openCards) {
               setOpenCards(joinData.openCards);
+            }
+            if (joinData.hostPlayerId !== undefined) {
+              setHostPlayerId(joinData.hostPlayerId);
             }
             if (joinData.hostNickname !== undefined) {
               setHostNickname(joinData.hostNickname);
@@ -219,13 +230,14 @@ export default function Room() {
         case "playerList": {
           const listData = data as {
             roomName: string;
-            players: { nickname: string; order: number }[];
+            players: { playerId: string; nickname: string; order: number }[];
           };
           if (listData.roomName === roomName) {
             setPlayers(
               listData.players.map((p) => ({
+                playerId: p.playerId,
                 nickname: p.nickname,
-                isMe: p.nickname === nickname,
+                isMe: p.playerId === playerId,
                 order: p.order,
               })),
             );
@@ -236,28 +248,31 @@ export default function Room() {
           const joinData = data as {
             roomName: string;
             memberCount: number;
+            playerId?: string;
             nickname?: string;
             order?: number;
-            players?: { nickname: string; order: number }[];
+            players?: { playerId: string; nickname: string; order: number }[];
           };
           if (joinData.roomName === roomName) {
             setMemberCount(joinData.memberCount);
             if (joinData.players) {
               setPlayers(
                 joinData.players.map((p) => ({
+                  playerId: p.playerId,
                   nickname: p.nickname,
-                  isMe: p.nickname === nickname,
+                  isMe: p.playerId === playerId,
                   order: p.order,
                 })),
               );
-            } else if (joinData.nickname) {
+            } else if (joinData.playerId) {
               setPlayers((prev) => {
-                if (prev.some((p) => p.nickname === joinData.nickname))
+                if (prev.some((p) => p.playerId === joinData.playerId))
                   return prev;
                 return [
                   ...prev,
                   {
-                    nickname: joinData.nickname!,
+                    playerId: joinData.playerId!,
+                    nickname: joinData.nickname || joinData.playerId!,
                     isMe: false,
                     order: joinData.order,
                   },
@@ -278,13 +293,14 @@ export default function Room() {
           const leftData = data as {
             roomName: string;
             memberCount: number;
+            playerId?: string;
             nickname?: string;
           };
           if (leftData.roomName === roomName) {
             setMemberCount(leftData.memberCount);
-            if (leftData.nickname) {
+            if (leftData.playerId) {
               setPlayers((prev) =>
-                prev.filter((p) => p.nickname !== leftData.nickname),
+                prev.filter((p) => p.playerId !== leftData.playerId),
               );
             }
             setMessages((prev) => [
@@ -348,6 +364,7 @@ export default function Room() {
             playerHands?: PlayerHand[];
             openCards?: Card[];
             chips?: ChipData[];
+            winLossRecord?: Record<string, boolean[]>;
           };
           if (gameData.roomName === roomName) {
             setGameStarted(true);
@@ -374,6 +391,11 @@ export default function Room() {
             setPlayerResults([]);
             setNextRoundReadyPlayers([]);
             setIsNextRoundReady(false);
+            setGameOver(false);
+            setGameOverResult(null);
+            if (gameData.winLossRecord !== undefined) {
+              setWinLossRecord(gameData.winLossRecord);
+            }
           }
           break;
         }
@@ -393,7 +415,9 @@ export default function Room() {
               chipData.stolenBy &&
               chipData.chipNumber
             ) {
-              const message = `${chipData.stolenBy}님이 ${chipData.stolenFrom}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
+              const stolenByName = players.find((p) => p.playerId === chipData.stolenBy)?.nickname || chipData.stolenBy;
+              const stolenFromName = players.find((p) => p.playerId === chipData.stolenFrom)?.nickname || chipData.stolenFrom;
+              const message = `${stolenByName}님이 ${stolenFromName}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
               setNotification(message);
               setShowNotification(true);
 
@@ -408,7 +432,7 @@ export default function Room() {
               }, 3000);
 
               // 내가 빼앗긴 경우 ready 해제
-              if (chipData.stolenFrom === nickname) {
+              if (chipData.stolenFrom === playerId) {
                 setIsReady(false);
               }
             }
@@ -419,7 +443,7 @@ export default function Room() {
             if (chipData.readyPlayers) {
               setReadyPlayers(chipData.readyPlayers);
               // 내가 readyPlayers에 없으면 isReady를 false로
-              if (!chipData.readyPlayers.includes(nickname)) {
+              if (!chipData.readyPlayers.includes(playerId)) {
                 setIsReady(false);
               }
             }
@@ -435,7 +459,7 @@ export default function Room() {
           if (readyData.roomName === roomName) {
             setReadyPlayers(readyData.readyPlayers);
             // 내가 준비 완료 상태였는데 목록에 없으면 준비 해제됨
-            if (isReady && !readyData.readyPlayers.includes(nickname)) {
+            if (isReady && !readyData.readyPlayers.includes(playerId)) {
               setIsReady(false);
             }
           }
@@ -470,14 +494,21 @@ export default function Room() {
             playerResults: PlayerResult[];
             isWinner?: boolean;
             winLossRecord?: Record<string, boolean[]>;
+            gameOver?: boolean;
+            gameOverResult?: 'victory' | 'defeat' | null;
           };
           if (finishData.roomName === roomName) {
+            setGameStarted(false);
             setGameFinished(true);
+            setShowResults(false);
             setPlayerResults(finishData.playerResults);
             setOpenCards(finishData.openCards);
-            setShowResults(true); // 결과 모달 자동으로 열기
             if (finishData.winLossRecord !== undefined) {
               setWinLossRecord(finishData.winLossRecord);
+            }
+            if (finishData.gameOver) {
+              setGameOver(true);
+              setGameOverResult(finishData.gameOverResult ?? null);
             }
           }
           break;
@@ -512,14 +543,14 @@ export default function Room() {
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, navigate, nickname, isChatOpen]);
+  }, [subscribe, roomName, navigate, playerId, isChatOpen]);
 
   // 새로고침 시에만 재입장 (Lobby에서 진입 시 joined 플래그가 있음)
   useEffect(() => {
     if (connected && roomName && isRefresh) {
       const timer = setTimeout(() => {
-        console.log("[Room] 재연결 joinRoom 전송:", { roomName, nickname });
-        send("joinRoom", { name: roomName, nickname });
+        console.log("[Room] 재연결 joinRoom 전송:", { roomName, playerId, nickname });
+        send("joinRoom", { name: roomName, playerId, nickname });
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -542,10 +573,10 @@ export default function Room() {
     }
   };
 
-  // 방장 여부 확인: hostNickname이 설정되지 않았으면(빈 문자열) 첫 번째 플레이어가 방장
-  const isHost = hostNickname
-    ? nickname === hostNickname
-    : players.length > 0 && players[0]?.nickname === nickname;
+  // 방장 여부 확인: hostPlayerId가 설정되지 않았으면(빈 문자열) 첫 번째 플레이어가 방장
+  const isHost = hostPlayerId
+    ? playerId === hostPlayerId
+    : players.length > 0 && players[0]?.playerId === playerId;
 
   // 족보 계산
   const myHandRank: HandResult | null =
@@ -566,7 +597,7 @@ export default function Room() {
 
   const handleReady = () => {
     if (!roomName) return;
-    const myChip = chips.find((c) => c.owner === nickname);
+    const myChip = chips.find((c) => c.owner === playerId);
     if (!myChip) return;
 
     setIsReady(true);
@@ -579,11 +610,18 @@ export default function Room() {
     send("readyNextRound", { roomName });
   };
 
-  const handleKickPlayer = (targetNickname: string) => {
+  const handleKickPlayer = (targetPlayerId: string) => {
     if (!roomName) return;
-    if (window.confirm(`${targetNickname}님을 강퇴하시겠습니까?`)) {
-      send("kickPlayer", { roomName, targetNickname });
+    const target = players.find((p) => p.playerId === targetPlayerId);
+    const targetName = target?.nickname || targetPlayerId;
+    if (window.confirm(`${targetName}님을 강퇴하시겠습니까?`)) {
+      send("kickPlayer", { roomName, targetPlayerId });
     }
+  };
+
+  const handleRestart = () => {
+    if (!roomName) return;
+    handleStartGame();
   };
 
   return (
@@ -626,7 +664,7 @@ export default function Room() {
             memberCount={memberCount}
             currentStep={currentStep}
             players={players}
-            nickname={nickname}
+            playerId={playerId}
             playerHands={playerHands}
             deck={deck}
             openCards={openCards}
@@ -639,6 +677,7 @@ export default function Room() {
             showNotification={showNotification}
             myHandRank={myHandRank}
             isReady={isReady}
+            gameOver={gameOver}
             gameConfig={gameConfig}
             onStartGame={handleStartGame}
             onChipClick={handleChipClick}
@@ -729,9 +768,14 @@ export default function Room() {
           isNextRoundReady={isNextRoundReady}
           nextRoundReadyPlayers={nextRoundReadyPlayers}
           memberCount={memberCount}
-          onClose={() => setShowResults(false)}
+          gameOver={gameOver}
+          gameOverResult={gameOverResult}
+          onClose={() => {
+            setShowResults(false);
+          }}
           onShowResults={() => setShowResults(true)}
           onNextRound={handleNextRound}
+          onRestart={handleRestart}
         />
       )}
     </RoomPage>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useWebSocket, getNicknameForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
+import { useWebSocket, getPlayerIdForRoom, getNicknameForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
 import {
   ModalOverlay,
   ModalContent,
@@ -141,9 +141,11 @@ export default function Lobby() {
       setTimeout(() => setError(null), 3000);
       return;
     }
+    const pid = getPlayerIdForRoom(newRoomName);
     const nick = resolveNickname(newRoomName);
-    const roomData: { name: string; nickname: string; gameType: string; password?: string } = {
+    const roomData: { name: string; playerId: string; nickname: string; gameType: string; password?: string } = {
       name: newRoomName,
+      playerId: pid,
       nickname: nick,
       gameType,
     };
@@ -160,9 +162,11 @@ export default function Lobby() {
       setTimeout(() => setError(null), 3000);
       return;
     }
+    const pid = getPlayerIdForRoom(joinTargetRoom);
     const nick = resolveNickname(joinTargetRoom);
-    const joinData: { name: string; nickname: string; password?: string } = {
+    const joinData: { name: string; playerId: string; nickname: string; password?: string } = {
       name: joinTargetRoom,
+      playerId: pid,
       nickname: nick,
     };
     if (joinTargetIsPrivate && passwordInput.trim()) {

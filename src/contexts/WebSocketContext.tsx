@@ -17,16 +17,27 @@ function generateCardName(): string {
   return `${suit}${rank}${id}`;
 }
 
+function getPlayerIdKey(roomName: string): string {
+  return `playerId:${roomName}`;
+}
+
 function getRoomNicknameKey(roomName: string): string {
   return `nickname:${roomName}`;
+}
+
+export function getPlayerIdForRoom(roomName: string): string {
+  const saved = sessionStorage.getItem(getPlayerIdKey(roomName));
+  if (saved) return saved;
+  const newId = generateCardName();
+  sessionStorage.setItem(getPlayerIdKey(roomName), newId);
+  return newId;
 }
 
 export function getNicknameForRoom(roomName: string): string {
   const saved = sessionStorage.getItem(getRoomNicknameKey(roomName));
   if (saved) return saved;
-  const newNickname = generateCardName();
-  sessionStorage.setItem(getRoomNicknameKey(roomName), newNickname);
-  return newNickname;
+  // 닉네임 미입력 시 playerId와 동일
+  return getPlayerIdForRoom(roomName);
 }
 
 export function setNicknameForRoom(roomName: string, nickname: string): void {
@@ -35,6 +46,7 @@ export function setNicknameForRoom(roomName: string, nickname: string): void {
 
 export function clearNicknameForRoom(roomName: string): void {
   sessionStorage.removeItem(getRoomNicknameKey(roomName));
+  sessionStorage.removeItem(getPlayerIdKey(roomName));
 }
 
 interface WebSocketContextType {

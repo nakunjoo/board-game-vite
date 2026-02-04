@@ -34,11 +34,15 @@ interface GangResultModalProps {
   isNextRoundReady: boolean;
   nextRoundReadyPlayers: string[];
   memberCount: number;
+  gameOver: boolean;
+  gameOverResult: 'victory' | 'defeat' | null;
+  isHost: boolean;
 
   // 이벤트 핸들러
   onClose: () => void;
   onShowResults: () => void;
   onNextRound: () => void;
+  onRestart: () => void;
 }
 
 export default function GangResultModal({
@@ -48,9 +52,13 @@ export default function GangResultModal({
   isNextRoundReady,
   nextRoundReadyPlayers,
   memberCount,
+  gameOver,
+  gameOverResult,
+  isHost,
   onClose,
   onShowResults,
   onNextRound,
+  onRestart,
 }: GangResultModalProps) {
   if (!showResults) {
     return (
@@ -58,15 +66,24 @@ export default function GangResultModal({
         <GameFinishActionButton onClick={onShowResults}>
           결과 보기
         </GameFinishActionButton>
-        <GameFinishActionButton
-          $variant="secondary"
-          onClick={onNextRound}
-          disabled={isNextRoundReady}
-        >
-          {isNextRoundReady
-            ? `대기중 (${nextRoundReadyPlayers.length}/${memberCount})`
-            : '다음 라운드 진행'}
-        </GameFinishActionButton>
+        {gameOver ? (
+          <GameFinishActionButton
+            $variant="secondary"
+            onClick={onRestart}
+          >
+            다시 시작
+          </GameFinishActionButton>
+        ) : (
+          <GameFinishActionButton
+            $variant="secondary"
+            onClick={onNextRound}
+            disabled={isNextRoundReady}
+          >
+            {isNextRoundReady
+              ? `대기중 (${nextRoundReadyPlayers.length}/${memberCount})`
+              : '다음 라운드 진행'}
+          </GameFinishActionButton>
+        )}
       </GameFinishActions>
     );
   }
@@ -107,7 +124,11 @@ export default function GangResultModal({
     <GameFinishContainer>
       <GameFinishHeader>
         <GameFinishTitle $isSuccess={isGameSuccess}>
-          게임 종료 - {isGameSuccess ? '성공' : '실패'}
+          {gameOver
+            ? gameOverResult === 'victory'
+              ? '최종 승리!'
+              : '최종 패배...'
+            : `게임 종료 - ${isGameSuccess ? '성공' : '실패'}`}
         </GameFinishTitle>
         <GameFinishCloseButton onClick={onClose}>
           ✕
@@ -177,8 +198,8 @@ export default function GangResultModal({
           </PlayerResultItem>
         );
       })}
-      <GameFinishBottomButton onClick={onClose}>
-        닫기
+      <GameFinishBottomButton onClick={gameOver ? onRestart : onClose}>
+        {gameOver ? '다시 시작' : '닫기'}
       </GameFinishBottomButton>
     </GameFinishContainer>
   );
