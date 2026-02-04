@@ -80,19 +80,20 @@ export const ChatArea = styled.div<{ $isOpen?: boolean }>`
   border-radius: 8px;
   overflow: hidden;
   z-index: 200;
-
+/* 
   @media (max-width: 1080px) {
     flex: none;
     min-width: 0;
-    max-width: none;
     height: 300px;
-  }
+  } */
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
+    max-width: none;
     height: 60vh;
     max-height: 400px;
     transform: translateY(${({ $isOpen }) => ($isOpen ? "0" : "100%")});
@@ -105,7 +106,7 @@ export const ChatArea = styled.div<{ $isOpen?: boolean }>`
 export const ChatHeaderMobile = styled.div`
   display: none;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     display: flex;
     justify-content: space-between;
     align-items: center;

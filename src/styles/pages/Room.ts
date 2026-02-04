@@ -8,12 +8,12 @@ export const RoomPage = styled.div`
   flex-direction: column;
   height: 100%;
 
-  @media (max-width: 1080px) {
+  /* @media (max-width: 1080px) {
     height: auto;
     min-height: 100%;
-  }
+  } */
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     height: 100%;
     position: relative;
   }
@@ -302,6 +302,7 @@ export const OtherPlayerHand = styled.div<{
         transform: translateX(-50%);
         margin-top: 8px;
         flex-direction: row;
+        gap:6px;
       `;
     }
     // 왼쪽 (left: 0) - 카드를 오른쪽으로 (세로 배치)

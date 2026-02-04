@@ -11,14 +11,14 @@ export const GameArea = styled.div`
   justify-content: center;
   min-width: 0;
 
-  @media (max-width: 1080px) {
+  /* @media (max-width: 1080px) {
     flex: 1;
     width: 100%;
     max-width: 100%;
     min-height: 300px;
-  }
+  } */
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     flex: 1;
     width: 100%;
     min-height: 0;
@@ -36,11 +36,11 @@ export const GameBoard = styled.div`
   border-radius: 8px;
   overflow: visible;
 
-  @media (max-width: 1080px) {
+  /* @media (max-width: 1080px) {
     max-width: 100%;
-  }
+  } */
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     aspect-ratio: auto;
     width: 100%;
     height: 100%;
@@ -311,11 +311,11 @@ export const ChipsArea = styled.div`
   align-items: center;
   gap: 15px;
   z-index: 5;
-  margin-top: 30px;
+  margin-top: 70px;
 
   @media (max-width: 768px) {
     gap: 12px;
-    margin-top: 25px;
+    margin-top: 40px;
   }
 `;
 
@@ -427,8 +427,8 @@ export const Chip = styled.div<{
   }
 
   @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     font-size: 1.2rem;
     border: 2px solid ${({ $state }) => getChipColor($state).border};
   }
