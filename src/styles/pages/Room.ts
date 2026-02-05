@@ -378,3 +378,49 @@ export const OtherPlayerCard = styled.div<{ $vertical?: boolean }>`
           `}
   }
 `;
+
+// 테스트 버튼 컨테이너
+export const TestButtonsContainer = styled.div`
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 9999;
+
+  @media (max-width: 768px) {
+    top: 60px;
+    right: 5px;
+    gap: 5px;
+  }
+`;
+
+export const TestButton = styled.button<{ $variant: 'success' | 'fail' }>`
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: white;
+  background: ${({ $variant }) =>
+    $variant === 'success'
+      ? 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)'
+      : 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)'};
+  border: 2px solid #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+`;

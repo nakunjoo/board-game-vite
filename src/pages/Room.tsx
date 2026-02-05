@@ -13,6 +13,8 @@ import {
   MemberCount,
   LeaveButton,
   RoomContent,
+  TestButtonsContainer,
+  TestButton,
 } from "../styles/pages/Room";
 import {
   GameArea,
@@ -161,6 +163,10 @@ export default function Room() {
             myHand?: Card[];
             gameType?: string;
             gameStarted?: boolean;
+            gameFinished?: boolean;
+            lastGameResults?: PlayerResult[];
+            gameOver?: boolean;
+            gameOverResult?: 'victory' | 'defeat' | null;
             openCards?: Card[];
             hostPlayerId?: string;
             hostNickname?: string;
@@ -199,6 +205,18 @@ export default function Room() {
             }
             if (joinData.gameStarted !== undefined) {
               setGameStarted(joinData.gameStarted);
+            }
+            if (joinData.gameFinished !== undefined) {
+              setGameFinished(joinData.gameFinished);
+            }
+            if (joinData.lastGameResults !== undefined) {
+              setPlayerResults(joinData.lastGameResults);
+            }
+            if (joinData.gameOver !== undefined) {
+              setGameOver(joinData.gameOver);
+            }
+            if (joinData.gameOverResult !== undefined) {
+              setGameOverResult(joinData.gameOverResult);
             }
             if (joinData.openCards) {
               setOpenCards(joinData.openCards);
@@ -365,6 +383,8 @@ export default function Room() {
             openCards?: Card[];
             chips?: ChipData[];
             winLossRecord?: Record<string, boolean[]>;
+            gameOver?: boolean;
+            gameOverResult?: 'victory' | 'defeat' | null;
           };
           if (gameData.roomName === roomName) {
             setGameStarted(true);
@@ -391,8 +411,8 @@ export default function Room() {
             setPlayerResults([]);
             setNextRoundReadyPlayers([]);
             setIsNextRoundReady(false);
-            setGameOver(false);
-            setGameOverResult(null);
+            setGameOver(gameData.gameOver ?? false);
+            setGameOverResult(gameData.gameOverResult ?? null);
             if (gameData.winLossRecord !== undefined) {
               setWinLossRecord(gameData.winLossRecord);
             }
@@ -498,17 +518,20 @@ export default function Room() {
             gameOverResult?: 'victory' | 'defeat' | null;
           };
           if (finishData.roomName === roomName) {
-            setGameStarted(false);
+            console.log('[gameFinished] gameOver:', finishData.gameOver, 'gameOverResult:', finishData.gameOverResult);
+            // 게임 오버일 때만 gameStarted를 false로
+            if (finishData.gameOver === true) {
+              console.log('[gameFinished] Setting gameStarted=false, gameOver=true');
+              setGameStarted(false);
+              setGameOver(true);
+              setGameOverResult(finishData.gameOverResult ?? null);
+            }
             setGameFinished(true);
-            setShowResults(false);
+            setShowResults(true);
             setPlayerResults(finishData.playerResults);
             setOpenCards(finishData.openCards);
             if (finishData.winLossRecord !== undefined) {
               setWinLossRecord(finishData.winLossRecord);
-            }
-            if (finishData.gameOver) {
-              setGameOver(true);
-              setGameOverResult(finishData.gameOverResult ?? null);
             }
           }
           break;
@@ -624,8 +647,27 @@ export default function Room() {
     handleStartGame();
   };
 
+  const handleTestSuccess = () => {
+    if (!roomName) return;
+    send('testSuccess', { roomName });
+  };
+
+  const handleTestFail = () => {
+    if (!roomName) return;
+    send('testFail', { roomName });
+  };
+
   return (
     <RoomPage>
+      {/* 테스트 버튼 */}
+      <TestButtonsContainer>
+        <TestButton $variant="success" onClick={handleTestSuccess}>
+          성공
+        </TestButton>
+        <TestButton $variant="fail" onClick={handleTestFail}>
+          실패
+        </TestButton>
+      </TestButtonsContainer>
       <RoomHeader>
         <h1>
           {roomName}{" "}
@@ -707,6 +749,26 @@ export default function Room() {
             </ChatToggleButton>
             {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
           </ChatToggleButtonWrapper>
+
+          {gameFinished && (
+            <GangResultModal
+              playerResults={playerResults}
+              openCards={openCards}
+              showResults={showResults}
+              isNextRoundReady={isNextRoundReady}
+              nextRoundReadyPlayers={nextRoundReadyPlayers}
+              memberCount={memberCount}
+              gameOver={gameOver}
+              gameOverResult={gameOverResult}
+              isHost={isHost}
+              onClose={() => {
+                setShowResults(false);
+              }}
+              onShowResults={() => setShowResults(true)}
+              onNextRound={handleNextRound}
+              onRestart={handleRestart}
+            />
+          )}
         </GameArea>
 
         <ChatArea $isOpen={isChatOpen}>
@@ -759,25 +821,6 @@ export default function Room() {
           </ChatInputArea>
         </ChatArea>
       </RoomContent>
-
-      {gameFinished && (
-        <GangResultModal
-          playerResults={playerResults}
-          openCards={openCards}
-          showResults={showResults}
-          isNextRoundReady={isNextRoundReady}
-          nextRoundReadyPlayers={nextRoundReadyPlayers}
-          memberCount={memberCount}
-          gameOver={gameOver}
-          gameOverResult={gameOverResult}
-          onClose={() => {
-            setShowResults(false);
-          }}
-          onShowResults={() => setShowResults(true)}
-          onNextRound={handleNextRound}
-          onRestart={handleRestart}
-        />
-      )}
     </RoomPage>
   );
 }

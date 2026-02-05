@@ -119,6 +119,8 @@ export default function GangGameBoard({
     };
   });
 
+  console.log('[GangGameBoard] gameStarted:', gameStarted, 'gameOver:', gameOver, 'isHost:', isHost);
+
   return (
     <GameBoard>
       <NotificationToast $show={showNotification}>
@@ -126,7 +128,7 @@ export default function GangGameBoard({
       </NotificationToast>
       {!gameStarted ? (
         <>
-          {gameOver ? null : isHost ? (
+          {!gameOver && (isHost ? (
             <StartGameButton
               $disabled={memberCount < 3}
               onClick={onStartGame}
@@ -150,7 +152,7 @@ export default function GangGameBoard({
                 ({memberCount}/3명)
               </div>
             </StartGameButton>
-          )}
+          ))}
           <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
           <WinLossIndicators style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', marginTop: '30px' }}>
             {/* 승리 표시등 3개 */}

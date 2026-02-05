@@ -437,7 +437,7 @@ export const Chip = styled.div<{
 export const MyChipsArea = styled.div`
   position: absolute;
   bottom: 40px;
-  right: 20px;
+  right: -40px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -473,7 +473,7 @@ export const PlayerChip = styled.div<{ $state: number; $isVertical: boolean }>`
     transform: translateX(-50%);
   `
       : `
-    right: -15px;
+    right: -50px;
     top: 50%;
     transform: translateY(-50%);
   `}
@@ -886,7 +886,7 @@ export const GameFinishActionButton = styled.button<{
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  min-width: 200px;
+  width: 250px;
 
   &:hover:not(:disabled) {
     transform: scale(1.05);
@@ -903,9 +903,9 @@ export const GameFinishActionButton = styled.button<{
   }
 
   @media (max-width: 768px) {
-    padding: 0.9rem 2rem;
+    padding: 1rem 1.5rem;
     font-size: 1.1rem;
-    min-width: 180px;
+    width: 180px;
   }
 `;
 

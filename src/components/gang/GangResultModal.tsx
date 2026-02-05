@@ -67,12 +67,14 @@ export default function GangResultModal({
           결과 보기
         </GameFinishActionButton>
         {gameOver ? (
-          <GameFinishActionButton
-            $variant="secondary"
-            onClick={onRestart}
-          >
-            다시 시작
-          </GameFinishActionButton>
+          isHost && (
+            <GameFinishActionButton
+              $variant="secondary"
+              onClick={onRestart}
+            >
+              다시 시작
+            </GameFinishActionButton>
+          )
         ) : (
           <GameFinishActionButton
             $variant="secondary"
@@ -198,8 +200,8 @@ export default function GangResultModal({
           </PlayerResultItem>
         );
       })}
-      <GameFinishBottomButton onClick={gameOver ? onRestart : onClose}>
-        {gameOver ? '다시 시작' : '닫기'}
+      <GameFinishBottomButton onClick={onClose}>
+        닫기
       </GameFinishBottomButton>
     </GameFinishContainer>
   );
