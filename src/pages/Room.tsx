@@ -16,9 +16,7 @@ import {
   TestButtonsContainer,
   TestButton,
 } from "../styles/pages/Room";
-import {
-  GameArea,
-} from "../styles/game";
+import { GameArea } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
 import { getGameConfig } from "../utils/games";
 import { evaluateHand, type HandResult } from "../utils/poker";
@@ -26,6 +24,7 @@ import {
   ChatToggleButton,
   ChatToggleButtonWrapper,
   ChatNotificationBadge,
+  ChatOverlay,
   ChatArea,
   ChatHeaderMobile,
   ChatCloseButton,
@@ -98,7 +97,9 @@ export default function Room() {
   const [previousChips, setPreviousChips] = useState<PreviousChipsData>({});
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
-  const [winLossRecord, setWinLossRecord] = useState<Record<string, boolean[]>>({});
+  const [winLossRecord, setWinLossRecord] = useState<Record<string, boolean[]>>(
+    {},
+  );
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {
       return locationState.players.map((p) => ({
@@ -115,19 +116,29 @@ export default function Room() {
   const [gameFinished, setGameFinished] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [playerResults, setPlayerResults] = useState<PlayerResult[]>([]);
-  const [nextRoundReadyPlayers, setNextRoundReadyPlayers] = useState<string[]>([]);
+  const [nextRoundReadyPlayers, setNextRoundReadyPlayers] = useState<string[]>(
+    [],
+  );
   const [isNextRoundReady, setIsNextRoundReady] = useState(false);
   const [gameOver, setGameOver] = useState(false);
-  const [gameOverResult, setGameOverResult] = useState<'victory' | 'defeat' | null>(null);
+  const [gameOverResult, setGameOverResult] = useState<
+    "victory" | "defeat" | null
+  >(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
+  // 채팅창이 열릴 때 스크롤을 맨 아래로 (1080px 이하에서만)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isChatOpen && window.innerWidth <= 1080) {
+      // 약간의 지연을 주어 렌더링 후 스크롤
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [isChatOpen]);
 
   useEffect(() => {
     const unsubscribe = subscribe((event, data) => {
@@ -168,7 +179,7 @@ export default function Room() {
             gameFinished?: boolean;
             lastGameResults?: PlayerResult[];
             gameOver?: boolean;
-            gameOverResult?: 'victory' | 'defeat' | null;
+            gameOverResult?: "victory" | "defeat" | null;
             openCards?: Card[];
             hostPlayerId?: string;
             hostNickname?: string;
@@ -386,7 +397,7 @@ export default function Room() {
             chips?: ChipData[];
             winLossRecord?: Record<string, boolean[]>;
             gameOver?: boolean;
-            gameOverResult?: 'victory' | 'defeat' | null;
+            gameOverResult?: "victory" | "defeat" | null;
           };
           if (gameData.roomName === roomName) {
             setGameStarted(true);
@@ -437,8 +448,12 @@ export default function Room() {
               chipData.stolenBy &&
               chipData.chipNumber
             ) {
-              const stolenByName = players.find((p) => p.playerId === chipData.stolenBy)?.nickname || chipData.stolenBy;
-              const stolenFromName = players.find((p) => p.playerId === chipData.stolenFrom)?.nickname || chipData.stolenFrom;
+              const stolenByName =
+                players.find((p) => p.playerId === chipData.stolenBy)
+                  ?.nickname || chipData.stolenBy;
+              const stolenFromName =
+                players.find((p) => p.playerId === chipData.stolenFrom)
+                  ?.nickname || chipData.stolenFrom;
               const message = `${stolenByName}님이 ${stolenFromName}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
               setNotification(message);
               setShowNotification(true);
@@ -517,13 +532,20 @@ export default function Room() {
             isWinner?: boolean;
             winLossRecord?: Record<string, boolean[]>;
             gameOver?: boolean;
-            gameOverResult?: 'victory' | 'defeat' | null;
+            gameOverResult?: "victory" | "defeat" | null;
           };
           if (finishData.roomName === roomName) {
-            console.log('[gameFinished] gameOver:', finishData.gameOver, 'gameOverResult:', finishData.gameOverResult);
+            console.log(
+              "[gameFinished] gameOver:",
+              finishData.gameOver,
+              "gameOverResult:",
+              finishData.gameOverResult,
+            );
             // 게임 오버일 때만 gameStarted를 false로
             if (finishData.gameOver === true) {
-              console.log('[gameFinished] Setting gameStarted=false, gameOver=true');
+              console.log(
+                "[gameFinished] Setting gameStarted=false, gameOver=true",
+              );
               setGameStarted(false);
               setGameOver(true);
               setGameOverResult(finishData.gameOverResult ?? null);
@@ -574,7 +596,11 @@ export default function Room() {
   useEffect(() => {
     if (connected && roomName && isRefresh) {
       const timer = setTimeout(() => {
-        console.log("[Room] 재연결 joinRoom 전송:", { roomName, playerId, nickname });
+        console.log("[Room] 재연결 joinRoom 전송:", {
+          roomName,
+          playerId,
+          nickname,
+        });
         send("joinRoom", { name: roomName, playerId, nickname });
       }, 500);
       return () => clearTimeout(timer);
@@ -605,9 +631,7 @@ export default function Room() {
 
   // 족보 계산
   const myHandRank: HandResult | null =
-    myHand.length > 0
-      ? evaluateHand(myHand, openCards)
-      : null;
+    myHand.length > 0 ? evaluateHand(myHand, openCards) : null;
 
   const handleStartGame = () => {
     if (!roomName || memberCount < 3) return;
@@ -651,25 +675,25 @@ export default function Room() {
 
   const handleTestSuccess = () => {
     if (!roomName) return;
-    send('testSuccess', { roomName });
+    send("testSuccess", { roomName });
   };
 
   const handleTestFail = () => {
     if (!roomName) return;
-    send('testFail', { roomName });
+    send("testFail", { roomName });
   };
 
   return (
     <RoomPage>
       {/* 테스트 버튼 */}
-      <TestButtonsContainer>
+      {/* <TestButtonsContainer>
         <TestButton $variant="success" onClick={handleTestSuccess}>
           성공
         </TestButton>
         <TestButton $variant="fail" onClick={handleTestFail}>
           실패
         </TestButton>
-      </TestButtonsContainer>
+      </TestButtonsContainer> */}
       <RoomHeader>
         <h1>
           {roomName}{" "}
@@ -678,36 +702,37 @@ export default function Room() {
           </span>
         </h1>
         <RoomInfo>
-          <button
+          <div
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '50%',
-              color: '#fff',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '12px',
-              transition: 'all 0.3s',
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              border: "2px solid rgba(255, 255, 255, 0.3)",
+              borderRadius: "50%",
+              color: "#fff",
+              fontSize: "1rem",
+              fontWeight: "bold",
+              cursor: "pointer",
+              width: "22px",
+              height: "22px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "12px",
+              transition: "all 0.3s",
             }}
             onClick={() => setShowHelpModal(true)}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+              e.currentTarget.style.transform = "scale(1.1)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 12px rgba(102, 126, 234, 0.4)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow = "none";
             }}
             title="게임 설명 보기"
           >
             ?
-          </button>
+          </div>
           <MemberCount>{memberCount}명 참여중</MemberCount>
           <LeaveButton onClick={leaveRoom} aria-label="나가기">
             <span className="leave-text">나가기</span>
@@ -802,6 +827,11 @@ export default function Room() {
             />
           )}
         </GameArea>
+
+        <ChatOverlay
+          $isOpen={isChatOpen}
+          onClick={() => setIsChatOpen(false)}
+        />
 
         <ChatArea $isOpen={isChatOpen}>
           <ChatHeaderMobile>

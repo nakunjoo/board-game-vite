@@ -21,9 +21,9 @@ export const getSuitSymbol = (suit: string): string => {
   return symbols[suit] || "";
 };
 
-// 카드 값 문자열 반환 (1 -> A, 11 -> J, 12 -> Q, 13 -> K)
+// 카드 값 문자열 반환 (1 or 14 -> A, 11 -> J, 12 -> Q, 13 -> K)
 export const getCardValueLabel = (value: number): string => {
-  if (value === 1) return "A";
+  if (value === 1 || value === 14) return "A";
   if (value === 11) return "J";
   if (value === 12) return "Q";
   if (value === 13) return "K";

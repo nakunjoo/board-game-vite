@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   GameBoard,
   PlayerCircle,
@@ -37,6 +38,7 @@ import CardDeck from "../CardDeck";
 import { getCardImage, getCardName, getCardLabel } from "../../utils/cards";
 import { type HandResult } from "../../utils/poker";
 import type { Player, ChipData, PreviousChipsData } from "./types";
+import GangHandRankModal from "./GangHandRankModal";
 
 interface GangGameBoardProps {
   // 게임 상태
@@ -104,6 +106,8 @@ export default function GangGameBoard({
   onReady,
   onKickPlayer,
 }: GangGameBoardProps) {
+  const [showHandRankModal, setShowHandRankModal] = useState(false);
+
   // 나를 기준으로 상대적 좌석 계산
   const me = players.find((p) => p.isMe);
   const myOrder = me?.order ?? 0;
@@ -153,7 +157,11 @@ export default function GangGameBoard({
               </div>
             </StartGameButton>
           ))}
-          <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
+          <CardDeck
+            cards={deck}
+            cardBack={gameConfig.cardBack}
+            onClick={() => setShowHandRankModal(true)}
+          />
           <WinLossIndicators style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', marginTop: '30px' }}>
             {/* 승리 표시등 3개 */}
             {[0, 1, 2].map((index) => {
@@ -200,7 +208,11 @@ export default function GangGameBoard({
               ))}
             </OpenCardsArea>
           )}
-          <CardDeck cards={deck} cardBack={gameConfig.cardBack} />
+          <CardDeck
+            cards={deck}
+            cardBack={gameConfig.cardBack}
+            onClick={() => setShowHandRankModal(true)}
+          />
           <ChipsArea>
             {chips.length > 0 && (
               <ChipsGrid>
@@ -361,6 +373,10 @@ export default function GangGameBoard({
           )}
         </HandRankContainer>
       )}
+      <GangHandRankModal
+        isOpen={showHandRankModal}
+        onClose={() => setShowHandRankModal(false)}
+      />
     </GameBoard>
   );
 }

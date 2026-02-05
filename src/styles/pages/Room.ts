@@ -207,7 +207,7 @@ export const PlayerAvatar = styled.div<{
   }
 `;
 
-export const KickButton = styled.button`
+export const KickButton = styled.div`
   position: absolute;
   top: -8px;
   right: -8px;
@@ -221,7 +221,7 @@ export const KickButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: bold;
   transition: all 0.2s;
   z-index: 10;
@@ -302,7 +302,7 @@ export const OtherPlayerHand = styled.div<{
         transform: translateX(-50%);
         margin-top: 8px;
         flex-direction: row;
-        gap:6px;
+        gap: 6px;
       `;
     }
     // 왼쪽 (left: 0) - 카드를 오른쪽으로 (세로 배치)
@@ -395,15 +395,15 @@ export const TestButtonsContainer = styled.div`
   }
 `;
 
-export const TestButton = styled.button<{ $variant: 'success' | 'fail' }>`
+export const TestButton = styled.button<{ $variant: "success" | "fail" }>`
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: bold;
   color: white;
   background: ${({ $variant }) =>
-    $variant === 'success'
-      ? 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)'
-      : 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)'};
+    $variant === "success"
+      ? "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
+      : "linear-gradient(135deg, #f44336 0%, #d32f2f 100%)"};
   border: 2px solid #000;
   border-radius: 8px;
   cursor: pointer;

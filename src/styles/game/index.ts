@@ -143,6 +143,17 @@ export const CardDeck = styled.div`
   width: 40px;
   height: 56px;
   z-index: 1;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+
+  &:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 
   @media (max-width: 768px) {
     width: 30px;
@@ -205,7 +216,7 @@ export const StartGameButton = styled.button<{ $disabled: boolean }>`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 1.5rem 3rem;
+  padding: 1.5rem 2rem;
   font-size: 1.5rem;
   font-weight: bold;
   color: white;
@@ -220,6 +231,7 @@ export const StartGameButton = styled.button<{ $disabled: boolean }>`
   transition: all 0.3s;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   z-index: 100;
+  white-space: nowrap;
 
   &:hover {
     transform: translate(-50%, -50%)
@@ -595,12 +607,12 @@ export const PreviousChips = styled.div<{
     $isVertical
       ? $isLeftSide
         ? `
-    top: -60px;
-    left: ${($chipCount - 1) * 25}px;
+    top: -30px;
+    left: ${($chipCount - 1) * 15}px;
   `
         : `
-    top: -60px;
-    right: ${($chipCount - 1) * 25}px;
+    top: -30px;
+    right: ${($chipCount - 1) * 15}px;
   `
       : `
     left: ${-50 - ($chipCount - 1) * 25}px;
@@ -614,12 +626,12 @@ export const PreviousChips = styled.div<{
       $isVertical
         ? $isLeftSide
           ? `
-      top: -50px;
-      left: ${($chipCount - 1) * 10}px;
+      top: -30px;
+      left: ${($chipCount - 1) * 5}px;
     `
           : `
-      top: -50px;
-      right: ${($chipCount - 1) * 10}px;
+      top: -30px;
+      right: ${($chipCount - 1) * 5}px;
     `
         : `
       left: ${-40 - ($chipCount - 1) * 20}px;
@@ -903,8 +915,8 @@ export const GameFinishActionButton = styled.button<{
   }
 
   @media (max-width: 768px) {
-    padding: 1rem 1.5rem;
-    font-size: 1.1rem;
+    padding: 1rem 1.2rem;
+    font-size: 1rem;
     width: 180px;
   }
 `;

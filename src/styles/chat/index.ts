@@ -5,7 +5,11 @@ export const ChatToggleButtonWrapper = styled.div`
   bottom: 0.5rem;
   right: 0.5rem;
   z-index: 10;
-  display: inline-flex;
+  display: none;
+
+  @media (max-width: 1080px) {
+    display: inline-flex;
+  }
 `;
 
 export const ChatNotificationBadge = styled.span`
@@ -70,6 +74,22 @@ export const ChatToggleButton = styled.button`
   }
 `;
 
+export const ChatOverlay = styled.div<{ $isOpen?: boolean }>`
+  display: none;
+
+  @media (max-width: 1080px) {
+    display: ${({ $isOpen }) => ($isOpen ? "block" : "none")};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+`;
+
 export const ChatArea = styled.div<{ $isOpen?: boolean }>`
   flex: 1;
   min-width: 300px;
@@ -80,7 +100,7 @@ export const ChatArea = styled.div<{ $isOpen?: boolean }>`
   border-radius: 8px;
   overflow: hidden;
   z-index: 200;
-/* 
+  /*
   @media (max-width: 1080px) {
     flex: none;
     min-width: 0;
