@@ -78,7 +78,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:9030/ws");
+    // 환경 변수에서 WebSocket URL 가져오기
+    const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:9030/ws";
+
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {

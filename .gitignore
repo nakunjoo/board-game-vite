@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 app.yaml
+
+# Environment variables (keep .env.production for deployment reference)
+.env
+.env.local
+.env.production
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +27,6 @@ app.yaml
 *.njsproj
 *.sln
 *.sw?
+
+
+deploy-storage.bat
