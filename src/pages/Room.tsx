@@ -13,8 +13,8 @@ import {
   MemberCount,
   LeaveButton,
   RoomContent,
-  TestButtonsContainer,
-  TestButton,
+  // TestButtonsContainer,
+  // TestButton,
 } from "../styles/pages/Room";
 import { GameArea } from "../styles/game";
 import type { Card, GameConfig, PlayerHand } from "../types/game";
@@ -91,7 +91,7 @@ export default function Room() {
   const [gameStarted, setGameStarted] = useState(false);
   const [openCards, setOpenCards] = useState<Card[]>([]);
   const [hostPlayerId, setHostPlayerId] = useState<string>("");
-  const [hostNickname, setHostNickname] = useState<string>("");
+  const [_hostNickname, setHostNickname] = useState<string>("");
   const [chips, setChips] = useState<ChipData[]>([]);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [previousChips, setPreviousChips] = useState<PreviousChipsData>({});
@@ -673,15 +673,15 @@ export default function Room() {
     handleStartGame();
   };
 
-  const handleTestSuccess = () => {
-    if (!roomName) return;
-    send("testSuccess", { roomName });
-  };
+  // const handleTestSuccess = () => {
+  //   if (!roomName) return;
+  //   send("testSuccess", { roomName });
+  // };
 
-  const handleTestFail = () => {
-    if (!roomName) return;
-    send("testFail", { roomName });
-  };
+  // const handleTestFail = () => {
+  //   if (!roomName) return;
+  //   send("testFail", { roomName });
+  // };
 
   return (
     <RoomPage>
