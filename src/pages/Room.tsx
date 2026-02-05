@@ -39,6 +39,7 @@ import {
 import {
   GangGameBoard,
   GangResultModal,
+  GangHelpModal,
   type Player,
   type ChipData,
   type PreviousChipsData,
@@ -118,6 +119,7 @@ export default function Room() {
   const [isNextRoundReady, setIsNextRoundReady] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverResult, setGameOverResult] = useState<'victory' | 'defeat' | null>(null);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -676,6 +678,36 @@ export default function Room() {
           </span>
         </h1>
         <RoomInfo>
+          <button
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              color: '#fff',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '12px',
+              transition: 'all 0.3s',
+            }}
+            onClick={() => setShowHelpModal(true)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            title="게임 설명 보기"
+          >
+            ?
+          </button>
           <MemberCount>{memberCount}명 참여중</MemberCount>
           <LeaveButton onClick={leaveRoom} aria-label="나가기">
             <span className="leave-text">나가기</span>
@@ -821,6 +853,11 @@ export default function Room() {
           </ChatInputArea>
         </ChatArea>
       </RoomContent>
+
+      <GangHelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </RoomPage>
   );
 }
