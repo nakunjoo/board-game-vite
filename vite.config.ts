@@ -10,4 +10,5 @@ export default defineConfig({
       },
     }),
   ],
+  base: './', // Cloud Storage용 상대 경로
 })
