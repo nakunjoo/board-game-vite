@@ -4,6 +4,10 @@
   padding: 0.5rem;
   height: 100vh;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 @media (max-width: 768px) {

@@ -101,10 +101,12 @@ export default function GangResultModal({
   const allRanks = sortedResults.map((r) => evaluateHand(r.hand, openCards));
 
   // 족보 비교 함수 (a가 b보다 낮거나 같으면 true)
+  // 같은 detailName이면 동일 취급 (같은 족보명이면 순서 상관없이 OK)
   const isLowerOrEqualRank = (a: HandResult, b: HandResult): boolean => {
+    if (a.detailName === b.detailName) return true;
     if (a.score !== b.score) return a.score < b.score;
 
-    // 같은 족보일 때 tiebreakers로 비교
+    // 같은 족보 종류일 때 tiebreakers로 비교
     for (let i = 0; i < Math.max(a.tiebreakers.length, b.tiebreakers.length); i++) {
       const aVal = a.tiebreakers[i] || 0;
       const bVal = b.tiebreakers[i] || 0;

@@ -439,6 +439,8 @@ export default function Room() {
             readyPlayers?: string[];
             stolenFrom?: string;
             stolenBy?: string;
+            stolenFromName?: string;
+            stolenByName?: string;
             chipNumber?: number;
           };
           if (chipData.roomName === roomName) {
@@ -449,9 +451,11 @@ export default function Room() {
               chipData.chipNumber
             ) {
               const stolenByName =
+                chipData.stolenByName ||
                 players.find((p) => p.playerId === chipData.stolenBy)
                   ?.nickname || chipData.stolenBy;
               const stolenFromName =
+                chipData.stolenFromName ||
                 players.find((p) => p.playerId === chipData.stolenFrom)
                   ?.nickname || chipData.stolenFrom;
               const message = `${stolenByName}님이 ${stolenFromName}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
