@@ -236,6 +236,8 @@ export default function Lobby() {
         )}
       </div>
 
+      <div className="build-info">{__BUILD_DATE__}</div>
+
       {showModal && (
         <ModalOverlay onClick={() => setShowModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>

@@ -10,5 +10,8 @@ export default defineConfig({
       },
     }),
   ],
-  base: './', // Cloud Storage용 상대 경로
+  base: '/', // 절대 경로 (SPA 새로고침 지원)
+  define: {
+    __BUILD_DATE__: JSON.stringify(new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })),
+  },
 })

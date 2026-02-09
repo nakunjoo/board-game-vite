@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 app.yaml
+deploy.sh
+deploy.ps1
 
 # Environment variables (keep .env.production for deployment reference)
 .env

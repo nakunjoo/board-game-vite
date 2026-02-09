@@ -152,3 +152,10 @@
   margin-bottom: 1rem;
   text-align: center;
 }
+
+.build-info {
+  text-align: center;
+  color: #555;
+  font-size: 0.75rem;
+  margin-top: 2rem;
+}
