@@ -195,7 +195,7 @@ export default function Lobby() {
 
   return (
     <div className="lobby">
-      <h1>The Gang</h1>
+      <h1>BOBOGANG</h1>
       <div className="connection-status">
         {connected ? "서버 연결됨" : "서버 연결 중..."}
       </div>
