@@ -6,6 +6,7 @@ import {
   getNicknameForRoom,
   clearNicknameForRoom,
 } from "../contexts/WebSocketContext";
+import { playChipStolenSound } from "../utils/audio";
 import {
   RoomPage,
   RoomHeader,
@@ -461,6 +462,11 @@ export default function Room() {
               const message = `${stolenByName}님이 ${stolenFromName}님의 ${chipData.chipNumber}번 칩을 가져갔습니다!`;
               setNotification(message);
               setShowNotification(true);
+
+              // 내가 빼앗긴 경우에만 소리 재생
+              if (chipData.stolenFrom === playerId) {
+                playChipStolenSound();
+              }
 
               // 기존 타이머 클리어
               if (notificationTimerRef.current) {

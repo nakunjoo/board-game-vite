@@ -1,6 +1,9 @@
 import type { Card, GameConfig } from "../../types/game";
 
 const TYPES = ["clubs", "diamonds", "hearts", "spades"] as const;
+const CARD_IMAGE_BASE_URL =
+  import.meta.env.VITE_CARD_IMAGE_BASE_URL ||
+  "https://storage.googleapis.com/teak-banner-431004-n3.appspot.com/images/cards";
 
 const getValueFileName = (value: number): string => {
   switch (value) {
@@ -26,7 +29,7 @@ const createDeck = (): Card[] => {
       return {
         type,
         value,
-        image: `/images/cards/${type}_${valueName}.svg`,
+        image: `${CARD_IMAGE_BASE_URL}/${type}_${valueName}.svg`,
         name: `${type}_${valueName}`,
       };
     })
@@ -83,7 +86,7 @@ export const GANG_CONFIG: GameConfig = {
   gameType: "gang",
   displayName: "갱스터",
   createDeck,
-  cardBack: "/images/cards/back.svg",
+  cardBack: `${CARD_IMAGE_BASE_URL}/back.svg`,
   initialHandSize: 0,
   maxPlayers: 6,
 };
