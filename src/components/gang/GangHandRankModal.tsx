@@ -7,6 +7,10 @@ interface GangHandRankModalProps {
   onClose: () => void;
 }
 
+const CARD_IMAGE_BASE_URL =
+  import.meta.env.VITE_CARD_IMAGE_BASE_URL ||
+  "https://storage.googleapis.com/teak-banner-431004-n3.appspot.com/images/cards";
+
 // 카드 생성 헬퍼 함수
 const createCard = (type: string, value: number): Card => {
   const getValueFileName = (v: number): string => {
@@ -29,7 +33,7 @@ const createCard = (type: string, value: number): Card => {
   return {
     type,
     value,
-    image: `/images/cards/${type}_${valueName}.svg`,
+    image: `${CARD_IMAGE_BASE_URL}/${type}_${valueName}.svg`,
     name: `${type}_${valueName}`,
   };
 };
