@@ -6,6 +6,7 @@ import {
   ModalContent,
   ModalInput,
   RadioGroup,
+  RadioOptions,
   RadioOption,
   ModalButtons,
   ModalButton,
@@ -20,7 +21,8 @@ interface Room {
 }
 
 const GAME_TYPES = [
-  { value: "gang", label: "Gang" },
+  { value: "gang", label: "갱스터" },
+  { value: "spice", label: "향신료" },
 ];
 
 type ModalMode = "create" | "join";
@@ -59,14 +61,27 @@ export default function Lobby() {
           const joinData = data as {
             name: string;
             memberCount?: number;
-            players?: { nickname: string; order: number }[];
+            players?: { playerId: string; nickname: string; order: number }[];
+            gameType?: string;
+            deck?: unknown[];
+            myHand?: unknown[];
+            playerHands?: unknown[];
+            openCards?: unknown[];
+            chips?: unknown[];
+            currentStep?: number;
+            readyPlayers?: string[];
+            previousChips?: Record<string, number[]>;
+            winLossRecord?: Record<string, boolean[]>;
+            gameStarted?: boolean;
+            gameFinished?: boolean;
+            gameOver?: boolean;
+            gameOverResult?: string | null;
+            lastGameResults?: unknown[];
+            hostPlayerId?: string;
+            hostNickname?: string;
           };
-          sessionStorage.setItem(`joined:${joinData.name}`, "true");
           navigate(`/room/${joinData.name}`, {
-            state: {
-              memberCount: joinData.memberCount,
-              players: joinData.players,
-            },
+            state: joinData,
           });
           break;
         }
@@ -262,18 +277,20 @@ export default function Lobby() {
                 />
                 <RadioGroup>
                   <label>게임 타입</label>
-                  {GAME_TYPES.map((type) => (
-                    <RadioOption key={type.value}>
-                      <input
-                        type="radio"
-                        name="gameType"
-                        value={type.value}
-                        checked={gameType === type.value}
-                        onChange={(e) => setGameType(e.target.value)}
-                      />
-                      {type.label}
-                    </RadioOption>
-                  ))}
+                  <RadioOptions>
+                    {GAME_TYPES.map((type) => (
+                      <RadioOption key={type.value}>
+                        <input
+                          type="radio"
+                          name="gameType"
+                          value={type.value}
+                          checked={gameType === type.value}
+                          onChange={(e) => setGameType(e.target.value)}
+                        />
+                        {type.label}
+                      </RadioOption>
+                    ))}
+                  </RadioOptions>
                 </RadioGroup>
                 <CheckboxOption>
                   <input

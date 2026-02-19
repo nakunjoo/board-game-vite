@@ -52,11 +52,18 @@ export const RadioGroup = styled.div`
   flex-direction: column;
   gap: 0.5rem;
 
-  label {
+  label:first-child {
     font-size: 0.95rem;
     color: #aaa;
     margin-bottom: 0.25rem;
   }
+`;
+
+// 라디오 옵션 컨테이너 (3개씩 한 줄)
+export const RadioOptions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 `;
 
 // 라디오 옵션
@@ -69,6 +76,7 @@ export const RadioOption = styled.label`
   cursor: pointer;
   color: #e0e0e0;
   font-size: 0.95rem;
+  flex: 0 0 calc(33.333% - 0.27rem);
 
   &:hover {
     background-color: #333;
