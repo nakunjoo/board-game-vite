@@ -12,13 +12,13 @@ export const SPICE_SUIT_COLORS: Record<string, string> = {
   "wild-suit": "#2980b9",
 };
 
-// 문양별 한글 이름
+// 문양별 아이콘
 export const SPICE_SUIT_LABELS: Record<string, string> = {
-  pepper: "후추",
-  cinnamon: "계피",
-  saffron: "사프란",
-  "wild-number": "와일드",
-  "wild-suit": "와일드",
+  pepper: "🌶️",
+  cinnamon: "🪵",
+  saffron: "🌸",
+  "wild-number": "🃏",
+  "wild-suit": "🃏",
 };
 
 // 향신료 덱 생성 (100장)

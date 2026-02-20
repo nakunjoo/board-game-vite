@@ -83,6 +83,51 @@ export default function SpiceRoom() {
   const [gameOver, setGameOver] = useState(ls?.gameOver ?? false);
   const [gameOverResult, setGameOverResult] = useState<"victory" | "defeat" | null>((ls?.gameOverResult as "victory" | "defeat" | null) ?? null);
 
+  // 선뽑기 상태
+  const [isFirstDraw, setIsFirstDraw] = useState(false);
+  const [myDrawnNumber, setMyDrawnNumber] = useState<number | null>(null);
+  const [firstDrawResults, setFirstDrawResults] = useState<Record<string, number>>({});
+  const [firstDrawFinished, setFirstDrawFinished] = useState(false);
+  const [firstPlayerId, setFirstPlayerId] = useState<string | null>(null);
+  const [firstNickname, setFirstNickname] = useState<string | null>(null);
+  const [drawnCount, setDrawnCount] = useState(0);
+
+  // 턴 상태
+  const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
+  const [currentSuit, setCurrentSuit] = useState<string | null>(null);
+  const [currentNumber, setCurrentNumber] = useState<number>(0);
+  const [tableStackSize, setTableStackSize] = useState(0);
+
+  // 트로피 상태 (playerId → 트로피 수)
+  const [trophies, setTrophies] = useState<Record<string, number>>({});
+
+  // 스파이스 게임 종료 메타 (점수 기반 결과)
+  const [spiceGameOverMeta, setSpiceGameOverMeta] = useState<{
+    reason: 'trophy' | 'deck';
+    winnerIds: string[];
+    winnerNicknames: string[];
+    maxScore: number;
+  } | null>(null);
+
+  // 도전 페이즈 상태
+  const [challengePhase, setChallengePhase] = useState<{
+    playerId: string;
+    nickname: string;
+    declaredSuit: string;
+    declaredNumber: number;
+  } | null>(null);
+  const [challengeResult, setChallengeResult] = useState<{
+    challengerNickname: string;
+    targetNickname: string;
+    challengeType: 'number' | 'suit';
+    challengeSuccess: boolean;
+    winnerId: string;
+    loserId: string;
+    playedCard: Card;
+    declaredSuit: string;
+    declaredNumber: number;
+  } | null>(null);
+
   // 향신료 전용 소켓 이벤트
   useEffect(() => {
     const unsubscribe = subscribe((event, data) => {
@@ -100,6 +145,18 @@ export default function SpiceRoom() {
             gameOver?: boolean;
             gameOverResult?: "victory" | "defeat" | null;
             openCards?: Card[];
+            // Spice 재연결 상태
+            currentTurnPlayerId?: string | null;
+            currentSuit?: string | null;
+            currentNumber?: number;
+            tableStackSize?: number;
+            trophies?: Record<string, number>;
+            challengePhase?: {
+              playerId: string;
+              nickname: string;
+              declaredSuit: string;
+              declaredNumber: number;
+            } | null;
           };
           if (joinData.name === roomName) {
             if (joinData.deck && joinData.deck.length > 0) setDeck(joinData.deck);
@@ -111,6 +168,65 @@ export default function SpiceRoom() {
             if (joinData.gameOver !== undefined) setGameOver(joinData.gameOver);
             if (joinData.gameOverResult !== undefined) setGameOverResult(joinData.gameOverResult);
             if (joinData.openCards) setOpenCards(joinData.openCards);
+            // Spice 게임 진행 중 재연결 시 상태 복원
+            if (joinData.currentTurnPlayerId !== undefined) setCurrentTurnPlayerId(joinData.currentTurnPlayerId);
+            if (joinData.currentSuit !== undefined) setCurrentSuit(joinData.currentSuit);
+            if (joinData.currentNumber !== undefined) setCurrentNumber(joinData.currentNumber);
+            if (joinData.tableStackSize !== undefined) setTableStackSize(joinData.tableStackSize);
+            if (joinData.trophies !== undefined) setTrophies(joinData.trophies);
+            if (joinData.challengePhase !== undefined) setChallengePhase(joinData.challengePhase);
+          }
+          break;
+        }
+        case "firstDrawStarted": {
+          const drawData = data as { roomName: string };
+          if (drawData.roomName === roomName) {
+            setIsFirstDraw(true);
+            setMyDrawnNumber(null);
+            setFirstDrawResults({});
+            setFirstDrawFinished(false);
+            setFirstPlayerId(null);
+            setFirstNickname(null);
+            setDrawnCount(0);
+          }
+          break;
+        }
+        case "firstDrawResult": {
+          const resultData = data as {
+            roomName: string;
+            drawnNumber: number;
+            drawnCount: number;
+            totalCount: number;
+          };
+          if (resultData.roomName === roomName) {
+            setMyDrawnNumber(resultData.drawnNumber);
+            setDrawnCount(resultData.drawnCount);
+          }
+          break;
+        }
+        case "firstDrawProgress": {
+          const progressData = data as {
+            roomName: string;
+            drawnCount: number;
+            totalCount: number;
+          };
+          if (progressData.roomName === roomName) {
+            setDrawnCount(progressData.drawnCount);
+          }
+          break;
+        }
+        case "firstDrawFinished": {
+          const finishedData = data as {
+            roomName: string;
+            results: Record<string, number>;
+            firstPlayerId: string;
+            firstNickname: string;
+          };
+          if (finishedData.roomName === roomName) {
+            setFirstDrawResults(finishedData.results);
+            setFirstDrawFinished(true);
+            setFirstPlayerId(finishedData.firstPlayerId);
+            setFirstNickname(finishedData.firstNickname);
           }
           break;
         }
@@ -123,8 +239,20 @@ export default function SpiceRoom() {
             openCards?: Card[];
             gameOver?: boolean;
             gameOverResult?: "victory" | "defeat" | null;
+            currentTurnPlayerId?: string;
+            currentSuit?: string | null;
+            currentNumber?: number;
+            trophies?: Record<string, number>;
           };
           if (gameData.roomName === roomName) {
+            // 선뽑기 상태 초기화
+            setIsFirstDraw(false);
+            setMyDrawnNumber(null);
+            setFirstDrawResults({});
+            setFirstDrawFinished(false);
+            setFirstPlayerId(null);
+            setFirstNickname(null);
+            setDrawnCount(0);
             setGameStarted(true);
             setDeck(gameData.deck);
             if (gameData.myHand) setMyHand(gameData.myHand);
@@ -137,6 +265,180 @@ export default function SpiceRoom() {
             setIsNextRoundReady(false);
             setGameOver(gameData.gameOver ?? false);
             setGameOverResult(gameData.gameOverResult ?? null);
+            setCurrentTurnPlayerId(gameData.currentTurnPlayerId ?? null);
+            setCurrentSuit(gameData.currentSuit ?? null);
+            setCurrentNumber(gameData.currentNumber ?? 0);
+            setTableStackSize(0);
+            setTrophies(gameData.trophies ?? {});
+            setSpiceGameOverMeta(null);
+          }
+          break;
+        }
+        case "cardPlayed":
+        case "cardPassed": {
+          const cardData = data as {
+            roomName: string;
+            playerHands?: PlayerHand[];
+            currentTurnPlayerId: string;
+            currentSuit: string | null;
+            currentNumber: number;
+            tableStackSize: number;
+            deck: Card[];
+          };
+          if (cardData.roomName === roomName) {
+            if (cardData.playerHands) setPlayerHands(cardData.playerHands);
+            setCurrentTurnPlayerId(cardData.currentTurnPlayerId);
+            setCurrentSuit(cardData.currentSuit);
+            setCurrentNumber(cardData.currentNumber);
+            setTableStackSize(cardData.tableStackSize);
+            setDeck(cardData.deck);
+            // 새 턴 시작 시 도전 결과 표식 초기화
+            setChallengeResult(null);
+          }
+          break;
+        }
+        case "myHandUpdate": {
+          const handData = data as { roomName: string; myHand: Card[] };
+          if (handData.roomName === roomName) {
+            setMyHand(handData.myHand);
+          }
+          break;
+        }
+        case "challengePhase": {
+          const cpData = data as {
+            roomName: string;
+            playerId: string;
+            nickname: string;
+            declaredSuit: string;
+            declaredNumber: number;
+            playerHands?: PlayerHand[];
+            deck: Card[];
+          };
+          if (cpData.roomName === roomName) {
+            if (cpData.playerHands) setPlayerHands(cpData.playerHands);
+            setDeck(cpData.deck);
+            setChallengePhase({
+              playerId: cpData.playerId,
+              nickname: cpData.nickname,
+              declaredSuit: cpData.declaredSuit,
+              declaredNumber: cpData.declaredNumber,
+            });
+            setChallengeResult(null);
+          }
+          break;
+        }
+        case "challengeExpired": {
+          const ceData = data as {
+            roomName: string;
+            currentTurnPlayerId: string;
+            currentSuit: string;
+            currentNumber: number;
+            tableStackSize: number;
+            playerHands?: PlayerHand[];
+            deck: Card[];
+            trophyAwarded?: { playerId: string; nickname: string; trophyCount: number };
+            trophies?: Record<string, number>;
+          };
+          if (ceData.roomName === roomName) {
+            setChallengePhase(null);
+            setCurrentTurnPlayerId(ceData.currentTurnPlayerId);
+            setCurrentSuit(ceData.currentSuit);
+            setCurrentNumber(ceData.currentNumber);
+            setTableStackSize(ceData.tableStackSize);
+            if (ceData.playerHands) setPlayerHands(ceData.playerHands);
+            setDeck(ceData.deck);
+            if (ceData.trophies) setTrophies(ceData.trophies);
+            // 도전 결과 초기화 (새 턴 시작)
+            setChallengeResult(null);
+          }
+          break;
+        }
+        case "challengeResult": {
+          const crData = data as {
+            roomName: string;
+            challengerId: string;
+            challengerNickname: string;
+            targetPlayerId: string;
+            targetNickname: string;
+            challengeType: 'number' | 'suit';
+            challengeSuccess: boolean;
+            winnerId: string;
+            loserId: string;
+            playedCard: Card;
+            declaredSuit: string;
+            declaredNumber: number;
+            playerHands?: PlayerHand[];
+            currentTurnPlayerId: string;
+            currentSuit: string | null;
+            currentNumber: number;
+            tableStackSize: number;
+            deck: Card[];
+            trophyAwarded?: { playerId: string; nickname: string; trophyCount: number };
+            trophies?: Record<string, number>;
+          };
+          if (crData.roomName === roomName) {
+            setChallengePhase(null);
+            if (crData.playerHands) setPlayerHands(crData.playerHands);
+            setCurrentTurnPlayerId(crData.currentTurnPlayerId);
+            setCurrentSuit(crData.currentSuit);
+            setCurrentNumber(crData.currentNumber);
+            setTableStackSize(crData.tableStackSize);
+            setDeck(crData.deck);
+            if (crData.trophies) setTrophies(crData.trophies);
+            setChallengeResult({
+              challengerNickname: crData.challengerNickname,
+              targetNickname: crData.targetNickname,
+              challengeType: crData.challengeType,
+              challengeSuccess: crData.challengeSuccess,
+              winnerId: crData.winnerId,
+              loserId: crData.loserId,
+              playedCard: crData.playedCard,
+              declaredSuit: crData.declaredSuit,
+              declaredNumber: crData.declaredNumber,
+            });
+          }
+          break;
+        }
+        case "spiceGameOver": {
+          const soData = data as {
+            roomName: string;
+            reason: 'trophy' | 'deck';
+            trophies: Record<string, number>;
+            playerResults: {
+              playerId: string;
+              nickname: string;
+              hand: Card[];
+              trophyCount: number;
+              wonCardCount: number;
+              score: number;
+            }[];
+            winnerIds: string[];
+            winnerNicknames: string[];
+            maxScore: number;
+          };
+          if (soData.roomName === roomName) {
+            setTrophies(soData.trophies);
+            setGameOver(true);
+            setGameOverResult('victory');
+            setGameStarted(false);
+            setGameFinished(true);
+            setShowResults(true);
+            setPlayerResults(soData.playerResults.map((r) => ({
+              playerId: r.playerId,
+              nickname: r.nickname,
+              hand: r.hand,
+              chips: [],
+              // 점수 정보 확장 필드 (결과 모달에서 활용)
+              trophyCount: r.trophyCount,
+              wonCardCount: r.wonCardCount,
+              score: r.score,
+            })));
+            setSpiceGameOverMeta({
+              reason: soData.reason,
+              winnerIds: soData.winnerIds,
+              winnerNicknames: soData.winnerNicknames,
+              maxScore: soData.maxScore,
+            });
           }
           break;
         }
@@ -184,6 +486,22 @@ export default function SpiceRoom() {
   const handleStartGame = () => {
     if (!roomName) return;
     send("startGame", { roomName });
+  };
+  const handleDrawFirstCard = () => {
+    if (!roomName || myDrawnNumber !== null) return;
+    send("drawFirstCard", { roomName });
+  };
+  const handlePlayCard = (cardIndex: number, declaredSuit: string, declaredNumber: number) => {
+    if (!roomName) return;
+    send("playCard", { roomName, cardIndex, declaredSuit, declaredNumber });
+  };
+  const handlePass = () => {
+    if (!roomName) return;
+    send("pass", { roomName });
+  };
+  const handleChallenge = (challengeType: 'number' | 'suit') => {
+    if (!roomName) return;
+    send("challenge", { roomName, challengeType });
   };
   const handleNextRound = () => {
     if (!roomName || isNextRoundReady) return;
@@ -275,6 +593,24 @@ export default function SpiceRoom() {
             gameConfig={gameConfig}
             onStartGame={handleStartGame}
             onKickPlayer={handleKickPlayer}
+            isFirstDraw={isFirstDraw}
+            myDrawnNumber={myDrawnNumber}
+            firstDrawResults={firstDrawResults}
+            firstDrawFinished={firstDrawFinished}
+            firstPlayerId={firstPlayerId}
+            firstNickname={firstNickname}
+            drawnCount={drawnCount}
+            onDrawFirstCard={handleDrawFirstCard}
+            currentTurnPlayerId={currentTurnPlayerId}
+            currentSuit={currentSuit}
+            currentNumber={currentNumber}
+            tableStackSize={tableStackSize}
+            onPlayCard={handlePlayCard}
+            onPass={handlePass}
+            challengePhase={challengePhase}
+            challengeResult={challengeResult}
+            onChallenge={handleChallenge}
+            trophies={trophies}
           />
           <ChatToggleButtonWrapper>
             <ChatToggleButton
@@ -309,6 +645,7 @@ export default function SpiceRoom() {
               gameOver={gameOver}
               gameOverResult={gameOverResult}
               isHost={isHost}
+              spiceGameOverMeta={spiceGameOverMeta}
               onClose={() => setShowResults(false)}
               onShowResults={() => setShowResults(true)}
               onNextRound={handleNextRound}
