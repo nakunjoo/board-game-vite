@@ -5,20 +5,29 @@ const SPICE_SUITS = ["pepper", "cinnamon", "saffron"] as const;
 
 // 문양별 색상 (렌더링에 활용)
 export const SPICE_SUIT_COLORS: Record<string, string> = {
-  pepper: "#1a1a1a",
+  pepper: "#27ae60",
   cinnamon: "#c0392b",
   saffron: "#f39c12",
   "wild-number": "#8e44ad",
   "wild-suit": "#2980b9",
 };
 
-// 문양별 아이콘
+// 문양별 아이콘 (이모지 깨짐 방지: 텍스트 기반)
 export const SPICE_SUIT_LABELS: Record<string, string> = {
-  pepper: "🌶️",
-  cinnamon: "🪵",
-  saffron: "🌸",
-  "wild-number": "🃏",
-  "wild-suit": "🃏",
+  pepper: "P",
+  cinnamon: "C",
+  saffron: "S",
+  "wild-number": "W",
+  "wild-suit": "W",
+};
+
+// 문양별 한글 이름
+export const SPICE_SUIT_NAMES: Record<string, string> = {
+  pepper: "후추",
+  cinnamon: "계피",
+  saffron: "사프란",
+  "wild-number": "와일드",
+  "wild-suit": "와일드",
 };
 
 // 향신료 덱 생성 (100장)

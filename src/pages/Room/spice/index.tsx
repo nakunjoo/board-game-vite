@@ -41,6 +41,7 @@ export default function SpiceRoom() {
     memberCount,
     isHost,
     messages,
+    setMessages,
     inputMessage,
     setInputMessage,
     isChatOpen,
@@ -100,6 +101,9 @@ export default function SpiceRoom() {
 
   // 트로피 상태 (playerId → 트로피 수)
   const [trophies, setTrophies] = useState<Record<string, number>>({});
+
+  // 획득 카드 수 (playerId → 획득한 카드 수)
+  const [wonCardCounts, setWonCardCounts] = useState<Record<string, number>>({});
 
   // 스파이스 게임 종료 메타 (점수 기반 결과)
   const [spiceGameOverMeta, setSpiceGameOverMeta] = useState<{
@@ -181,6 +185,25 @@ export default function SpiceRoom() {
         case "firstDrawStarted": {
           const drawData = data as { roomName: string };
           if (drawData.roomName === roomName) {
+            // 게임 결과 화면 리셋
+            setGameFinished(false);
+            setShowResults(false);
+            setGameOver(false);
+            setGameOverResult(null);
+            setGameStarted(false);
+            setSpiceGameOverMeta(null);
+            setPlayerResults([]);
+            setNextRoundReadyPlayers([]);
+            setIsNextRoundReady(false);
+            setChallengePhase(null);
+            setChallengeResult(null);
+            setWonCardCounts({});
+            setTrophies({});
+            setCurrentTurnPlayerId(null);
+            setCurrentSuit(null);
+            setCurrentNumber(0);
+            setTableStackSize(0);
+            // 선뽑기 상태
             setIsFirstDraw(true);
             setMyDrawnNumber(null);
             setFirstDrawResults({});
@@ -324,6 +347,13 @@ export default function SpiceRoom() {
               declaredNumber: cpData.declaredNumber,
             });
             setChallengeResult(null);
+            setMessages((prev) => [
+              ...prev,
+              {
+                message: `🃏 ${cpData.nickname}이(가) [${cpData.declaredSuit}] ${cpData.declaredNumber}을(를) 선언했습니다`,
+                isSystem: true,
+              },
+            ]);
           }
           break;
         }
@@ -338,6 +368,7 @@ export default function SpiceRoom() {
             deck: Card[];
             trophyAwarded?: { playerId: string; nickname: string; trophyCount: number };
             trophies?: Record<string, number>;
+            wonCardCounts?: Record<string, number>;
           };
           if (ceData.roomName === roomName) {
             setChallengePhase(null);
@@ -348,6 +379,7 @@ export default function SpiceRoom() {
             if (ceData.playerHands) setPlayerHands(ceData.playerHands);
             setDeck(ceData.deck);
             if (ceData.trophies) setTrophies(ceData.trophies);
+            if (ceData.wonCardCounts) setWonCardCounts(ceData.wonCardCounts);
             // 도전 결과 초기화 (새 턴 시작)
             setChallengeResult(null);
           }
@@ -375,16 +407,16 @@ export default function SpiceRoom() {
             deck: Card[];
             trophyAwarded?: { playerId: string; nickname: string; trophyCount: number };
             trophies?: Record<string, number>;
+            wonCardCounts?: Record<string, number>;
           };
           if (crData.roomName === roomName) {
             setChallengePhase(null);
+            // 패 수 변경은 즉시 반영
             if (crData.playerHands) setPlayerHands(crData.playerHands);
-            setCurrentTurnPlayerId(crData.currentTurnPlayerId);
-            setCurrentSuit(crData.currentSuit);
-            setCurrentNumber(crData.currentNumber);
-            setTableStackSize(crData.tableStackSize);
-            setDeck(crData.deck);
             if (crData.trophies) setTrophies(crData.trophies);
+            if (crData.wonCardCounts) setWonCardCounts(crData.wonCardCounts);
+            setDeck(crData.deck);
+            // 결과 카드 표시
             setChallengeResult({
               challengerNickname: crData.challengerNickname,
               targetNickname: crData.targetNickname,
@@ -396,6 +428,21 @@ export default function SpiceRoom() {
               declaredSuit: crData.declaredSuit,
               declaredNumber: crData.declaredNumber,
             });
+            setMessages((prev) => [
+              ...prev,
+              {
+                message: `⚔️ ${crData.challengerNickname}이(가) ${crData.challengeType === 'number' ? '숫자' : '향신료'} 도전 → ${crData.challengeSuccess ? '성공' : '실패'}! (${crData.challengeSuccess ? crData.challengerNickname : crData.targetNickname} 승리)`,
+                isSystem: true,
+              },
+            ]);
+            // 3초 후 모달 닫고 다음 턴으로 전환
+            setTimeout(() => {
+              setChallengeResult(null);
+              setCurrentTurnPlayerId(crData.currentTurnPlayerId);
+              setCurrentSuit(crData.currentSuit);
+              setCurrentNumber(crData.currentNumber);
+              setTableStackSize(crData.tableStackSize);
+            }, 3000);
           }
           break;
         }
@@ -611,6 +658,7 @@ export default function SpiceRoom() {
             challengeResult={challengeResult}
             onChallenge={handleChallenge}
             trophies={trophies}
+            wonCardCounts={wonCardCounts}
           />
           <ChatToggleButtonWrapper>
             <ChatToggleButton

@@ -90,3 +90,17 @@ export const playNotificationSound = (): void => {
   // 부드러운 알림음
   playBeep(700, 200, 0.25);
 };
+
+/**
+ * 타이머 똑딱 소리 (5초 이하 카운트다운)
+ * @param isLastSecond - 마지막 1초 여부 (더 강한 소리)
+ */
+export const playTickSound = (isLastSecond = false): void => {
+  if (isLastSecond) {
+    // 마지막 1초: 높고 짧은 경고음
+    playBeep(1200, 80, 0.4);
+  } else {
+    // 똑딱: 짧은 클릭 느낌 (고주파 짧은 음)
+    playBeep(900, 60, 0.25);
+  }
+};

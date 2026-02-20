@@ -290,6 +290,7 @@ export function useRoomBase() {
     hostPlayerId,
     isHost,
     messages,
+    setMessages,
     inputMessage,
     setInputMessage,
     isChatOpen,

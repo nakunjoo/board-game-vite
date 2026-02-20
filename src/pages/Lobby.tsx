@@ -18,6 +18,7 @@ interface Room {
   memberCount: number;
   gameStarted?: boolean;
   isPrivate?: boolean;
+  gameType?: string;
 }
 
 const GAME_TYPES = [
@@ -234,7 +235,19 @@ export default function Lobby() {
                 <span className="room-name">
                   {room.isPrivate && <span style={{ marginRight: '4px' }}>🔒</span>}
                   {room.name}
-                  {room.gameStarted && <span style={{ marginLeft: '8px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
+                  <span style={{
+                    marginLeft: '7px',
+                    fontSize: '0.72em',
+                    fontWeight: 'bold',
+                    color: room.gameType === 'spice' ? '#e67e22' : '#646cff',
+                    background: room.gameType === 'spice' ? 'rgba(230,126,34,0.15)' : 'rgba(100,108,255,0.15)',
+                    border: `1px solid ${room.gameType === 'spice' ? 'rgba(230,126,34,0.4)' : 'rgba(100,108,255,0.4)'}`,
+                    borderRadius: '4px',
+                    padding: '1px 5px',
+                  }}>
+                    {room.gameType === 'spice' ? '향신료' : '갱스터'}
+                  </span>
+                  {room.gameStarted && <span style={{ marginLeft: '6px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
                 </span>
                 <span className="room-players">{room.memberCount}명</span>
                 <button
