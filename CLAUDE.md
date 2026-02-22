@@ -2,6 +2,19 @@
 
 React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케이션
 
+## 변경 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2026-02-22 | `useRoomBase.ts`: 새로고침 감지 방식을 `performance.getEntriesByType('navigation')` 기반으로 변경 |
+| 2026-02-22 | `spice/index.tsx`: `roomJoined`에서 firstDraw 상태 복원, `reconnectTurnTimeLeft` / `reconnectChallengeTimeLeft` 상태 추가 |
+| 2026-02-22 | `spice/index.tsx`: `challengeExpired` 수신 시 `setChallengePhase(null)` 1100ms 지연 (도전 타이머 0초 표시 race condition 수정) |
+| 2026-02-22 | `SpiceGameBoard.tsx`: 턴 타이머 `next < 0` 조건으로 변경 (0초 1초 표시 후 패스), 도전 타이머 `prev <= 0` 조건으로 변경 (0초 표시 후 정지) |
+| 2026-02-22 | `SpiceGameBoard.tsx`: `reconnectTurnTimeLeft` / `reconnectChallengeTimeLeft` prop 추가 (재연결 시 타이머 남은 시간 복원) |
+| 2026-02-22 | `SpiceSuitIcon` export 추가, `SpiceHelpModal`에서 실제 SVG 아이콘 사용 (이모지 → 실제 카드 문양) |
+| 2026-02-22 | `SpiceHelpModal`: 턴 제한시간 20초 → 30초 수정 |
+| 2026-02-22 | `SpiceGameBoard`: 향신료 게임 시작 최소 인원 2명으로 제한 (혼자면 버튼 비활성화) |
+
 ## 기술 스택
 
 - **Framework**: React 19 + TypeScript 5.9
