@@ -74,10 +74,14 @@ interface SpiceGameBoardProps {
   onChallenge?: (challengeType: "number" | "suit") => void;
   trophies?: Record<string, number>; // playerId → 트로피 수 (0~2)
   wonCardCounts?: Record<string, number>; // playerId → 획득 카드 수
+  // 재연결 시 타이머 복원
+  reconnectTurnTimeLeft?: number | null;
+  reconnectChallengeTimeLeft?: number | null;
+  onReconnectTimeLeftConsumed?: () => void;
 }
 
-// 향신료 SVG 아이콘
-function SpiceSuitIcon({ type, color, size = 24 }: { type: string; color: string; size?: number }) {
+// 향신료 SVG 아이콘 (export: SpiceHelpModal 등 외부에서도 사용)
+export function SpiceSuitIcon({ type, color, size = 24 }: { type: string; color: string; size?: number }) {
   if (type === "pepper") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -380,6 +384,9 @@ export default function SpiceGameBoard({
   onChallenge,
   trophies = {},
   wonCardCounts = {},
+  reconnectTurnTimeLeft = null,
+  reconnectChallengeTimeLeft = null,
+  onReconnectTimeLeftConsumed,
 }: SpiceGameBoardProps) {
   const me = players.find((p) => p.isMe);
   const myOrder = me?.order ?? 0;
@@ -396,10 +403,12 @@ export default function SpiceGameBoard({
     null,
   );
 
-  // 20초 타이머 (시간 초과 시 자동 패스)
+  // 30초 타이머 (시간 초과 시 자동 패스)
   const TURN_TIME = 30;
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 재연결 시 서버에서 받은 남은 시간을 한 번만 사용하기 위한 ref
+  const reconnectTurnTimeLeftRef = useRef<number | null>(reconnectTurnTimeLeft);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -407,6 +416,13 @@ export default function SpiceGameBoard({
       timerRef.current = null;
     }
   };
+
+  // prop으로 새 값이 들어오면 ref 업데이트
+  useEffect(() => {
+    if (reconnectTurnTimeLeft != null) {
+      reconnectTurnTimeLeftRef.current = reconnectTurnTimeLeft;
+    }
+  }, [reconnectTurnTimeLeft]);
 
   // onPass prop 참조를 ref로 유지 (클로저 문제 방지)
   const onPassRef = useRef(onPass);
@@ -416,22 +432,30 @@ export default function SpiceGameBoard({
 
   useEffect(() => {
     clearTimer();
-    // 턴이 바뀔 때마다 항상 타이머 초기화
-    setTimeLeft(TURN_TIME);
+    // 재연결 시 서버에서 받은 남은 시간 사용, 없으면 TURN_TIME으로 초기화
+    const initialTime = reconnectTurnTimeLeftRef.current ?? TURN_TIME;
+    reconnectTurnTimeLeftRef.current = null; // 소비
+    if (initialTime === TURN_TIME) {
+      // 재연결이 아닌 일반 턴 전환이면 부모에게 소비 완료 알림
+    } else {
+      onReconnectTimeLeftConsumed?.();
+    }
+    setTimeLeft(initialTime);
     // 도전 페이즈 중이거나 게임 종료 시 타이머 비활성화
     if (gameStarted && currentTurnPlayerId && !challengePhase) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           const next = prev - 1;
-          if (next <= 0) {
+          // 0을 1초 표시한 뒤 다음 틱(-1)에서 패스 실행
+          if (next < 0) {
             clearTimer();
             // 내 턴일 때만 자동 패스
             if (isMyTurn) onPassRef.current?.();
             return 0;
           }
-          // 내 턴일 때만 5초 이하 똑딱 소리
+          // 내 턴일 때만 5초 이하 똑딱 소리 (0초가 마지막 강조 틱)
           if (isMyTurn && next <= 5) {
-            playTickSound(next === 1);
+            playTickSound(next === 0);
           }
           return next;
         });
@@ -444,6 +468,14 @@ export default function SpiceGameBoard({
   const CHALLENGE_TIME = 5;
   const [challengeTimeLeft, setChallengeTimeLeft] = useState(CHALLENGE_TIME);
   const challengeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 재연결 시 서버에서 받은 도전 페이즈 남은 시간
+  const reconnectChallengeTimeLeftRef = useRef<number | null>(reconnectChallengeTimeLeft);
+
+  useEffect(() => {
+    if (reconnectChallengeTimeLeft != null) {
+      reconnectChallengeTimeLeftRef.current = reconnectChallengeTimeLeft;
+    }
+  }, [reconnectChallengeTimeLeft]);
 
   const clearChallengeTimer = () => {
     if (challengeTimerRef.current) {
@@ -455,10 +487,13 @@ export default function SpiceGameBoard({
   useEffect(() => {
     clearChallengeTimer();
     if (challengePhase) {
-      setChallengeTimeLeft(CHALLENGE_TIME);
+      const initialChallengeTime = reconnectChallengeTimeLeftRef.current ?? CHALLENGE_TIME;
+      reconnectChallengeTimeLeftRef.current = null; // 소비
+      setChallengeTimeLeft(initialChallengeTime);
       challengeTimerRef.current = setInterval(() => {
         setChallengeTimeLeft((prev) => {
-          if (prev <= 1) {
+          // 0을 1초 표시한 뒤 다음 틱에서 정지
+          if (prev <= 0) {
             clearChallengeTimer();
             return 0;
           }

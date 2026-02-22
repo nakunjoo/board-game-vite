@@ -113,6 +113,10 @@ export default function SpiceRoom() {
     maxScore: number;
   } | null>(null);
 
+  // 재연결 시 타이머 복원값 (한 번 소비 후 null로 초기화됨)
+  const [reconnectTurnTimeLeft, setReconnectTurnTimeLeft] = useState<number | null>(null);
+  const [reconnectChallengeTimeLeft, setReconnectChallengeTimeLeft] = useState<number | null>(null);
+
   // 도전 페이즈 상태
   const [challengePhase, setChallengePhase] = useState<{
     playerId: string;
@@ -155,12 +159,24 @@ export default function SpiceRoom() {
             currentNumber?: number;
             tableStackSize?: number;
             trophies?: Record<string, number>;
+            wonCardCounts?: Record<string, number>;
             challengePhase?: {
               playerId: string;
               nickname: string;
               declaredSuit: string;
               declaredNumber: number;
             } | null;
+            // 재연결 시 타이머 복원
+            turnTimeLeft?: number | null;
+            challengeTimeLeft?: number | null;
+            // 선뽑기 재연결 상태
+            isFirstDraw?: boolean;
+            myDrawnNumber?: number | null;
+            drawnCount?: number;
+            firstDrawFinished?: boolean;
+            firstDrawResults?: Record<string, number>;
+            firstPlayerId?: string | null;
+            firstNickname?: string | null;
           };
           if (joinData.name === roomName) {
             if (joinData.deck && joinData.deck.length > 0) setDeck(joinData.deck);
@@ -178,7 +194,19 @@ export default function SpiceRoom() {
             if (joinData.currentNumber !== undefined) setCurrentNumber(joinData.currentNumber);
             if (joinData.tableStackSize !== undefined) setTableStackSize(joinData.tableStackSize);
             if (joinData.trophies !== undefined) setTrophies(joinData.trophies);
+            if (joinData.wonCardCounts !== undefined) setWonCardCounts(joinData.wonCardCounts);
             if (joinData.challengePhase !== undefined) setChallengePhase(joinData.challengePhase);
+            // 타이머 복원 (새로고침 시 남은 초)
+            if (joinData.turnTimeLeft != null) setReconnectTurnTimeLeft(joinData.turnTimeLeft);
+            if (joinData.challengeTimeLeft != null) setReconnectChallengeTimeLeft(joinData.challengeTimeLeft);
+            // 선뽑기 단계 재연결 시 상태 복원
+            if (joinData.isFirstDraw !== undefined) setIsFirstDraw(joinData.isFirstDraw);
+            if (joinData.myDrawnNumber !== undefined) setMyDrawnNumber(joinData.myDrawnNumber);
+            if (joinData.drawnCount !== undefined) setDrawnCount(joinData.drawnCount);
+            if (joinData.firstDrawFinished !== undefined) setFirstDrawFinished(joinData.firstDrawFinished);
+            if (joinData.firstDrawResults !== undefined) setFirstDrawResults(joinData.firstDrawResults);
+            if (joinData.firstPlayerId !== undefined) setFirstPlayerId(joinData.firstPlayerId);
+            if (joinData.firstNickname !== undefined) setFirstNickname(joinData.firstNickname);
           }
           break;
         }
@@ -371,7 +399,7 @@ export default function SpiceRoom() {
             wonCardCounts?: Record<string, number>;
           };
           if (ceData.roomName === roomName) {
-            setChallengePhase(null);
+            // 게임 상태는 즉시 업데이트
             setCurrentTurnPlayerId(ceData.currentTurnPlayerId);
             setCurrentSuit(ceData.currentSuit);
             setCurrentNumber(ceData.currentNumber);
@@ -380,8 +408,9 @@ export default function SpiceRoom() {
             setDeck(ceData.deck);
             if (ceData.trophies) setTrophies(ceData.trophies);
             if (ceData.wonCardCounts) setWonCardCounts(ceData.wonCardCounts);
-            // 도전 결과 초기화 (새 턴 시작)
             setChallengeResult(null);
+            // 도전 타이머가 0을 표시할 시간(1틱)을 준 뒤 challengePhase 클리어
+            setTimeout(() => setChallengePhase(null), 1100);
           }
           break;
         }
@@ -659,6 +688,12 @@ export default function SpiceRoom() {
             onChallenge={handleChallenge}
             trophies={trophies}
             wonCardCounts={wonCardCounts}
+            reconnectTurnTimeLeft={reconnectTurnTimeLeft}
+            reconnectChallengeTimeLeft={reconnectChallengeTimeLeft}
+            onReconnectTimeLeftConsumed={() => {
+              setReconnectTurnTimeLeft(null);
+              setReconnectChallengeTimeLeft(null);
+            }}
           />
           <ChatToggleButtonWrapper>
             <ChatToggleButton

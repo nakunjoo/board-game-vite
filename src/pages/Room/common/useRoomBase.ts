@@ -239,8 +239,15 @@ export function useRoomBase() {
     return unsubscribe;
   }, [subscribe, roomName, navigate, playerId, isChatOpen]);
 
-  // 새로고침 시에만 재입장 (locationState 없으면 새로고침)
-  const isRefresh = !locationState;
+  // 새로고침 감지: performance API로 실제 reload 여부 확인
+  // location.state는 브라우저 History API에 의해 새로고침 후에도 유지되므로
+  // !locationState 만으로는 새로고침 감지가 불가능함
+  const isRefresh = (() => {
+    const navEntry = performance.getEntriesByType(
+      "navigation"
+    )[0] as PerformanceNavigationTiming | undefined;
+    return navEntry?.type === "reload" || !locationState;
+  })();
   useEffect(() => {
     if (connected && roomName && isRefresh) {
       const timer = setTimeout(() => {

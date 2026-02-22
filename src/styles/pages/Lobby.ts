@@ -62,7 +62,7 @@ export const RadioGroup = styled.div`
 // 라디오 옵션 컨테이너 (3개씩 한 줄)
 export const RadioOptions = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
 `;
 
@@ -71,12 +71,12 @@ export const RadioOption = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 6px;
   cursor: pointer;
   color: #e0e0e0;
-  font-size: 0.95rem;
-  flex: 0 0 calc(33.333% - 0.27rem);
+  font-size: 0.9rem;
+  flex: 1;
 
   &:hover {
     background-color: #333;

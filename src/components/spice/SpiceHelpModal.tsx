@@ -1,3 +1,5 @@
+import { SpiceSuitIcon } from "./SpiceGameBoard";
+
 interface SpiceHelpModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -81,12 +83,27 @@ export default function SpiceHelpModal({ isOpen, onClose }: SpiceHelpModalProps)
           {/* 덱 구성 */}
           <section>
             <h3 style={{ color: "#f39c12", margin: "0 0 8px 0" }}>🃏 덱 구성 (총 100장)</h3>
-            <div style={{ color: "#ccc", display: "flex", flexDirection: "column", gap: "4px" }}>
-              <div>🫙 <strong style={{ color: "#eee" }}>후추</strong> : 숫자 1~10, 각 3장 = 30장</div>
-              <div>🌿 <strong style={{ color: "#e74c3c" }}>계피</strong> : 숫자 1~10, 각 3장 = 30장</div>
-              <div>🌸 <strong style={{ color: "#f39c12" }}>사프란</strong> : 숫자 1~10, 각 3장 = 30장</div>
-              <div>🟣 <strong style={{ color: "#8e44ad" }}>숫자 와일드</strong> : 어떤 숫자로도 선언 가능 = 5장</div>
-              <div>🔵 <strong style={{ color: "#2980b9" }}>문양 와일드</strong> : 어떤 향신료로도 선언 가능 = 5장</div>
+            <div style={{ color: "#ccc", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SpiceSuitIcon type="pepper" color="#27ae60" size={20} />
+                <span><strong style={{ color: "#27ae60" }}>후추</strong> : 숫자 1~10, 각 3장 = 30장</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SpiceSuitIcon type="cinnamon" color="#c0392b" size={20} />
+                <span><strong style={{ color: "#c0392b" }}>계피</strong> : 숫자 1~10, 각 3장 = 30장</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SpiceSuitIcon type="saffron" color="#f39c12" size={20} />
+                <span><strong style={{ color: "#f39c12" }}>사프란</strong> : 숫자 1~10, 각 3장 = 30장</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SpiceSuitIcon type="wild-number" color="#8e44ad" size={20} />
+                <span><strong style={{ color: "#8e44ad" }}>숫자 와일드</strong> : 어떤 숫자로도 선언 가능 = 5장</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SpiceSuitIcon type="wild-suit" color="#2980b9" size={20} />
+                <span><strong style={{ color: "#2980b9" }}>문양 와일드</strong> : 어떤 향신료로도 선언 가능 = 5장</span>
+              </div>
             </div>
           </section>
 
@@ -112,7 +129,7 @@ export default function SpiceHelpModal({ isOpen, onClose }: SpiceHelpModalProps)
               <div>
                 <strong style={{ color: "#fff" }}>③ 제한시간</strong>
                 <p style={{ margin: "4px 0 0 12px" }}>
-                  턴 제한시간: <strong style={{ color: "#e74c3c" }}>20초</strong>. 초과 시 자동 패스.<br />
+                  턴 제한시간: <strong style={{ color: "#e74c3c" }}>30초</strong>. 초과 시 자동 패스.<br />
                   도전 가능 시간: <strong style={{ color: "#f39c12" }}>5초</strong>. 초과 시 자동으로 다음 턴 진행.
                 </p>
               </div>
