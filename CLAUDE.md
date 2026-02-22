@@ -51,7 +51,7 @@ src/
     ├── constants.ts
     └── games/
         ├── gang.ts                 # Gang 설정 (MIN_PLAYERS, CHIP_COLORS, STEP_CARDS)
-        ├── spice.ts                # Spice 설정
+        ├── spice.ts                # Spice 설정 (SPICE_SUIT_COLORS, SPICE_SUIT_LABELS)
         └── index.ts
 ```
 
@@ -134,16 +134,54 @@ useEffect(() => {
 
 - **상단 중앙**: 현재 선언(향신료+숫자+더미 장수) + 누구 턴인지 + 타이머 바
 - **타이머 바**: 가로 바 형태 (원형 SVG 아님)
-  - 턴 타이머: 64px 바, 5초 이하 빨강
-  - 도전 타이머: 80px 바, 2초 이하 빨강
+  - 턴 타이머: 30초, 5초 이하 빨강, 0초에 강조 틱음
+  - 도전 타이머: 5초, 2초 이하 빨강
   - 초 숫자 바 오른쪽에 함께 표시
 - **좌하단**: 덱 카드 수 (카드 뒷면 이미지 + 장수)
 - **내 턴**: "카드 내기" 버튼 (하단 중앙, bottom: 160px)
 - **플레이어 아바타**: 트로피 슬롯이 아바타 오른쪽에 세로 배치 (position: absolute, right: -22px)
 - **도전 페이즈 오버레이**: 선언 카드(앞면) + 제출 카드(뒷면→도전 시 플립 애니메이션)
 
+## 타이머 동작 방식
+
+### 턴 타이머 (SpiceGameBoard.tsx)
+- `currentTurnPlayerId` 변경 또는 `challengePhase` 해제 시 리셋
+- **재연결 시**: `reconnectTurnTimeLeft` prop → `reconnectTurnTimeLeftRef`에 저장 → 타이머 effect에서 한 번만 소비
+- 카운트다운 로직: `next < 0`일 때 패스 실행 → 0을 1초 표시한 뒤 패스
+
+### 도전 타이머 (SpiceGameBoard.tsx)
+- `challengePhase` 설정 시 5초 카운트다운 시작
+- **재연결 시**: `reconnectChallengeTimeLeft` prop → 남은 시간부터 카운트다운
+- 카운트다운 로직: `prev <= 0`일 때 타이머 정지 → 0을 1초 표시한 뒤 정지
+- **race condition 방지**: `challengeExpired` 수신 시 `setChallengePhase(null)`을 **1100ms 지연** → 도전 타이머가 0을 표시할 시간 확보
+
 ## 재연결 (Spice)
 
-`roomJoined` 이벤트 수신 시 복원되는 Spice 상태:
-- `currentTurnPlayerId`, `currentSuit`, `currentNumber`
-- `tableStackSize`, `trophies`, `challengePhase`
+### 새로고침 감지 (`useRoomBase.ts`)
+```typescript
+const isRefresh = (() => {
+  const navEntry = performance.getEntriesByType("navigation")[0];
+  return navEntry?.type === "reload" || !locationState;
+})();
+```
+- `isRefresh === true`이면 WebSocket 연결 후 500ms 뒤 `joinRoom` 재전송
+- 서버 Case 2가 같은 소켓 중복 `joinRoom`을 안전하게 처리 (room 상태 변경 없이 `roomJoined` 재전송)
+
+### roomJoined 수신 시 복원 항목 (`spice/index.tsx`)
+- 게임 상태: `gameStarted`, `gameFinished`, `gameOver`, `deck`, `myHand`, `playerHands`
+- Spice 진행 상태: `currentTurnPlayerId`, `currentSuit`, `currentNumber`, `tableStackSize`, `trophies`, `wonCardCounts`, `challengePhase`
+- 타이머 복원: `turnTimeLeft` → `reconnectTurnTimeLeft` state, `challengeTimeLeft` → `reconnectChallengeTimeLeft` state
+- 선뽑기 상태: `isFirstDraw`, `myDrawnNumber`, `drawnCount`, `firstDrawFinished`, `firstDrawResults`, `firstPlayerId`, `firstNickname`
+
+## SpiceSuitIcon 공유
+
+`SpiceGameBoard.tsx`에서 `export function SpiceSuitIcon(...)` 로 export하여
+`SpiceHelpModal.tsx`에서 import해 실제 카드 아이콘을 모달에서도 동일하게 표시.
+
+```typescript
+// SpiceGameBoard.tsx
+export function SpiceSuitIcon({ type, color, size = 24 }) { ... }
+
+// SpiceHelpModal.tsx
+import { SpiceSuitIcon } from "./SpiceGameBoard";
+```

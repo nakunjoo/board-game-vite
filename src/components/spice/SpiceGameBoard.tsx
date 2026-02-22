@@ -13,7 +13,7 @@ import {
   getSeatPosition,
 } from "../../styles/pages/Room";
 import type { Card, GameConfig, PlayerHand } from "../../types/game";
-import { SPICE_SUIT_COLORS, SPICE_SUIT_NAMES } from "../../utils/games/spice";
+import { SPICE_SUIT_COLORS } from "../../utils/games/spice";
 import { playTickSound } from "../../utils/audio";
 import type { Player } from "../gang/types";
 
@@ -81,15 +81,35 @@ interface SpiceGameBoardProps {
 }
 
 // 향신료 SVG 아이콘 (export: SpiceHelpModal 등 외부에서도 사용)
-export function SpiceSuitIcon({ type, color, size = 24 }: { type: string; color: string; size?: number }) {
+export function SpiceSuitIcon({
+  type,
+  color,
+  size = 24,
+}: {
+  type: string;
+  color: string;
+  size?: number;
+}) {
   if (type === "pepper") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         {/* 후추: 동그란 열매 + 줄기 */}
         <circle cx="12" cy="14" r="7" fill={color} />
         <circle cx="10" cy="12" r="2" fill="rgba(255,255,255,0.25)" />
-        <path d="M12 7 C12 7 13 3 16 2" stroke={color} strokeWidth="1.8" strokeLinecap="round" fill="none" />
-        <path d="M12 7 C12 4 10 2 8 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <path
+          d="M12 7 C12 7 13 3 16 2"
+          stroke={color}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M12 7 C12 4 10 2 8 3"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+        />
       </svg>
     );
   }
@@ -97,10 +117,43 @@ export function SpiceSuitIcon({ type, color, size = 24 }: { type: string; color:
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         {/* 계피: 나선형 막대 */}
-        <rect x="4" y="10" width="16" height="4" rx="2" fill={color} transform="rotate(-20 12 12)" />
-        <rect x="4" y="10" width="16" height="4" rx="2" fill={color} transform="rotate(20 12 12)" opacity="0.6" />
-        <rect x="7" y="9" width="10" height="6" rx="3" fill={color} opacity="0.85" />
-        <ellipse cx="12" cy="12" rx="3" ry="4" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+        <rect
+          x="4"
+          y="10"
+          width="16"
+          height="4"
+          rx="2"
+          fill={color}
+          transform="rotate(-20 12 12)"
+        />
+        <rect
+          x="4"
+          y="10"
+          width="16"
+          height="4"
+          rx="2"
+          fill={color}
+          transform="rotate(20 12 12)"
+          opacity="0.6"
+        />
+        <rect
+          x="7"
+          y="9"
+          width="10"
+          height="6"
+          rx="3"
+          fill={color}
+          opacity="0.85"
+        />
+        <ellipse
+          cx="12"
+          cy="12"
+          rx="3"
+          ry="4"
+          fill="none"
+          stroke="rgba(255,255,255,0.3)"
+          strokeWidth="1.5"
+        />
       </svg>
     );
   }
@@ -354,15 +407,12 @@ export default function SpiceGameBoard({
   isHost,
   memberCount,
   players,
-  playerId,
   playerHands,
   deck,
-  openCards,
   myHand,
   notification,
   showNotification,
   gameOver,
-  gameConfig,
   onStartGame,
   onKickPlayer,
   isFirstDraw = false,
@@ -469,7 +519,9 @@ export default function SpiceGameBoard({
   const [challengeTimeLeft, setChallengeTimeLeft] = useState(CHALLENGE_TIME);
   const challengeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // 재연결 시 서버에서 받은 도전 페이즈 남은 시간
-  const reconnectChallengeTimeLeftRef = useRef<number | null>(reconnectChallengeTimeLeft);
+  const reconnectChallengeTimeLeftRef = useRef<number | null>(
+    reconnectChallengeTimeLeft,
+  );
 
   useEffect(() => {
     if (reconnectChallengeTimeLeft != null) {
@@ -487,7 +539,8 @@ export default function SpiceGameBoard({
   useEffect(() => {
     clearChallengeTimer();
     if (challengePhase) {
-      const initialChallengeTime = reconnectChallengeTimeLeftRef.current ?? CHALLENGE_TIME;
+      const initialChallengeTime =
+        reconnectChallengeTimeLeftRef.current ?? CHALLENGE_TIME;
       reconnectChallengeTimeLeftRef.current = null; // 소비
       setChallengeTimeLeft(initialChallengeTime);
       challengeTimerRef.current = setInterval(() => {
@@ -739,11 +792,18 @@ export default function SpiceGameBoard({
             !gameOver &&
             (isHost ? (
               <StartGameButton
-                $disabled={false}
-                onClick={onStartGame}
-                disabled={false}
+                $disabled={memberCount < 2}
+                onClick={memberCount >= 2 ? onStartGame : undefined}
+                disabled={memberCount < 2}
               >
-                게임 시작
+                {memberCount < 2 ? (
+                  <>
+                    게임 시작 불가
+                    <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
+                      (최소 2명 필요)
+                    </div>
+                  </>
+                ) : "게임 시작"}
               </StartGameButton>
             ) : (
               <StartGameButton
@@ -810,9 +870,26 @@ export default function SpiceGameBoard({
             }}
           >
             {/* ① 덱 */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>덱</span>
-              <div style={{ position: "relative", width: "clamp(40px, 9vw, 52px)", height: "clamp(56px, 12vw, 72px)" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span
+                style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}
+              >
+                덱
+              </span>
+              <div
+                style={{
+                  position: "relative",
+                  width: "clamp(40px, 9vw, 52px)",
+                  height: "clamp(56px, 12vw, 72px)",
+                }}
+              >
                 <SpiceCardBack />
                 <div
                   style={{
@@ -829,42 +906,78 @@ export default function SpiceGameBoard({
                     zIndex: 2,
                   }}
                 >
-                  <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{deck.length}</span>
+                  <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>
+                    {deck.length}
+                  </span>
                   <span style={{ fontSize: "0.6rem", lineHeight: 1 }}>장</span>
                 </div>
               </div>
             </div>
 
             {/* ② 선언 + 더미 가로 배치 */}
-            <div style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: "10px",
+              }}
+            >
               {/* 선언 카드(앞면) */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>선언</span>
-                {currentSuit ? (() => {
-                  const color = SPICE_SUIT_COLORS[currentSuit] ?? "#555";
-                  return (
-                    <div
-                      style={{
-                        background: "#fff",
-                        border: `2px solid ${color}`,
-                        borderRadius: "8px",
-                        width: "clamp(40px, 9vw, 52px)",
-                        height: "clamp(56px, 12vw, 72px)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "2px",
-                        boxShadow: `0 4px 14px ${color}55`,
-                      }}
-                    >
-                      <SpiceSuitIcon type={currentSuit} color={color} size={22} />
-                      <span style={{ fontSize: "clamp(0.85rem, 2.5vw, 1.3rem)", color, fontWeight: "bold", lineHeight: 1 }}>
-                        {currentNumber}
-                      </span>
-                    </div>
-                  );
-                })() : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "rgba(255,255,255,0.45)",
+                    fontSize: "0.65rem",
+                  }}
+                >
+                  선언
+                </span>
+                {currentSuit ? (
+                  (() => {
+                    const color = SPICE_SUIT_COLORS[currentSuit] ?? "#555";
+                    return (
+                      <div
+                        style={{
+                          background: "#fff",
+                          border: `2px solid ${color}`,
+                          borderRadius: "8px",
+                          width: "clamp(40px, 9vw, 52px)",
+                          height: "clamp(56px, 12vw, 72px)",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "2px",
+                          boxShadow: `0 4px 14px ${color}55`,
+                        }}
+                      >
+                        <SpiceSuitIcon
+                          type={currentSuit}
+                          color={color}
+                          size={22}
+                        />
+                        <span
+                          style={{
+                            fontSize: "clamp(0.85rem, 2.5vw, 1.3rem)",
+                            color,
+                            fontWeight: "bold",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {currentNumber}
+                        </span>
+                      </div>
+                    );
+                  })()
+                ) : (
                   <div
                     style={{
                       width: "clamp(40px, 9vw, 52px)",
@@ -877,9 +990,29 @@ export default function SpiceGameBoard({
               </div>
 
               {/* 더미(뒷면 스택) */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>더미</span>
-                <div style={{ position: "relative", width: "clamp(40px, 9vw, 52px)", height: "clamp(56px, 12vw, 72px)" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "rgba(255,255,255,0.45)",
+                    fontSize: "0.65rem",
+                  }}
+                >
+                  더미
+                </span>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "clamp(40px, 9vw, 52px)",
+                    height: "clamp(56px, 12vw, 72px)",
+                  }}
+                >
                   {[2, 1, 0].map(
                     (offset) =>
                       tableStackSize > offset && (
@@ -933,12 +1066,24 @@ export default function SpiceGameBoard({
 
             {/* ③ 타이머 */}
             {(() => {
-              const PLAYER_COLORS = ["#646cff","#e85d75","#4caf50","#ff9800","#9c27b0","#00bcd4"];
-              const currentPlayer = players.find((p) => p.playerId === currentTurnPlayerId);
+              const PLAYER_COLORS = [
+                "#646cff",
+                "#e85d75",
+                "#4caf50",
+                "#ff9800",
+                "#9c27b0",
+                "#00bcd4",
+              ];
+              const currentPlayer = players.find(
+                (p) => p.playerId === currentTurnPlayerId,
+              );
               const currentPlayerSeatIndex = currentPlayer
-                ? (((currentPlayer.order ?? 0) - myOrder + totalPlayers) % totalPlayers)
+                ? ((currentPlayer.order ?? 0) - myOrder + totalPlayers) %
+                  totalPlayers
                 : 0;
-              const nameColor = isMyTurn ? "#ffe066" : PLAYER_COLORS[currentPlayerSeatIndex % PLAYER_COLORS.length];
+              const nameColor = isMyTurn
+                ? "#ffe066"
+                : PLAYER_COLORS[currentPlayerSeatIndex % PLAYER_COLORS.length];
               return (
                 <div
                   style={{
@@ -947,7 +1092,9 @@ export default function SpiceGameBoard({
                     alignItems: "center",
                     gap: "6px",
                     background: isMyTurn
-                      ? timeLeft <= 5 ? "rgba(231,76,60,0.9)" : "rgba(243,156,18,0.9)"
+                      ? timeLeft <= 5
+                        ? "rgba(231,76,60,0.9)"
+                        : "rgba(243,156,18,0.9)"
                       : "rgba(0,0,0,0.6)",
                     borderRadius: "12px",
                     padding: "10px 18px",
@@ -955,20 +1102,26 @@ export default function SpiceGameBoard({
                     fontWeight: "bold",
                     minWidth: "140px",
                     boxShadow: isMyTurn
-                      ? timeLeft <= 5 ? "0 0 16px rgba(231,76,60,0.6)" : "0 0 14px rgba(243,156,18,0.5)"
+                      ? timeLeft <= 5
+                        ? "0 0 16px rgba(231,76,60,0.6)"
+                        : "0 0 14px rgba(243,156,18,0.5)"
                       : "none",
                     transition: "background 0.3s, box-shadow 0.3s",
                   }}
                 >
                   <span style={{ fontSize: "0.78rem", whiteSpace: "nowrap" }}>
                     {isMyTurn ? (
-                      <span style={{ color: nameColor, fontWeight: "bold" }}>내 차례</span>
+                      <span style={{ color: nameColor, fontWeight: "bold" }}>
+                        내 차례
+                      </span>
                     ) : (
                       <>
                         <span style={{ color: nameColor, fontWeight: "bold" }}>
                           {currentPlayer?.nickname ?? "?"}
                         </span>
-                        <span style={{ color: "rgba(255,255,255,0.6)" }}>의 차례</span>
+                        <span style={{ color: "rgba(255,255,255,0.6)" }}>
+                          의 차례
+                        </span>
                       </>
                     )}
                   </span>
@@ -976,21 +1129,38 @@ export default function SpiceGameBoard({
                     style={{
                       fontSize: timeLeft <= 5 ? "2rem" : "1.6rem",
                       fontWeight: "bold",
-                      color: timeLeft <= 5 ? (timeLeft % 2 === 0 ? "#ffe066" : "#fff") : "#fff",
+                      color:
+                        timeLeft <= 5
+                          ? timeLeft % 2 === 0
+                            ? "#ffe066"
+                            : "#fff"
+                          : "#fff",
                       lineHeight: 1,
                       transition: "font-size 0.2s",
-                      textShadow: timeLeft <= 5 ? "0 0 10px rgba(255,255,255,0.8)" : "none",
+                      textShadow:
+                        timeLeft <= 5
+                          ? "0 0 10px rgba(255,255,255,0.8)"
+                          : "none",
                     }}
                   >
                     {timeLeft}
                   </span>
-                  <div style={{ width: "120px", height: "8px", borderRadius: "4px", background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: "120px",
+                      height: "8px",
+                      borderRadius: "4px",
+                      background: "rgba(255,255,255,0.2)",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       style={{
                         width: `${(timeLeft / TURN_TIME) * 100}%`,
                         height: "100%",
                         borderRadius: "4px",
-                        background: timeLeft <= 5 ? "#ffe066" : "rgba(255,255,255,0.85)",
+                        background:
+                          timeLeft <= 5 ? "#ffe066" : "rgba(255,255,255,0.85)",
                         transition: "width 0.9s linear, background 0.3s",
                       }}
                     />
@@ -1089,7 +1259,11 @@ export default function SpiceGameBoard({
                             boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
                           }}
                         >
-                          <SpiceSuitIcon type={suit} color={SPICE_SUIT_COLORS[suit] ?? "#333"} size={26} />
+                          <SpiceSuitIcon
+                            type={suit}
+                            color={SPICE_SUIT_COLORS[suit] ?? "#333"}
+                            size={26}
+                          />
                           <span
                             style={{
                               fontSize: "clamp(0.85rem, 3vw, 1.2rem)",
@@ -1858,7 +2032,11 @@ export default function SpiceGameBoard({
             zIndex: 8,
           }}
         >
-          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.55rem" }}>획득</span>
+          <span
+            style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.55rem" }}
+          >
+            획득
+          </span>
           <div style={{ position: "relative", width: "28px", height: "38px" }}>
             {[2, 1, 0].map((offset) => {
               const count = wonCardCounts[me.playerId] ?? 0;
