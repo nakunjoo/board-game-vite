@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import GangRoom from "./gang";
 import SpiceRoom from "./spice";
+import SkulkingRoom from "./skulking";
 
 interface LocationState {
   gameType?: string;
@@ -13,6 +14,10 @@ export default function Room() {
 
   if (gameType === "spice") {
     return <SpiceRoom />;
+  }
+
+  if (gameType === "skulking") {
+    return <SkulkingRoom />;
   }
 
   return <GangRoom />;

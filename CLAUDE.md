@@ -6,6 +6,12 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-23 | 스컬킹(Skull King) 게임 추가: `components/skulking/`, `pages/Room/skulking/`, `utils/games/skulking.ts` 신규 생성 |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 기존 스타일 컴포넌트 기반으로 작성 (Gang/Spice와 동일한 보드 UI 구조) |
+| 2026-02-23 | `SkulkingHelpModal.tsx`: `isOpen: boolean` prop 추가, `if (!isOpen) return null` 패턴 적용 |
+| 2026-02-23 | `Lobby.tsx`: GAME_TYPES에 skulking 추가 |
+| 2026-02-23 | `pages/Room/index.tsx`: skulking 라우팅 추가 |
+| 2026-02-23 | `utils/games/index.ts`: SKULKING_CONFIG 등록 |
 | 2026-02-22 | `useRoomBase.ts`: 새로고침 감지 방식을 `performance.getEntriesByType('navigation')` 기반으로 변경 |
 | 2026-02-22 | `spice/index.tsx`: `roomJoined`에서 firstDraw 상태 복원, `reconnectTurnTimeLeft` / `reconnectChallengeTimeLeft` 상태 추가 |
 | 2026-02-22 | `spice/index.tsx`: `challengeExpired` 수신 시 `setChallengePhase(null)` 1100ms 지연 (도전 타이머 0초 표시 race condition 수정) |
@@ -38,10 +44,15 @@ src/
 │   │   ├── GangHelpModal.tsx       # 게임 규칙 설명 모달
 │   │   ├── types.ts                # Gang 전용 타입 정의
 │   │   └── index.ts
-│   └── spice/                      # Spice 게임 전용 컴포넌트
-│       ├── SpiceGameBoard.tsx      # 게임판 메인 UI (턴/도전/타이머 바)
-│       ├── SpiceResultModal.tsx    # 점수 기반 결과 모달
-│       └── SpiceHelpModal.tsx      # 게임 규칙 설명 모달
+│   ├── spice/                      # Spice 게임 전용 컴포넌트
+│   │   ├── SpiceGameBoard.tsx      # 게임판 메인 UI (턴/도전/타이머 바)
+│   │   ├── SpiceResultModal.tsx    # 점수 기반 결과 모달
+│   │   └── SpiceHelpModal.tsx      # 게임 규칙 설명 모달
+│   └── skulking/                   # Skulking 게임 전용 컴포넌트
+│       ├── SkulkingGameBoard.tsx   # 게임판 메인 UI (트릭/비드/Tigress)
+│       ├── SkulkingResultModal.tsx # 라운드/최종 결과 모달
+│       ├── SkulkingHelpModal.tsx   # 게임 규칙 설명 모달 (isOpen prop 패턴)
+│       └── types.ts                # Skulking 전용 타입 (TrickEntry, SkulkingPlayer, RoundResult, GameOverResult)
 ├── pages/
 │   ├── Lobby.tsx                   # 로비 (방 목록, 생성, 입장)
 │   └── Room/
@@ -49,7 +60,8 @@ src/
 │       ├── common/
 │       │   └── useRoomBase.ts      # Room 공통 로직 훅 (Gang/Spice 공유)
 │       ├── gang/index.tsx          # Gang Room 래퍼
-│       └── spice/index.tsx         # Spice Room 래퍼 (Spice 전용 상태 관리)
+│       ├── spice/index.tsx         # Spice Room 래퍼 (Spice 전용 상태 관리)
+│       └── skulking/index.tsx      # Skulking Room 래퍼 (Skulking 전용 상태 관리)
 ├── styles/
 │   ├── pages/Lobby.ts
 │   ├── pages/Room.ts
@@ -65,6 +77,7 @@ src/
     └── games/
         ├── gang.ts                 # Gang 설정 (MIN_PLAYERS, CHIP_COLORS, STEP_CARDS)
         ├── spice.ts                # Spice 설정 (SPICE_SUIT_COLORS, SPICE_SUIT_LABELS)
+        ├── skulking.ts             # Skulking 설정 (SKULKING_SUIT_COLORS/LABELS/NAMES, isSpecialCard, SKULKING_CONFIG)
         └── index.ts
 ```
 
@@ -89,6 +102,7 @@ npm run preview  # 빌드된 결과물 미리보기
 - `/` - 로비
 - `/room/gang/:roomName` - Gang 게임 룸
 - `/room/spice/:roomName` - Spice 게임 룸
+- `/room/skulking/:roomName` - Skulking 게임 룸
 
 ## WebSocket 통신
 
@@ -142,6 +156,41 @@ useEffect(() => {
 **클라이언트 → 서버:** `startGame`, `drawFirstCard`, `playCard`, `pass`, `challenge`, `readyNextRound`
 
 **서버 → 클라이언트:** `firstDrawStarted`, `firstDrawResult`, `firstDrawProgress`, `firstDrawFinished`, `gameStarted`, `cardPlayed`, `cardPassed`, `myHandUpdate`, `challengePhase`, `challengeExpired`, `challengeResult`, `spiceGameOver`
+
+## Skulking 게임 이벤트
+
+**클라이언트 → 서버:** `startGame`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`
+
+**서버 → 클라이언트:** `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `skulkingTurnUpdate`, `skulkingTrickResult`, `skulkingRoundResult`, `skulkingGameOver`
+
+## Skulking 게임 UI 구조 (SkulkingGameBoard)
+
+- 기존 `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 Gang/Spice와 동일한 스타일 컴포넌트 사용
+- **상단 바** (TopBar): 라운드 뱃지 + 페이즈 뱃지 + 현재 차례 플레이어 표시
+- **중앙**: 현재 트릭에 낸 카드들 (TrickArea, 절대위치)
+- **플레이어 원형 배치**: GangGameBoard와 동일한 seatIndex 계산 방식
+  - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
+  - 아바타 아래에 비드·트릭·점수 뱃지 표시
+  - 차례인 플레이어 아바타에 `outline: 2px solid #f39c12` 강조
+- **손패**: MyHandArea + HandCard + 스컬킹 전용 SkCard (배경색 = 수트 색상)
+  - 내 플레이 차례일 때 카드 클릭 → 선택 강조 → 확정 버튼
+  - Tigress 클릭 시 Escape/Pirate 선언 모달 표시
+- **비드 입력** (BidArea, bottom: 140px): 0~round 버튼 + 확정 버튼
+- **결과 모달**: `SkulkingRoundResultModal`, `SkulkingGameOverModal` (GameArea 내부 배치)
+
+## Skulking 카드 구성 (66장)
+
+| 카드 | type | 장수 |
+|------|------|------|
+| 검정 수트 (Jolly Roger) | `sk-black` | 13 |
+| 노랑 수트 (Treasure Chest) | `sk-yellow` | 13 |
+| 보라 수트 (Jolly Roger) | `sk-purple` | 13 |
+| 초록 수트 (Mermaid's Crown) | `sk-green` | 13 |
+| 탈출 (Escape) | `sk-escape` | 5 |
+| 해적 (Pirate) | `sk-pirate` | 5 |
+| 인어 (Mermaid) | `sk-mermaid` | 2 |
+| 해골왕 (Skull King) | `sk-skulking` | 1 |
+| 타이그레스 (Tigress) | `sk-tigress` | 1 |
 
 ## SpiceGameBoard UI 구조
 

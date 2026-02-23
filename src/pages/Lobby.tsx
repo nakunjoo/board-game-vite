@@ -24,6 +24,7 @@ interface Room {
 const GAME_TYPES = [
   { value: "gang", label: "갱스터" },
   { value: "spice", label: "향신료" },
+  { value: "skulking", label: "스컬킹" },
 ];
 
 type ModalMode = "create" | "join";
