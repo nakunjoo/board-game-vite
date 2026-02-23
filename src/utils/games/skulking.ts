@@ -32,9 +32,9 @@ export const SKULKING_SUIT_LABELS: Record<string, string> = {
   "sk-yellow": "★",
   "sk-purple": "♦",
   "sk-green": "♣",
-  "sk-escape": "E",
-  "sk-pirate": "P",
-  "sk-mermaid": "M",
+  "sk-escape": "🏳️",
+  "sk-pirate": "⚔️",
+  "sk-mermaid": "💎",
   "sk-skulking": "☠",
   "sk-tigress": "T",
 };

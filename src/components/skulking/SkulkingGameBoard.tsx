@@ -39,7 +39,95 @@ const TopBar = styled.div`
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.6);
   z-index: 20;
-  flex-wrap: wrap;
+`;
+
+const BoardCenterBadge = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+`;
+
+const DeckDisplay = styled.div`
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+  cursor: pointer;
+`;
+
+const DeckCard = styled.div`
+  width: 36px;
+  height: 50px;
+  border-radius: 4px;
+  background: #1a4d8c;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: border-color 0.15s;
+
+  ${DeckDisplay}:hover & {
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const DeckLabel = styled.span`
+  font-size: 0.65rem;
+  color: #7f8c8d;
+`;
+
+const StatsOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+`;
+
+const StatsModal = styled.div`
+  background: #1a1a2e;
+  border: 1px solid #2c3e50;
+  border-radius: 10px;
+  padding: 16px;
+  width: 92vw;
+  color: #ecf0f1;
+`;
+
+const StatsTitle = styled.div`
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #e74c3c;
+  text-align: center;
+`;
+
+const StatsTable = styled.table`
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  width: 100%;
+
+  th {
+    font-weight: 700;
+    padding: 3px 6px;
+    text-align: center;
+    border-bottom: 1px solid #2c3e50;
+  }
+
+  td {
+    padding: 3px 6px;
+    text-align: center;
+    border-bottom: 1px solid #1e2a38;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
 `;
 
 const RoundBadge = styled.span`
@@ -65,31 +153,51 @@ const TurnLabel = styled.span<{ $color: string }>`
   font-size: 0.8rem;
 `;
 
-// 트릭 영역 (보드 중앙)
-const TrickArea = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-  z-index: 5;
-  max-width: 60%;
-`;
 
-const TrickCardWrapper = styled.div`
+// 플레이어 앞에 놓이는 트릭 카드 슬롯
+const TrickCardSlot = styled.div<{ $totalPlayers: number; $seatIndex: number }>`
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  z-index: 15;
+  pointer-events: none;
+
+  ${({ $totalPlayers, $seatIndex }) => {
+    const pos = getSeatPosition($totalPlayers, $seatIndex);
+    if (pos.bottom === "0" && pos.left === "50%") {
+      return `bottom: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;
+    }
+    if (pos.top === "0" && pos.left === "50%") {
+      return `top: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;
+    }
+    if (pos.left === "0") {
+      return `left: calc(100% + 36px); top: 50%; transform: translateY(-50%);`;
+    }
+    if (pos.right === "0") {
+      return `right: calc(100% + 36px); top: 50%; transform: translateY(-50%);`;
+    }
+    return `bottom: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;
+  }}
 `;
 
-const TrickPlayerName = styled.span`
-  font-size: 0.65rem;
+// 순번 뱃지
+const OrderBadge = styled.div`
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  font-size: 0.6rem;
   color: #bdc3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 `;
 
 // 스컬킹 카드 (트릭 + 손패 공용)
@@ -111,7 +219,9 @@ const SkCard = styled.div<{
   justify-content: center;
   cursor: ${({ $selectable }) => ($selectable ? "pointer" : "default")};
   transform: ${({ $selected }) => ($selected ? "translateY(-10px)" : "none")};
-  transition: transform 0.15s, border-color 0.15s;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
 
   &:hover {
     ${({ $selectable }) =>
@@ -251,17 +361,15 @@ const TigressBtn = styled.button<{ $type: "escape" | "pirate" }>`
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: bold;
-  background: ${({ $type }) =>
-    $type === "escape" ? "#95a5a6" : "#e74c3c"};
+  background: ${({ $type }) => ($type === "escape" ? "#95a5a6" : "#e74c3c")};
   color: white;
 `;
 
 // 플레이어 정보 뱃지 (아바타 아래 / 비드·트릭·점수)
 const PlayerInfoBadge = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   color: #bdc3c7;
-  text-align: center;
-  margin-top: 3px;
+  text-align: left;
   white-space: nowrap;
 `;
 
@@ -286,7 +394,10 @@ interface Props {
   scores: Record<string, number>;
   onStartGame: () => void;
   onBid: (bid: number) => void;
-  onPlayCard: (cardIndex: number, tigressDeclared?: "escape" | "pirate") => void;
+  onPlayCard: (
+    cardIndex: number,
+    tigressDeclared?: "escape" | "pirate",
+  ) => void;
   onKickPlayer?: (targetPlayerId: string) => void;
 }
 
@@ -313,8 +424,13 @@ export default function SkulkingGameBoard({
   onKickPlayer,
 }: Props) {
   const [selectedBid, setSelectedBid] = React.useState<number | null>(null);
-  const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
-  const [tigressPending, setTigressPending] = React.useState<number | null>(null);
+  const [selectedCardIndex, setSelectedCardIndex] = React.useState<
+    number | null
+  >(null);
+  const [tigressPending, setTigressPending] = React.useState<number | null>(
+    null,
+  );
+  const [showStats, setShowStats] = React.useState(false);
 
   const isMyBidTurn = phase === "bid" && currentBidPlayerId === myPlayerId;
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
@@ -365,28 +481,35 @@ export default function SkulkingGameBoard({
 
   return (
     <GameBoard>
-      {/* 상단 바: 라운드·페이즈·차례 표시 */}
-      {gameStarted && (
+      {/* 상단 바: 페이즈·차례 표시 */}
+      {gameStarted && phase && (
         <TopBar>
-          <RoundBadge>라운드 {round} / 10</RoundBadge>
-          {phase && (
-            <PhaseBadge $phase={phase}>
-              {phase === "bid" ? "비드 단계" : "트릭 플레이"}
-            </PhaseBadge>
-          )}
+          <PhaseBadge $phase={phase}>
+            {phase === "bid" ? "비드 단계" : "트릭 플레이"}
+          </PhaseBadge>
           {phase === "bid" && currentBidPlayerId && (
             <TurnLabel $color="#f39c12">
               비드 차례:{" "}
-              {players.find((p) => p.playerId === currentBidPlayerId)?.nickname ?? ""}
+              {players.find((p) => p.playerId === currentBidPlayerId)
+                ?.nickname ?? ""}
             </TurnLabel>
           )}
           {phase === "play" && currentPlayerId && (
             <TurnLabel $color="#2ecc71">
               플레이 차례:{" "}
-              {players.find((p) => p.playerId === currentPlayerId)?.nickname ?? ""}
+              {players.find((p) => p.playerId === currentPlayerId)?.nickname ??
+                ""}
             </TurnLabel>
           )}
         </TopBar>
+      )}
+
+
+      {/* 게임판 중앙: 라운드 표시 */}
+      {gameStarted && (
+        <BoardCenterBadge>
+          <RoundBadge>라운드 {round} / 10</RoundBadge>
+        </BoardCenterBadge>
       )}
 
       {/* 게임 시작 전 */}
@@ -416,30 +539,6 @@ export default function SkulkingGameBoard({
         </StartGameButton>
       )}
 
-      {/* 트릭 영역 (보드 중앙) */}
-      {gameStarted && currentTrick.length > 0 && (
-        <TrickArea>
-          {currentTrick.map((entry) => (
-            <TrickCardWrapper key={entry.playerId}>
-              <TrickPlayerName>{entry.nickname}</TrickPlayerName>
-              <SkCard $type={entry.card.type} $small>
-                <SkCardLabel $small>
-                  {SKULKING_SUIT_LABELS[entry.card.type] ?? "?"}
-                </SkCardLabel>
-                {!isSpecialCard(entry.card.type) && (
-                  <SkCardValue $small>{entry.card.value}</SkCardValue>
-                )}
-                {entry.tigressDeclared && (
-                  <SkCardValue $small style={{ fontSize: "0.6rem" }}>
-                    {entry.tigressDeclared === "escape" ? "E" : "P"}
-                  </SkCardValue>
-                )}
-              </SkCard>
-            </TrickCardWrapper>
-          ))}
-        </TrickArea>
-      )}
-
       {/* 플레이어 원형 배치 */}
       <PlayerCircle>
         {playerSeats.map(({ player, seatIndex }) => {
@@ -449,9 +548,14 @@ export default function SkulkingGameBoard({
           const cardCount = handInfo?.cardCount ?? player.cardCount ?? 0;
           const pos = getSeatPosition(players.length, seatIndex);
           const isVertical = pos.left === "0" || pos.right === "0";
+          const isLeftSide = pos.left === "0";
+          const isRightSide = pos.right === "0";
           const bidVal = bids[player.playerId];
           const trickVal = tricks[player.playerId] ?? 0;
           const scoreVal = scores[player.playerId] ?? player.score ?? 0;
+          const trickEntry = currentTrick.find(
+            (e) => e.playerId === player.playerId,
+          );
 
           return (
             <PlayerSeat
@@ -460,38 +564,82 @@ export default function SkulkingGameBoard({
               $seatIndex={seatIndex}
               $isMe={player.isMe}
             >
-              <PlayerAvatarWrapper>
-                <PlayerAvatar
-                  $isMe={player.isMe}
-                  $colorIndex={seatIndex}
-                  $isVertical={isVertical}
-                  style={{
-                    outline:
-                      player.playerId === currentPlayerId ||
-                      player.playerId === currentBidPlayerId
-                        ? "2px solid #f39c12"
-                        : undefined,
-                  }}
-                >
-                  {player.nickname}
-                </PlayerAvatar>
-                {isHost && !gameStarted && !player.isMe && onKickPlayer && (
-                  <KickButton
-                    onClick={() => onKickPlayer(player.playerId)}
-                    title="강퇴"
-                  >
-                    ✕
-                  </KickButton>
+              {/* 위아래: [점수] [아바타] [비드]  /  좌우: [비드] [아바타] [점수] */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isVertical ? "column" : "row",
+                  alignItems: isVertical ? (isLeftSide ? "flex-start" : "flex-end") : "center",
+                  gap: "5px",
+                  marginLeft: isLeftSide ? "5px" : undefined,
+                  marginRight: isRightSide ? "5px" : undefined,
+                }}
+              >
+                {/* 첫 번째 칸: 위아래=점수(왼쪽), 좌우=비드(위) */}
+                {gameStarted && (
+                  <PlayerInfoBadge>
+                    {isVertical
+                      ? `(${bidVal !== undefined ? bidVal : "?"}) / ${round}`
+                      : `${phase === "play" ? `트릭 ${trickVal} | ` : ""}${scoreVal}점`}
+                  </PlayerInfoBadge>
                 )}
-              </PlayerAvatarWrapper>
 
-              {/* 비드·트릭·점수 정보 뱃지 */}
-              {gameStarted && (
-                <PlayerInfoBadge>
-                  {bidVal !== undefined ? `비드 ${bidVal}` : "비드 ?"}
-                  {phase === "play" && ` | 트릭 ${trickVal}`}
-                  {` | ${scoreVal}점`}
-                </PlayerInfoBadge>
+                <PlayerAvatarWrapper>
+                  <PlayerAvatar
+                    $isMe={player.isMe}
+                    $colorIndex={seatIndex}
+                    $isVertical={isVertical}
+                    style={{
+                      outline:
+                        player.playerId === currentPlayerId ||
+                        player.playerId === currentBidPlayerId
+                          ? "2px solid #f39c12"
+                          : undefined,
+                    }}
+                  >
+                    {player.nickname}
+                  </PlayerAvatar>
+                  <OrderBadge>{player.order + 1}</OrderBadge>
+                  {isHost && !gameStarted && !player.isMe && onKickPlayer && (
+                    <KickButton
+                      onClick={() => onKickPlayer(player.playerId)}
+                      title="강퇴"
+                    >
+                      ✕
+                    </KickButton>
+                  )}
+                </PlayerAvatarWrapper>
+
+                {/* 두 번째 칸: 위아래=비드(오른쪽), 좌우=점수(아래) */}
+                {gameStarted && (
+                  <PlayerInfoBadge>
+                    {isVertical
+                      ? `${phase === "play" ? `트릭 ${trickVal} | ` : ""}${scoreVal}점`
+                      : `(${bidVal !== undefined ? bidVal : "?"}) / ${round}`}
+                  </PlayerInfoBadge>
+                )}
+              </div>
+
+              {/* 플레이어 앞에 놓인 트릭 카드 */}
+              {trickEntry && (
+                <TrickCardSlot
+                  $totalPlayers={players.length}
+                  $seatIndex={seatIndex}
+                >
+                  <SkCard $type={trickEntry.card.type} $small>
+                    <SkCardLabel $small>
+                      {SKULKING_SUIT_LABELS[trickEntry.card.type] ?? "?"}
+                    </SkCardLabel>
+                    {!isSpecialCard(trickEntry.card.type) && (
+                      <SkCardValue $small>{trickEntry.card.value}</SkCardValue>
+                    )}
+                    {trickEntry.tigressDeclared && (
+                      <SkCardValue $small style={{ fontSize: "0.6rem" }}>
+                        {trickEntry.tigressDeclared === "escape" ? "E" : "P"}
+                      </SkCardValue>
+                    )}
+                  </SkCard>
+                </TrickCardSlot>
               )}
 
               {/* 다른 플레이어 손패 (뒷면) */}
@@ -520,6 +668,97 @@ export default function SkulkingGameBoard({
           );
         })}
       </PlayerCircle>
+
+      {/* 덱 표시 (좌측 하단) */}
+      {gameStarted && (
+        <DeckDisplay onClick={() => setShowStats(true)}>
+          <DeckCard />
+          <DeckLabel>통계</DeckLabel>
+        </DeckDisplay>
+      )}
+
+      {/* 라운드 통계 모달 */}
+      {showStats && (() => {
+        const COLORS = ["#646cff","#e85d75","#4caf50","#ff9800","#9c27b0","#00bcd4"];
+        const sortedPlayers = [...players].sort((a, b) => a.order - b.order);
+        const seatIndexMap = new Map(playerSeats.map(({ player, seatIndex }) => [player.playerId, seatIndex]));
+        return (
+          <StatsOverlay onClick={() => setShowStats(false)}>
+            <StatsModal onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <StatsTitle style={{ margin: 0 }}>라운드 통계</StatsTitle>
+                <button
+                  onClick={() => setShowStats(false)}
+                  style={{ background: "none", border: "none", color: "#7f8c8d", cursor: "pointer", fontSize: "1.1rem", lineHeight: 1, padding: "0 2px" }}
+                >✕</button>
+              </div>
+              <StatsTable>
+                <thead>
+                  <tr>
+                    <th>R</th>
+                    {sortedPlayers.map((p) => {
+                      const si = seatIndexMap.get(p.playerId) ?? 0;
+                      return (
+                        <th key={p.playerId} style={{ color: COLORS[si % COLORS.length] }}>
+                          {p.nickname[0]}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const r = i + 1;
+                    const isCurrent = r === round;
+                    const isFuture = r > round;
+                    return (
+                      <tr key={r} style={{ background: isCurrent ? "rgba(231,76,60,0.1)" : undefined, opacity: isFuture ? 0.3 : 1 }}>
+                        <td style={{ color: isCurrent ? "#e74c3c" : "#7f8c8d", fontWeight: 600 }}>{r}</td>
+                        {sortedPlayers.map((p) => {
+                          if (isFuture) {
+                            return <td key={p.playerId} style={{ color: "#2c3e50" }}>-</td>;
+                          }
+                          if (isCurrent) {
+                            const bid = bids[p.playerId];
+                            const trick = tricks[p.playerId] ?? 0;
+                            const score = scores[p.playerId] ?? p.score ?? 0;
+                            return (
+                              <td key={p.playerId}>
+                                <div>({bid !== undefined ? bid : "?"}) / {trick}</div>
+                                <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px" }}>
+                                  {score}
+                                </div>
+                              </td>
+                            );
+                          } else {
+                            const rs = p.roundScores?.[i];
+                            return (
+                              <td key={p.playerId} style={{ color: "#7f8c8d" }}>
+                                {rs !== undefined ? rs : "-"}
+                              </td>
+                            );
+                          }
+                        })}
+                      </tr>
+                    );
+                  })}
+                  <tr style={{ borderTop: "2px solid #2c3e50" }}>
+                    <td style={{ color: "#ecf0f1", fontWeight: 700 }}>합계</td>
+                    {sortedPlayers.map((p) => {
+                      const total = scores[p.playerId] ?? p.score ?? 0;
+                      return (
+                        <td key={p.playerId} style={{ fontWeight: 700, color: "#f1c40f" }}>
+                          {total}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </StatsTable>
+            </StatsModal>
+          </StatsOverlay>
+        );
+      })()}
 
       {/* 내 손패 */}
       {gameStarted && myHand.length > 0 && (

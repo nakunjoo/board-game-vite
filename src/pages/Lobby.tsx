@@ -152,16 +152,16 @@ export default function Lobby() {
   };
 
   const createRoom = () => {
-    if (!newRoomName.trim()) return;
     if (isPrivate && !passwordInput.trim()) {
       setError("비밀번호를 입력해주세요");
       setTimeout(() => setError(null), 3000);
       return;
     }
-    const pid = getPlayerIdForRoom(newRoomName);
-    const nick = resolveNickname(newRoomName);
+    const effectiveRoomName = newRoomName.trim() || `${nicknameInput.trim() || '플레이어'}의방`;
+    const pid = getPlayerIdForRoom(effectiveRoomName);
+    const nick = resolveNickname(effectiveRoomName);
     const roomData: { name: string; playerId: string; nickname: string; gameType: string; password?: string } = {
-      name: newRoomName,
+      name: effectiveRoomName,
       playerId: pid,
       nickname: nick,
       gameType,
@@ -208,7 +208,7 @@ export default function Lobby() {
     }
   };
 
-  const isConfirmDisabled = modalMode === "create" && !newRoomName.trim();
+  const isConfirmDisabled = false;
 
   return (
     <div className="lobby">
@@ -240,13 +240,13 @@ export default function Lobby() {
                     marginLeft: '7px',
                     fontSize: '0.72em',
                     fontWeight: 'bold',
-                    color: room.gameType === 'spice' ? '#e67e22' : '#646cff',
-                    background: room.gameType === 'spice' ? 'rgba(230,126,34,0.15)' : 'rgba(100,108,255,0.15)',
-                    border: `1px solid ${room.gameType === 'spice' ? 'rgba(230,126,34,0.4)' : 'rgba(100,108,255,0.4)'}`,
+                    color: room.gameType === 'spice' ? '#e67e22' : room.gameType === 'skulking' ? '#2ecc71' : '#646cff',
+                    background: room.gameType === 'spice' ? 'rgba(230,126,34,0.15)' : room.gameType === 'skulking' ? 'rgba(46,204,113,0.15)' : 'rgba(100,108,255,0.15)',
+                    border: `1px solid ${room.gameType === 'spice' ? 'rgba(230,126,34,0.4)' : room.gameType === 'skulking' ? 'rgba(46,204,113,0.4)' : 'rgba(100,108,255,0.4)'}`,
                     borderRadius: '4px',
                     padding: '1px 5px',
                   }}>
-                    {room.gameType === 'spice' ? '향신료' : '갱스터'}
+                    {room.gameType === 'spice' ? '향신료' : room.gameType === 'skulking' ? '스컬킹' : '갱스터'}
                   </span>
                   {room.gameStarted && <span style={{ marginLeft: '6px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
                 </span>

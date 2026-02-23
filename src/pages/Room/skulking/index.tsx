@@ -133,6 +133,7 @@ export default function SkulkingRoom() {
             playerHands: PlayerHand[];
             scores: Record<string, number>;
           };
+          setGameStarted(true);
           setRound(d.round);
           setMyHand(d.myHand);
           setPlayerHands(d.playerHands);

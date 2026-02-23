@@ -12,6 +12,17 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 | 2026-02-23 | `Lobby.tsx`: GAME_TYPES에 skulking 추가 |
 | 2026-02-23 | `pages/Room/index.tsx`: skulking 라우팅 추가 |
 | 2026-02-23 | `utils/games/index.ts`: SKULKING_CONFIG 등록 |
+| 2026-02-23 | `Lobby.tsx`: 방 목록 게임타입 표시 3중 조건으로 수정 (skulking→스컬킹, spice→향신료, 나머지→갱스터) |
+| 2026-02-23 | `Lobby.tsx`: 방 생성 시 방제목 미입력이면 `{닉네임}의방` 자동 설정 |
+| 2026-02-23 | `skulking/index.tsx`: `skulkingRoundStarted` 케이스에 `setGameStarted(true)` 추가 (방장 외 플레이어도 게임 보드 진입) |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 트릭 카드 각 플레이어 앞에 표시 (TrickCardSlot 절대위치) |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 플레이어 순번 뱃지 추가 (OrderBadge, 아바타 좌상단) |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 비드 표시 `(N) / 라운드` 형식으로 변경 |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 점수 뱃지(위/좌)와 비드 뱃지(아래/우) 자리 분리, 좌석 위치에 따라 정렬 방향 변경 |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 라운드 표시를 게임판 정중앙으로 이동 (BoardCenterBadge, position absolute 50%/50%) |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: TopBar는 `gameStarted && phase` 조건일 때만 렌더링 (빈 검정 영역 제거) |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: 좌하단 DeckDisplay 버튼 추가 → 클릭 시 라운드 통계 모달 표시 |
+| 2026-02-23 | `SkulkingGameBoard.tsx`: StatsModal — 행=라운드(1~10), 열=플레이어, 셀=(비드)/트릭/점수, 합계 행, 92vw, 닫기 버튼 |
 | 2026-02-22 | `useRoomBase.ts`: 새로고침 감지 방식을 `performance.getEntriesByType('navigation')` 기반으로 변경 |
 | 2026-02-22 | `spice/index.tsx`: `roomJoined`에서 firstDraw 상태 복원, `reconnectTurnTimeLeft` / `reconnectChallengeTimeLeft` 상태 추가 |
 | 2026-02-22 | `spice/index.tsx`: `challengeExpired` 수신 시 `setChallengePhase(null)` 1100ms 지연 (도전 타이머 0초 표시 race condition 수정) |
@@ -166,16 +177,26 @@ useEffect(() => {
 ## Skulking 게임 UI 구조 (SkulkingGameBoard)
 
 - 기존 `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 Gang/Spice와 동일한 스타일 컴포넌트 사용
-- **상단 바** (TopBar): 라운드 뱃지 + 페이즈 뱃지 + 현재 차례 플레이어 표시
-- **중앙**: 현재 트릭에 낸 카드들 (TrickArea, 절대위치)
+- **상단 바** (TopBar): `gameStarted && phase`일 때만 렌더링, 페이즈 뱃지 + 현재 차례 플레이어 표시
+- **게임판 정중앙** (BoardCenterBadge): `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)` → RoundBadge 표시
 - **플레이어 원형 배치**: GangGameBoard와 동일한 seatIndex 계산 방식
   - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
-  - 아바타 아래에 비드·트릭·점수 뱃지 표시
+  - `getSeatPosition(totalPlayers, seatIndex)` → `{top?, bottom?, left?, right?}`
+  - `isVertical = pos.left === "0" || pos.right === "0"` (좌우 플레이어)
+  - **OrderBadge**: 아바타 좌상단에 순번(player.order + 1) 표시
+  - **점수 뱃지**: 수평 플레이어는 좌측/위, 수직 플레이어는 아래 배치
+  - **비드 뱃지**: 수평 플레이어는 우측/위, 수직 플레이어는 아래 배치, 형식 `(N) / 라운드`
+  - 좌측 플레이어: `justify-content: flex-start`, 우측 플레이어: `justify-content: flex-end`
   - 차례인 플레이어 아바타에 `outline: 2px solid #f39c12` 강조
+- **트릭 카드**: TrickCardSlot — 각 플레이어 좌석 앞에 절대위치로 표시
 - **손패**: MyHandArea + HandCard + 스컬킹 전용 SkCard (배경색 = 수트 색상)
   - 내 플레이 차례일 때 카드 클릭 → 선택 강조 → 확정 버튼
   - Tigress 클릭 시 Escape/Pirate 선언 모달 표시
 - **비드 입력** (BidArea, bottom: 140px): 0~round 버튼 + 확정 버튼
+- **좌하단 DeckDisplay 버튼**: 게임 시작 시 클릭 → StatsModal 표시
+  - StatsModal: 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수
+  - 현재 라운드: 실시간 bids/tricks/scores 사용, 이전 라운드: roundScores prop, 미래: `-`
+  - 합계 행, 너비 92vw, 닫기 버튼
 - **결과 모달**: `SkulkingRoundResultModal`, `SkulkingGameOverModal` (GameArea 내부 배치)
 
 ## Skulking 카드 구성 (66장)
