@@ -2,7 +2,7 @@ import type { Card, GameConfig } from "../../types/game";
 
 // 스컬킹 수트 색상
 export const SKULKING_SUIT_COLORS: Record<string, string> = {
-  "sk-black": "#1a1a2e",
+  "sk-black": "#111111",
   "sk-yellow": "#f39c12",
   "sk-purple": "#8e44ad",
   "sk-green": "#27ae60",
@@ -36,12 +36,18 @@ export const SKULKING_SUIT_LABELS: Record<string, string> = {
   "sk-pirate": "⚔️",
   "sk-mermaid": "💎",
   "sk-skulking": "💀",
-  "sk-tigress": "⚔️/🏳️",
+  "sk-tigress": "🃏",
 };
 
 // 특수 카드 여부
 export const isSpecialCard = (type: string): boolean =>
-  ["sk-escape", "sk-pirate", "sk-mermaid", "sk-skulking", "sk-tigress"].includes(type);
+  [
+    "sk-escape",
+    "sk-pirate",
+    "sk-mermaid",
+    "sk-skulking",
+    "sk-tigress",
+  ].includes(type);
 
 // 스컬킹 덱 생성 (66장)
 const createDeck = (): Card[] => {
@@ -72,7 +78,12 @@ const createDeck = (): Card[] => {
 
   // Mermaid 2장
   for (let i = 1; i <= 2; i++) {
-    deck.push({ type: "sk-mermaid", value: 0, image: "", name: `mermaid_${i}` });
+    deck.push({
+      type: "sk-mermaid",
+      value: 0,
+      image: "",
+      name: `mermaid_${i}`,
+    });
   }
 
   // Skull King 1장

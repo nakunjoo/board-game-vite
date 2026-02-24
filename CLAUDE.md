@@ -105,6 +105,36 @@ src/
 - styled-components transient props는 `$` 접두사 (예: `$isMe`, `$totalPlayers`)
 - 게임별 컴포넌트는 `src/components/[게임타입]/` 폴더에 분리
 
+## 컴포넌트 폴더 구조 컨벤션
+
+게임 보드에서 분리한 서브 컴포넌트/모달은 역할별 서브폴더로 구분한다.
+
+```
+components/[게임이름]/
+├── [게임이름]GameBoard.tsx       # 게임판 메인 (최상위)
+├── [게임이름]HelpModal.tsx       # 도움말 최상위 (help에서 분리한 게 있으면 help/ 하위)
+├── types.ts
+├── game/                         # 게임 보드에서 분리된 서브 컴포넌트/모달
+│   ├── [게임이름]BidModal.tsx
+│   ├── [게임이름]ResultModal.tsx
+│   └── ...
+└── help/                         # 도움말 모달에서 분리된 서브 컴포넌트
+    └── ...
+```
+
+스타일은 `src/styles/game/[게임이름]/` 하위에 역할별로 파일을 나눈다.
+
+```
+styles/game/[게임이름]/
+├── card.ts          # 카드 스타일
+├── board.ts         # 게임판 스타일
+├── boardCenter.ts   # 중앙 상태 표시
+├── bidModal.ts      # 비드 모달
+├── resultModal.ts   # 결과 모달
+├── helpModal.ts     # 도움말 모달
+└── ...
+```
+
 ## 스크립트
 
 ```bash

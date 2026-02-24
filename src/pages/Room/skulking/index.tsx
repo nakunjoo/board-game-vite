@@ -25,7 +25,7 @@ import {
   ChatSendButton,
 } from "../../../styles/chat";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
-import { SkulkingGameOverModal } from "../../../components/skulking/SkulkingResultModal";
+import { SkulkingGameOverModal } from "../../../components/skulking/game/SkulkingResultModal";
 import SkulkingHelpModal from "../../../components/skulking/SkulkingHelpModal";
 import type { TrickEntry, RoundResult, GameOverResult } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";

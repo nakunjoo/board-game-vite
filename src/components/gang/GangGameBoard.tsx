@@ -38,7 +38,7 @@ import CardDeck from "../CardDeck";
 import { getCardImage, getCardName, getCardLabel } from "../../utils/cards";
 import { type HandResult } from "../../utils/poker";
 import type { Player, ChipData, PreviousChipsData } from "./types";
-import GangHandRankModal from "./GangHandRankModal";
+import GangHandRankModal from "./game/GangHandRankModal";
 
 interface GangGameBoardProps {
   // 게임 상태
