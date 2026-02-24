@@ -35,8 +35,8 @@ export const SKULKING_SUIT_LABELS: Record<string, string> = {
   "sk-escape": "🏳️",
   "sk-pirate": "⚔️",
   "sk-mermaid": "💎",
-  "sk-skulking": "☠",
-  "sk-tigress": "T",
+  "sk-skulking": "💀",
+  "sk-tigress": "⚔️/🏳️",
 };
 
 // 특수 카드 여부

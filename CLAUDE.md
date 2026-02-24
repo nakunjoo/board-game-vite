@@ -6,6 +6,12 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-24 | `SkulkingHelpModal.tsx`: 탭 3개(게임 규칙 / 카드 족보 / 카드 구성)로 재구성, 카드 족보 탭에 세로 카드 아이콘 + 보너스 점수 박스 추가 |
+| 2026-02-24 | `SkulkingGameBoard.tsx`: Follow suit UI 제한 추가 — 리드 수트가 손패에 있으면 리드 수트/특수카드만 클릭 가능, 나머지는 opacity 0.3 + cursor not-allowed |
+| 2026-02-24 | `SkulkingGameBoard.tsx`: 리드 수트 결정 로직 수정 — `currentTrick[0]` 기준이 아닌 트릭에서 처음 나온 숫자 수트 카드 기준으로 변경 |
+| 2026-02-24 | `skulking/index.tsx`: 선뽑기(`skulkingDrawFirstCard`) 추가, `skulkingFirstDrawStarted/Result/Progress/Finished` 이벤트 처리, `trickWinnerId` 상태 추가 |
+| 2026-02-24 | `SkulkingGameBoard.tsx`: 비드 입력을 BidOverlay+BidModal(손패 카드 미리보기 포함) 방식으로 변경 |
+| 2026-02-24 | `SkulkingGameBoard.tsx`: 트릭 승자 아이콘(👑), 리드 카드 흰 테두리+"1" 뱃지 추가 |
 | 2026-02-23 | 스컬킹(Skull King) 게임 추가: `components/skulking/`, `pages/Room/skulking/`, `utils/games/skulking.ts` 신규 생성 |
 | 2026-02-23 | `SkulkingGameBoard.tsx`: `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 기존 스타일 컴포넌트 기반으로 작성 (Gang/Spice와 동일한 보드 UI 구조) |
 | 2026-02-23 | `SkulkingHelpModal.tsx`: `isOpen: boolean` prop 추가, `if (!isOpen) return null` 패턴 적용 |
@@ -177,8 +183,7 @@ useEffect(() => {
 ## Skulking 게임 UI 구조 (SkulkingGameBoard)
 
 - 기존 `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 Gang/Spice와 동일한 스타일 컴포넌트 사용
-- **상단 바** (TopBar): `gameStarted && phase`일 때만 렌더링, 페이즈 뱃지 + 현재 차례 플레이어 표시
-- **게임판 정중앙** (BoardCenterBadge): `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)` → RoundBadge 표시
+- **게임판 정중앙** (BoardCenterBadge): 라운드 뱃지, 페이즈 뱃지, 타이머(20초 카운트다운 바) 표시
 - **플레이어 원형 배치**: GangGameBoard와 동일한 seatIndex 계산 방식
   - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
   - `getSeatPosition(totalPlayers, seatIndex)` → `{top?, bottom?, left?, right?}`
@@ -186,18 +191,49 @@ useEffect(() => {
   - **OrderBadge**: 아바타 좌상단에 순번(player.order + 1) 표시
   - **점수 뱃지**: 수평 플레이어는 좌측/위, 수직 플레이어는 아래 배치
   - **비드 뱃지**: 수평 플레이어는 우측/위, 수직 플레이어는 아래 배치, 형식 `(N) / 라운드`
-  - 좌측 플레이어: `justify-content: flex-start`, 우측 플레이어: `justify-content: flex-end`
   - 차례인 플레이어 아바타에 `outline: 2px solid #f39c12` 강조
-- **트릭 카드**: TrickCardSlot — 각 플레이어 좌석 앞에 절대위치로 표시
-- **손패**: MyHandArea + HandCard + 스컬킹 전용 SkCard (배경색 = 수트 색상)
-  - 내 플레이 차례일 때 카드 클릭 → 선택 강조 → 확정 버튼
+- **트릭 카드** (TrickCardSlot): 각 플레이어 좌석 앞에 절대위치로 표시
+  - 승자 카드: 👑 아이콘 + 금테두리 + glow
+  - 리드 카드(첫 번째): 흰 테두리 + "1" 뱃지
+- **손패** (MyHandArea + SkCard): 배경색 = 수트 색상
+  - 내 플레이 차례: 카드 클릭 → 선택 강조 → "카드 내기" 확정 버튼
   - Tigress 클릭 시 Escape/Pirate 선언 모달 표시
-- **비드 입력** (BidArea, bottom: 140px): 0~round 버튼 + 확정 버튼
-- **좌하단 DeckDisplay 버튼**: 게임 시작 시 클릭 → StatsModal 표시
-  - StatsModal: 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수
-  - 현재 라운드: 실시간 bids/tricks/scores 사용, 이전 라운드: roundScores prop, 미래: `-`
-  - 합계 행, 너비 92vw, 닫기 버튼
-- **결과 모달**: `SkulkingRoundResultModal`, `SkulkingGameOverModal` (GameArea 내부 배치)
+  - **Follow suit 제한**: 리드 수트(`leadEntry = currentTrick.find(e => !isSpecialCard(e.card.type))`) 손패에 있으면 리드 수트/특수 카드만 활성화, 나머지는 `opacity: 0.3` + `cursor: not-allowed`
+- **비드 입력** (BidOverlay + BidModal): 풀스크린 오버레이, 내 손패 카드 미리보기 + 0~round 버튼 + 확정 버튼
+- **선뽑기 오버레이**: 카드 뒷면 클릭 → 숫자 공개 → 전원 완료 시 결과 표시 + 2초 후 게임 시작
+- **좌하단 통계 버튼** (DeckDisplay): 클릭 → StatsModal
+  - 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수, 합계 행
+- **결과 모달**: `SkulkingResultModal` (라운드/최종 모두 처리)
+
+## Skulking 리드 수트 결정 규칙
+
+- 트릭에서 **처음으로 나온 숫자 수트 카드**(sk-black/yellow/purple/green)가 리드 수트
+- 특수 카드(sk-escape/pirate/mermaid/skulking/tigress)가 먼저 나와도 리드 수트가 되지 않음
+- 리드 수트가 결정되면 이후 플레이어는 해당 수트 또는 특수 카드만 낼 수 있음
+- 손패에 리드 수트가 없으면 아무 카드나 가능
+- 모든 플레이어가 특수 카드만 냈으면 리드 수트 없음
+
+```typescript
+// 클라이언트 (SkulkingGameBoard.tsx)
+const leadEntry = currentTrick.find((e) => !isSpecialCard(e.card.type));
+const leadSuit = leadEntry ? leadEntry.card.type : null;
+
+// 서버 (skulking.handler.ts)
+const leadEntry = currentTrick.find((e) => this.isNumberSuit(this.getEffectiveType(e)));
+```
+
+## Skulking 선뽑기 (skulkingFirstDraw)
+
+- 게임 시작 시 먼저 선뽑기 진행 (Spice 게임과 동일한 패턴)
+- 이벤트: `skulkingDrawFirstCard` → `skulkingFirstDrawStarted` / `skulkingFirstDrawResult` / `skulkingFirstDrawProgress` / `skulkingFirstDrawFinished`
+- 가장 높은 숫자를 뽑은 플레이어가 첫 번째 비드 플레이어
+- 마지막 트릭 승자가 다음 트릭/라운드 리드 플레이어 (`skulkingLeadPlayerId` 유지)
+
+## SkulkingHelpModal 구조 (3탭)
+
+- **게임 규칙 탭**: 목표, 진행 방식, 리드 수트 결정, 점수 계산
+- **카드 족보 탭**: 1위(해골왕)~7위(탈출) 세로 카드 아이콘 + 설명, 하단 보너스 점수 박스
+- **카드 구성 탭**: 숫자 수트 4종 + 특수 카드 5종 테이블, 카드 색상 아이콘 인라인 표시
 
 ## Skulking 카드 구성 (66장)
 

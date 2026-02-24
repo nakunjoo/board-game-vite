@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import styled from "styled-components";
 import {
   GameBoard,
@@ -27,19 +27,6 @@ import {
 
 // ── 스컬킹 전용 스타일 ─────────────────────────────────────────
 
-const TopBar = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 20;
-`;
 
 const BoardCenterBadge = styled.div`
   position: absolute;
@@ -48,6 +35,12 @@ const BoardCenterBadge = styled.div`
   transform: translate(-50%, -50%);
   z-index: 10;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  width: max-content;
 `;
 
 const DeckDisplay = styled.div`
@@ -148,11 +141,61 @@ const PhaseBadge = styled.span<{ $phase: string }>`
   font-size: 0.8rem;
 `;
 
-const TurnLabel = styled.span<{ $color: string }>`
-  color: ${({ $color }) => $color};
-  font-size: 0.8rem;
+const TURN_TIME = 20;
+
+const TimerBox = styled.div<{ $isMyTurn: boolean; $urgent: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: ${({ $isMyTurn, $urgent }) =>
+    $isMyTurn
+      ? $urgent
+        ? "rgba(231,76,60,0.92)"
+        : "rgba(243,156,18,0.92)"
+      : "rgba(0,0,0,0.55)"};
+  box-shadow: ${({ $isMyTurn, $urgent }) =>
+    $isMyTurn
+      ? $urgent
+        ? "0 0 16px rgba(231,76,60,0.7)"
+        : "0 0 14px rgba(243,156,18,0.55)"
+      : "none"};
+  transition: background 0.3s, box-shadow 0.3s;
+  pointer-events: none;
 `;
 
+const TimerCount = styled.div<{ $urgent: boolean; $blink: boolean }>`
+  font-size: ${({ $urgent }) => ($urgent ? "2rem" : "1.6rem")};
+  font-weight: bold;
+  color: ${({ $urgent, $blink }) =>
+    $urgent ? ($blink ? "#ffe066" : "#fff") : "#fff"};
+  line-height: 1;
+  transition: font-size 0.2s;
+`;
+
+const TimerBarWrap = styled.div`
+  width: 120px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+`;
+
+const TimerBarFill = styled.div<{ $pct: number; $urgent: boolean }>`
+  width: ${({ $pct }) => $pct}%;
+  height: 100%;
+  background: ${({ $urgent }) =>
+    $urgent ? "#ffe066" : "rgba(255,255,255,0.85)"};
+  transition: width 0.9s linear, background 0.3s;
+`;
+
+const TimerLabel = styled.div`
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+`;
 
 // 플레이어 앞에 놓이는 트릭 카드 슬롯
 const TrickCardSlot = styled.div<{ $totalPlayers: number; $seatIndex: number }>`
@@ -206,7 +249,9 @@ const SkCard = styled.div<{
   $selectable?: boolean;
   $selected?: boolean;
   $small?: boolean;
+  $disabled?: boolean;
 }>`
+  position: relative;
   width: ${({ $small }) => ($small ? "46px" : "56px")};
   height: ${({ $small }) => ($small ? "64px" : "80px")};
   border-radius: 5px;
@@ -217,15 +262,17 @@ const SkCard = styled.div<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: ${({ $selectable }) => ($selectable ? "pointer" : "default")};
+  cursor: ${({ $selectable, $disabled }) => ($disabled ? "not-allowed" : $selectable ? "pointer" : "default")};
   transform: ${({ $selected }) => ($selected ? "translateY(-10px)" : "none")};
   transition:
     transform 0.15s,
-    border-color 0.15s;
+    border-color 0.15s,
+    opacity 0.15s;
+  opacity: ${({ $disabled }) => ($disabled ? 0.3 : 1)};
 
   &:hover {
-    ${({ $selectable }) =>
-      $selectable && "transform: translateY(-10px); border-color: #f1c40f;"}
+    ${({ $selectable, $disabled }) =>
+      $selectable && !$disabled && "transform: translateY(-10px); border-color: #f1c40f;"}
   }
 
   @media (max-width: 768px) {
@@ -245,28 +292,36 @@ const SkCardValue = styled.div<{ $small?: boolean }>`
   color: rgba(255, 255, 255, 0.75);
 `;
 
-// 비드 입력 영역 (보드 하단 중앙)
-const BidArea = styled.div`
+// 비드 모달 오버레이
+const BidOverlay = styled.div`
   position: absolute;
-  bottom: 140px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+`;
+
+const BidModal = styled.div`
+  background: #1a1a2e;
+  border: 2px solid #f39c12;
+  border-radius: 12px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  z-index: 20;
-  white-space: nowrap;
-
-  @media (max-width: 768px) {
-    bottom: 110px;
-  }
+  gap: 12px;
+  width: min(92vw, 480px);
+  max-height: 90vh;
+  overflow-y: auto;
 `;
 
 const BidTitle = styled.div`
   color: #f39c12;
   font-size: 0.85rem;
   font-weight: bold;
+  text-align: center;
 `;
 
 const BidButtons = styled.div`
@@ -398,6 +453,17 @@ interface Props {
     cardIndex: number,
     tigressDeclared?: "escape" | "pirate",
   ) => void;
+  roundEndCountdown: number | null;
+  trickWinnerId: string | null;
+  // 선뽑기
+  isFirstDraw: boolean;
+  myDrawnNumber: number | null;
+  firstDrawResults: Record<string, number>;
+  firstDrawFinished: boolean;
+  firstDrawWinnerId: string | null;
+  firstDrawWinnerNickname: string | null;
+  firstDrawCount: number;
+  onDrawFirstCard: () => void;
   onKickPlayer?: (targetPlayerId: string) => void;
 }
 
@@ -418,6 +484,16 @@ export default function SkulkingGameBoard({
   bids,
   tricks,
   scores,
+  roundEndCountdown,
+  trickWinnerId,
+  isFirstDraw,
+  myDrawnNumber,
+  firstDrawResults,
+  firstDrawFinished,
+  firstDrawWinnerId,
+  firstDrawWinnerNickname,
+  firstDrawCount,
+  onDrawFirstCard,
   onStartGame,
   onBid,
   onPlayCard,
@@ -436,6 +512,36 @@ export default function SkulkingGameBoard({
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
   const me = players.find((p) => p.playerId === myPlayerId);
 
+  // Follow suit 제한: 트릭에서 첫 번째로 나온 숫자 수트 카드가 리드 수트
+  // (특수카드가 먼저 나왔더라도 이후에 나온 첫 번째 숫자 수트 카드가 리드)
+  const leadEntry = currentTrick.find((e) => !isSpecialCard(e.card.type));
+  const leadSuit = leadEntry ? leadEntry.card.type : null;
+  const hasLeadSuit =
+    leadSuit !== null && myHand.some((c) => c.type === leadSuit);
+  const isCardDisabled = (card: Card): boolean => {
+    if (!isMyPlayTurn) return false;
+    if (!hasLeadSuit) return false;
+    // 리드 수트 카드거나 특수 카드면 낼 수 있음
+    return card.type !== leadSuit && !isSpecialCard(card.type);
+  };
+
+  // 턴 타이머 (트릭 플레이 단계에서만 동작)
+  const [timeLeft, setTimeLeft] = React.useState(TURN_TIME);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (phase === "play" && currentPlayerId) {
+      setTimeLeft(TURN_TIME);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentPlayerId, phase]);
+
   // 나를 기준으로 상대적 좌석 계산 (GangGameBoard 방식과 동일)
   const myOrder = me?.order ?? 0;
   const totalPlayers = players.length;
@@ -449,6 +555,7 @@ export default function SkulkingGameBoard({
   const handleCardClick = (index: number) => {
     if (!isMyPlayTurn) return;
     const card = myHand[index];
+    if (isCardDisabled(card)) return;
     if (card.type === "sk-tigress") {
       setTigressPending(index);
       return;
@@ -481,39 +588,57 @@ export default function SkulkingGameBoard({
 
   return (
     <GameBoard>
-      {/* 상단 바: 페이즈·차례 표시 */}
-      {gameStarted && phase && (
-        <TopBar>
-          <PhaseBadge $phase={phase}>
-            {phase === "bid" ? "비드 단계" : "트릭 플레이"}
-          </PhaseBadge>
-          {phase === "bid" && currentBidPlayerId && (
-            <TurnLabel $color="#f39c12">
-              비드 차례:{" "}
-              {players.find((p) => p.playerId === currentBidPlayerId)
-                ?.nickname ?? ""}
-            </TurnLabel>
-          )}
-          {phase === "play" && currentPlayerId && (
-            <TurnLabel $color="#2ecc71">
-              플레이 차례:{" "}
-              {players.find((p) => p.playerId === currentPlayerId)?.nickname ??
-                ""}
-            </TurnLabel>
-          )}
-        </TopBar>
-      )}
-
-
-      {/* 게임판 중앙: 라운드 표시 */}
+      {/* 게임판 중앙: 라운드 + 페이즈 뱃지 (상단 고정) + 타이머 (중앙 고정) */}
       {gameStarted && (
         <BoardCenterBadge>
           <RoundBadge>라운드 {round} / 10</RoundBadge>
+          {phase && (
+            <PhaseBadge $phase={phase}>
+              {phase === "bid" ? "비드 단계" : "트릭 플레이"}
+            </PhaseBadge>
+          )}
+          {roundEndCountdown !== null && (
+            <>
+              <TimerLabel style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.85rem" }}>
+                다음 라운드까지
+              </TimerLabel>
+              <TimerCount $urgent={roundEndCountdown <= 2} $blink={roundEndCountdown % 2 === 0}>
+                {roundEndCountdown}
+              </TimerCount>
+            </>
+          )}
+          {roundEndCountdown === null && phase === "bid" && (
+            <TimerLabel style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
+              {Object.keys(bids).length} / {totalPlayers} 명 선택 완료
+            </TimerLabel>
+          )}
+          {phase === "play" && currentPlayerId && (
+            <TimerBox $isMyTurn={isMyPlayTurn} $urgent={timeLeft <= 5}>
+              <TimerLabel>
+                {isMyPlayTurn ? (
+                  <span style={{ color: "#ffe066", fontWeight: "bold" }}>내 차례</span>
+                ) : (
+                  <>
+                    <span style={{ color: "#f39c12", fontWeight: "bold" }}>
+                      {players.find((p) => p.playerId === currentPlayerId)?.nickname ?? ""}
+                    </span>
+                    <span style={{ color: "rgba(255,255,255,0.7)" }}>의 차례</span>
+                  </>
+                )}
+              </TimerLabel>
+              <TimerCount $urgent={timeLeft <= 5} $blink={timeLeft % 2 === 0}>
+                {timeLeft}
+              </TimerCount>
+              <TimerBarWrap>
+                <TimerBarFill $pct={(timeLeft / TURN_TIME) * 100} $urgent={timeLeft <= 5} />
+              </TimerBarWrap>
+            </TimerBox>
+          )}
         </BoardCenterBadge>
       )}
 
       {/* 게임 시작 전 */}
-      {!gameStarted && !gameOver && (
+      {!gameStarted && !gameOver && !isFirstDraw && (
         <StartGameButton
           $disabled={isHost ? memberCount < 2 : true}
           onClick={isHost ? onStartGame : undefined}
@@ -537,6 +662,98 @@ export default function SkulkingGameBoard({
             </>
           )}
         </StartGameButton>
+      )}
+
+      {/* 선뽑기 오버레이 */}
+      {isFirstDraw && (
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          gap: "20px", zIndex: 50,
+          background: "rgba(0,0,0,0.72)", borderRadius: "12px",
+        }}>
+          <div style={{ color: "#fff", fontSize: "1.2rem", fontWeight: "bold" }}>선뽑기</div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.85rem" }}>
+            가장 높은 숫자를 뽑은 플레이어가 먼저 비드합니다
+          </div>
+
+          {!firstDrawFinished ? (
+            <>
+              {myDrawnNumber === null ? (
+                <div
+                  onClick={onDrawFirstCard}
+                  style={{
+                    width: "70px", height: "100px",
+                    background: "#1a4d8c",
+                    border: "2px solid rgba(255,255,255,0.3)",
+                    borderRadius: "8px", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "1.6rem",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                    transition: "transform 0.15s, border-color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px)";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.7)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.transform = "none";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.3)";
+                  }}
+                >
+                  🂠
+                </div>
+              ) : (
+                <div style={{
+                  width: "70px", height: "100px",
+                  background: "#fff",
+                  border: "3px solid #f39c12",
+                  borderRadius: "8px",
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 4px 16px rgba(243,156,18,0.5)",
+                }}>
+                  <span style={{ fontSize: "2.2rem", fontWeight: "bold", color: "#e67e22" }}>
+                    {myDrawnNumber}
+                  </span>
+                </div>
+              )}
+              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.82rem" }}>
+                {firstDrawCount} / {memberCount} 명 완료
+              </div>
+            </>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
+              <div style={{ color: "#f39c12", fontSize: "1.1rem", fontWeight: "bold" }}>
+                🎉 {firstDrawWinnerNickname}님이 선!
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                {players.map((p) => {
+                  const num = firstDrawResults[p.playerId];
+                  const isFirst = p.playerId === firstDrawWinnerId;
+                  return (
+                    <div key={p.playerId} style={{
+                      background: isFirst ? "rgba(243,156,18,0.2)" : "rgba(255,255,255,0.08)",
+                      border: isFirst ? "2px solid #f39c12" : "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "8px", padding: "8px 14px",
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: "4px",
+                    }}>
+                      <span style={{ color: "#fff", fontSize: "0.8rem" }}>{p.nickname}</span>
+                      <span style={{ color: isFirst ? "#f39c12" : "#ccc", fontSize: "1.5rem", fontWeight: "bold" }}>
+                        {num ?? "?"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem" }}>
+                곧 게임이 시작됩니다...
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 플레이어 원형 배치 */}
@@ -621,26 +838,51 @@ export default function SkulkingGameBoard({
               </div>
 
               {/* 플레이어 앞에 놓인 트릭 카드 */}
-              {trickEntry && (
-                <TrickCardSlot
-                  $totalPlayers={players.length}
-                  $seatIndex={seatIndex}
-                >
-                  <SkCard $type={trickEntry.card.type} $small>
-                    <SkCardLabel $small>
-                      {SKULKING_SUIT_LABELS[trickEntry.card.type] ?? "?"}
-                    </SkCardLabel>
-                    {!isSpecialCard(trickEntry.card.type) && (
-                      <SkCardValue $small>{trickEntry.card.value}</SkCardValue>
+              {trickEntry && (() => {
+                const isWinner = trickWinnerId === player.playerId;
+                const isLeader = currentTrick.length > 0 && currentTrick[0].playerId === player.playerId;
+                return (
+                  <TrickCardSlot
+                    $totalPlayers={players.length}
+                    $seatIndex={seatIndex}
+                  >
+                    {isWinner && (
+                      <div style={{ fontSize: "1.1rem", lineHeight: 1, marginBottom: "2px" }}>👑</div>
                     )}
-                    {trickEntry.tigressDeclared && (
-                      <SkCardValue $small style={{ fontSize: "0.6rem" }}>
-                        {trickEntry.tigressDeclared === "escape" ? "E" : "P"}
-                      </SkCardValue>
-                    )}
-                  </SkCard>
-                </TrickCardSlot>
-              )}
+                    <SkCard
+                      $type={trickEntry.card.type}
+                      $small
+                      style={{
+                        outline: isWinner
+                          ? "2px solid #f1c40f"
+                          : isLeader
+                          ? "2px solid rgba(255,255,255,0.6)"
+                          : undefined,
+                        boxShadow: isWinner
+                          ? "0 0 10px rgba(241,196,15,0.7)"
+                          : undefined,
+                      }}
+                    >
+                      {isLeader && !isWinner && (
+                        <div style={{ position: "absolute", top: "-7px", right: "-7px", fontSize: "0.6rem", background: "rgba(255,255,255,0.85)", color: "#1a1a2e", borderRadius: "50%", width: "14px", height: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                          1
+                        </div>
+                      )}
+                      <SkCardLabel $small>
+                        {SKULKING_SUIT_LABELS[trickEntry.card.type] ?? "?"}
+                      </SkCardLabel>
+                      {!isSpecialCard(trickEntry.card.type) && (
+                        <SkCardValue $small>{trickEntry.card.value}</SkCardValue>
+                      )}
+                      {trickEntry.tigressDeclared && (
+                        <SkCardValue $small style={{ fontSize: "0.6rem" }}>
+                          {trickEntry.tigressDeclared === "escape" ? "E" : "P"}
+                        </SkCardValue>
+                      )}
+                    </SkCard>
+                  </TrickCardSlot>
+                );
+              })()}
 
               {/* 다른 플레이어 손패 (뒷면) */}
               {!player.isMe && cardCount > 0 && (
@@ -760,64 +1002,84 @@ export default function SkulkingGameBoard({
         );
       })()}
 
-      {/* 내 손패 */}
-      {gameStarted && myHand.length > 0 && (
+      {/* 내 손패 - 내가 이미 카드를 낸 경우(currentTrick에 내 카드 존재) 숨김 */}
+      {gameStarted && myHand.length > 0 && !currentTrick.some((e) => e.playerId === myPlayerId) && (
         <MyHandArea>
-          {myHand.map((card, i) => (
-            <HandCard
-              key={card.name}
-              onClick={() => handleCardClick(i)}
-              style={{ cursor: isMyPlayTurn ? "pointer" : "default" }}
-              title={`${SKULKING_SUIT_NAMES[card.type] ?? card.type}${!isSpecialCard(card.type) ? ` ${card.value}` : ""}`}
-            >
-              <SkCard
-                $type={card.type}
-                $selectable={isMyPlayTurn}
-                $selected={selectedCardIndex === i}
+          {myHand.map((card, i) => {
+            const disabled = isCardDisabled(card);
+            return (
+              <HandCard
+                key={card.name}
+                onClick={() => handleCardClick(i)}
+                style={{ cursor: isMyPlayTurn && !disabled ? "pointer" : disabled ? "not-allowed" : "default" }}
+                title={`${SKULKING_SUIT_NAMES[card.type] ?? card.type}${!isSpecialCard(card.type) ? ` ${card.value}` : ""}`}
               >
-                <SkCardLabel>
-                  {SKULKING_SUIT_LABELS[card.type] ?? "?"}
-                </SkCardLabel>
-                {!isSpecialCard(card.type) && (
-                  <SkCardValue>{card.value}</SkCardValue>
-                )}
-              </SkCard>
-            </HandCard>
-          ))}
+                <SkCard
+                  $type={card.type}
+                  $selectable={isMyPlayTurn && !disabled}
+                  $selected={selectedCardIndex === i}
+                  $disabled={disabled}
+                >
+                  <SkCardLabel>
+                    {SKULKING_SUIT_LABELS[card.type] ?? "?"}
+                  </SkCardLabel>
+                  {!isSpecialCard(card.type) && (
+                    <SkCardValue>{card.value}</SkCardValue>
+                  )}
+                </SkCard>
+              </HandCard>
+            );
+          })}
         </MyHandArea>
       )}
 
       {/* 카드 확정 버튼 */}
       {isMyPlayTurn &&
         selectedCardIndex !== null &&
-        myHand[selectedCardIndex]?.type !== "sk-tigress" && (
+        myHand[selectedCardIndex]?.type !== "sk-tigress" &&
+        !currentTrick.some((e) => e.playerId === myPlayerId) && (
           <ConfirmCardButton onClick={handleConfirmCard}>
             카드 내기
           </ConfirmCardButton>
         )}
 
-      {/* 비드 입력 */}
+      {/* 비드 입력 모달 */}
       {isMyBidTurn && me?.bid === undefined && (
-        <BidArea>
-          <BidTitle>이번 라운드에서 딸 트릭 수를 선언하세요</BidTitle>
-          <BidButtons>
-            {Array.from({ length: round + 1 }, (_, i) => i).map((n) => (
-              <BidButton
-                key={n}
-                $selected={selectedBid === n}
-                onClick={() => setSelectedBid(n)}
-              >
-                {n}
-              </BidButton>
-            ))}
-          </BidButtons>
-          <BidConfirmButton
-            onClick={handleBidConfirm}
-            disabled={selectedBid === null}
-          >
-            비드 확정
-          </BidConfirmButton>
-        </BidArea>
+        <BidOverlay>
+          <BidModal onClick={(e) => e.stopPropagation()}>
+            <BidTitle>이번 라운드에서 딸 트릭 수를 선언하세요</BidTitle>
+            {/* 내 손패 카드 미리보기 */}
+            {myHand.length > 0 && (
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" }}>
+                {myHand.map((card) => (
+                  <SkCard key={card.name} $type={card.type} $small title={`${SKULKING_SUIT_NAMES[card.type] ?? card.type}${!isSpecialCard(card.type) ? ` ${card.value}` : ""}`}>
+                    <SkCardLabel $small>{SKULKING_SUIT_LABELS[card.type] ?? "?"}</SkCardLabel>
+                    {!isSpecialCard(card.type) && (
+                      <SkCardValue $small>{card.value}</SkCardValue>
+                    )}
+                  </SkCard>
+                ))}
+              </div>
+            )}
+            <BidButtons>
+              {Array.from({ length: round + 1 }, (_, i) => i).map((n) => (
+                <BidButton
+                  key={n}
+                  $selected={selectedBid === n}
+                  onClick={() => setSelectedBid(n)}
+                >
+                  {n}
+                </BidButton>
+              ))}
+            </BidButtons>
+            <BidConfirmButton
+              onClick={handleBidConfirm}
+              disabled={selectedBid === null}
+            >
+              비드 확정
+            </BidConfirmButton>
+          </BidModal>
+        </BidOverlay>
       )}
 
       {/* Tigress 선언 모달 */}
@@ -831,13 +1093,13 @@ export default function SkulkingGameBoard({
               $type="escape"
               onClick={() => handleTigressDeclare("escape")}
             >
-              E 탈출 (Escape)
+              🏳️ 탈출
             </TigressBtn>
             <TigressBtn
               $type="pirate"
               onClick={() => handleTigressDeclare("pirate")}
             >
-              P 해적 (Pirate)
+              ⚔️ 해적
             </TigressBtn>
           </TigressModal>
         </TigressOverlay>

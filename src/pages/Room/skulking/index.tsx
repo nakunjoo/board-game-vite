@@ -25,7 +25,7 @@ import {
   ChatSendButton,
 } from "../../../styles/chat";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
-import { SkulkingRoundResultModal, SkulkingGameOverModal } from "../../../components/skulking/SkulkingResultModal";
+import { SkulkingGameOverModal } from "../../../components/skulking/SkulkingResultModal";
 import SkulkingHelpModal from "../../../components/skulking/SkulkingHelpModal";
 import type { TrickEntry, RoundResult, GameOverResult } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
@@ -86,10 +86,19 @@ export default function SkulkingRoom() {
   const [tricks, setTricks] = useState<Record<string, number>>(ls?.tricks ?? {});
   const [scores, setScores] = useState<Record<string, number>>(ls?.scores ?? {});
 
-  const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
-  const [showRoundResult, setShowRoundResult] = useState(false);
   const [gameOverResult, setGameOverResult] = useState<GameOverResult | null>(null);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(null);
+  const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
+
+  // 선뽑기 상태
+  const [isFirstDraw, setIsFirstDraw] = useState(false);
+  const [myDrawnNumber, setMyDrawnNumber] = useState<number | null>(null);
+  const [firstDrawResults, setFirstDrawResults] = useState<Record<string, number>>({});
+  const [firstDrawFinished, setFirstDrawFinished] = useState(false);
+  const [firstDrawWinnerId, setFirstDrawWinnerId] = useState<string | null>(null);
+  const [firstDrawWinnerNickname, setFirstDrawWinnerNickname] = useState<string | null>(null);
+  const [firstDrawCount, setFirstDrawCount] = useState(0);
 
   useEffect(() => {
     const unsubscribe = subscribe((event, data) => {
@@ -110,8 +119,15 @@ export default function SkulkingRoom() {
             scores?: Record<string, number>;
             skulkingCurrentPlayerId?: string | null;
             currentTrick?: TrickEntry[];
+            skulkingIsFirstDraw?: boolean;
+            skulkingDrawnCount?: number;
           };
           if (d.name !== roomName) break;
+          if (d.skulkingIsFirstDraw) {
+            setIsFirstDraw(true);
+            setFirstDrawCount(d.skulkingDrawnCount ?? 0);
+            break;
+          }
           if (d.myHand) setMyHand(d.myHand);
           if (d.playerHands) setPlayerHands(d.playerHands);
           if (d.gameStarted !== undefined) setGameStarted(d.gameStarted);
@@ -133,6 +149,13 @@ export default function SkulkingRoom() {
             playerHands: PlayerHand[];
             scores: Record<string, number>;
           };
+          setIsFirstDraw(false);
+          setMyDrawnNumber(null);
+          setFirstDrawResults({});
+          setFirstDrawFinished(false);
+          setFirstDrawWinnerId(null);
+          setFirstDrawWinnerNickname(null);
+          setFirstDrawCount(0);
           setGameStarted(true);
           setRound(d.round);
           setMyHand(d.myHand);
@@ -144,7 +167,36 @@ export default function SkulkingRoom() {
           setPhase(null);
           setCurrentBidPlayerId(null);
           setCurrentPlayerId(null);
-          setShowRoundResult(false);
+          setTrickWinnerId(null);
+          break;
+        }
+        case "skulkingFirstDrawStarted": {
+          setIsFirstDraw(true);
+          setMyDrawnNumber(null);
+          setFirstDrawResults({});
+          setFirstDrawFinished(false);
+          setFirstDrawWinnerId(null);
+          setFirstDrawWinnerNickname(null);
+          setFirstDrawCount(0);
+          break;
+        }
+        case "skulkingFirstDrawResult": {
+          const d = data as { drawnNumber: number; drawnCount: number };
+          setMyDrawnNumber(d.drawnNumber);
+          setFirstDrawCount(d.drawnCount);
+          break;
+        }
+        case "skulkingFirstDrawProgress": {
+          const d = data as { drawnCount: number };
+          setFirstDrawCount(d.drawnCount);
+          break;
+        }
+        case "skulkingFirstDrawFinished": {
+          const d = data as { results: Record<string, number>; firstPlayerId: string; firstNickname: string };
+          setFirstDrawResults(d.results);
+          setFirstDrawFinished(true);
+          setFirstDrawWinnerId(d.firstPlayerId);
+          setFirstDrawWinnerNickname(d.firstNickname);
           break;
         }
         case "skulkingBidPhase": {
@@ -176,29 +228,51 @@ export default function SkulkingRoom() {
           setPlayerHands(d.playerHands);
           break;
         }
+        case "myHandUpdate": {
+          const d = data as { myHand: Card[] };
+          setMyHand(d.myHand);
+          break;
+        }
         case "skulkingTurnUpdate": {
           const d = data as { currentPlayerId: string };
+          setCurrentTrick([]);
           setCurrentPlayerId(d.currentPlayerId);
-          setTimeout(() => setCurrentTrick([]), 1400);
+          setTrickWinnerId(null);
           break;
         }
         case "skulkingTrickResult": {
-          const d = data as { tricks: Record<string, number> };
+          const d = data as { winnerId: string; tricks: Record<string, number> };
           setTricks(d.tricks);
+          setTrickWinnerId(d.winnerId);
           break;
         }
         case "skulkingRoundResult": {
           const d = data as RoundResult;
-          setRoundResult(d);
-          setShowRoundResult(true);
+          setScores(d.totalScores);
           setPhase(null);
+          if (!d.isLastRound) {
+            setRoundEndCountdown(5);
+            const tick = setInterval(() => {
+              setRoundEndCountdown((c) => {
+                if (c === null || c <= 1) {
+                  clearInterval(tick);
+                  return null;
+                }
+                return c - 1;
+              });
+            }, 1000);
+            if (isHost) {
+              setTimeout(() => {
+                send("skulkingNextRound", { roomName });
+              }, 5000);
+            }
+          }
           break;
         }
         case "skulkingGameOver": {
           const d = data as GameOverResult;
           setGameOverResult(d);
           setShowGameOver(true);
-          setShowRoundResult(false);
           setGameStarted(false);
           setGameOver(true);
           break;
@@ -211,7 +285,11 @@ export default function SkulkingRoom() {
   const handleStartGame = () => {
     if (!roomName) return;
     send("startGame", { roomName });
-    setGameStarted(true);
+  };
+
+  const handleDrawFirstCard = () => {
+    if (!roomName || myDrawnNumber !== null) return;
+    send("skulkingDrawFirstCard", { roomName });
   };
 
   const handleBid = (bid: number) => {
@@ -222,12 +300,6 @@ export default function SkulkingRoom() {
   const handlePlayCard = (cardIndex: number, tigressDeclared?: "escape" | "pirate") => {
     if (!roomName) return;
     send("skulkingPlayCard", { roomName, cardIndex, tigressDeclared });
-  };
-
-  const handleNextRound = () => {
-    if (!roomName) return;
-    send("skulkingNextRound", { roomName });
-    setShowRoundResult(false);
   };
 
   return (
@@ -302,9 +374,19 @@ export default function SkulkingRoom() {
             bids={bids}
             tricks={tricks}
             scores={scores}
+            roundEndCountdown={roundEndCountdown}
+            trickWinnerId={trickWinnerId}
+            isFirstDraw={isFirstDraw}
+            myDrawnNumber={myDrawnNumber}
+            firstDrawResults={firstDrawResults}
+            firstDrawFinished={firstDrawFinished}
+            firstDrawWinnerId={firstDrawWinnerId}
+            firstDrawWinnerNickname={firstDrawWinnerNickname}
+            firstDrawCount={firstDrawCount}
             onStartGame={handleStartGame}
             onBid={handleBid}
             onPlayCard={handlePlayCard}
+            onDrawFirstCard={handleDrawFirstCard}
             onKickPlayer={handleKickPlayer}
           />
 
@@ -323,15 +405,6 @@ export default function SkulkingRoom() {
             </ChatToggleButton>
             {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
           </ChatToggleButtonWrapper>
-
-          {showRoundResult && roundResult && !showGameOver && (
-            <SkulkingRoundResultModal
-              result={roundResult}
-              players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
-              isHost={isHost}
-              onNextRound={handleNextRound}
-            />
-          )}
 
           {showGameOver && gameOverResult && (
             <SkulkingGameOverModal
