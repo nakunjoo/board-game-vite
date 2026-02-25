@@ -6,6 +6,10 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-25 | `SkulkingBidModal.tsx`: 20초 타이머 바 UI 추가 (5초 이하 빨간색), `submitted` prop으로 제출 후 대기 화면 전환, 타이머 만료 시 자동 0 제출 |
+| 2026-02-25 | `SkulkingGameBoard.tsx`: 비드 모달 표시 조건 `phase === "bid"`로 변경 (동시 선언 방식), 손패 숨김 조건 제거 (항상 표시) |
+| 2026-02-25 | `skulking/index.tsx`: `skulkingTurnUpdate`에서 `isNewTrick: true`일 때만 `currentTrick` 초기화 |
+| 2026-02-25 | `styles/game/skulking/board.ts`: 내 플레이어(seatIndex 0) TrickCardSlot을 손패 위로 올림 (`bottom: calc(100% + 140px)`) |
 | 2026-02-24 | `SkulkingHelpModal.tsx`: 탭 3개(게임 규칙 / 카드 족보 / 카드 구성)로 재구성, 카드 족보 탭에 세로 카드 아이콘 + 보너스 점수 박스 추가 |
 | 2026-02-24 | `SkulkingGameBoard.tsx`: Follow suit UI 제한 추가 — 리드 수트가 손패에 있으면 리드 수트/특수카드만 클릭 가능, 나머지는 opacity 0.3 + cursor not-allowed |
 | 2026-02-24 | `SkulkingGameBoard.tsx`: 리드 수트 결정 로직 수정 — `currentTrick[0]` 기준이 아닌 트릭에서 처음 나온 숫자 수트 카드 기준으로 변경 |
@@ -57,33 +61,62 @@ src/
 │   ├── gang/                       # Gang 게임 전용 컴포넌트
 │   │   ├── GangGameBoard.tsx       # 게임판 메인 UI (칩, 카드, 플레이어 상태)
 │   │   ├── GangResultModal.tsx     # 라운드 결과 모달
-│   │   ├── GangHandRankModal.tsx   # 포커 족보 설명 모달
 │   │   ├── GangHelpModal.tsx       # 게임 규칙 설명 모달
 │   │   ├── types.ts                # Gang 전용 타입 정의
-│   │   └── index.ts
+│   │   ├── index.ts
+│   │   └── game/
+│   │       └── GangHandRankModal.tsx   # 포커 족보 설명 모달
 │   ├── spice/                      # Spice 게임 전용 컴포넌트
 │   │   ├── SpiceGameBoard.tsx      # 게임판 메인 UI (턴/도전/타이머 바)
 │   │   ├── SpiceResultModal.tsx    # 점수 기반 결과 모달
-│   │   └── SpiceHelpModal.tsx      # 게임 규칙 설명 모달
+│   │   ├── SpiceHelpModal.tsx      # 게임 규칙 설명 모달
+│   │   └── game/
+│   │       ├── SpiceCard.tsx
+│   │       ├── SpiceChallengeOverlay.tsx
+│   │       ├── SpiceDeclareModal.tsx
+│   │       └── SpiceOtherPlayerFan.tsx
 │   └── skulking/                   # Skulking 게임 전용 컴포넌트
 │       ├── SkulkingGameBoard.tsx   # 게임판 메인 UI (트릭/비드/Tigress)
-│       ├── SkulkingResultModal.tsx # 라운드/최종 결과 모달
+│       ├── SkulkingCard.tsx        # 카드 컴포넌트
 │       ├── SkulkingHelpModal.tsx   # 게임 규칙 설명 모달 (isOpen prop 패턴)
-│       └── types.ts                # Skulking 전용 타입 (TrickEntry, SkulkingPlayer, RoundResult, GameOverResult)
+│       ├── types.ts                # Skulking 전용 타입 (TrickEntry, RoundResult, GameOverResult)
+│       └── game/
+│           ├── SkulkingBidModal.tsx        # 비드 입력 모달 (20초 타이머)
+│           ├── SkulkingBoardCenter.tsx     # 게임판 중앙 상태 표시
+│           ├── SkulkingFirstDrawOverlay.tsx # 선뽑기 오버레이
+│           ├── SkulkingResultModal.tsx     # 라운드/최종 결과 모달
+│           ├── SkulkingStatsModal.tsx      # 라운드별 통계 모달
+│           └── SkulkingTigressModal.tsx    # Tigress E/P 선언 모달
 ├── pages/
 │   ├── Lobby.tsx                   # 로비 (방 목록, 생성, 입장)
 │   └── Room/
-│       ├── index.tsx               # Room 메인
+│       ├── index.tsx               # Room 메인 (gameType별 라우팅)
 │       ├── common/
-│       │   └── useRoomBase.ts      # Room 공통 로직 훅 (Gang/Spice 공유)
-│       ├── gang/index.tsx          # Gang Room 래퍼
-│       ├── spice/index.tsx         # Spice Room 래퍼 (Spice 전용 상태 관리)
-│       └── skulking/index.tsx      # Skulking Room 래퍼 (Skulking 전용 상태 관리)
+│       │   ├── useRoomBase.ts      # Room 공통 로직 훅 (Gang/Spice/Skulking 공유)
+│       │   └── RoomLayout.tsx      # Room 공통 UI (헤더, 채팅, 나가기)
+│       ├── gang/index.tsx          # Gang Room (게임 전용 상태 관리)
+│       ├── spice/index.tsx         # Spice Room (게임 전용 상태 관리)
+│       └── skulking/index.tsx      # Skulking Room (게임 전용 상태 관리)
 ├── styles/
-│   ├── pages/Lobby.ts
-│   ├── pages/Room.ts
-│   ├── game/index.ts
-│   └── chat/index.ts
+│   ├── index.ts
+│   ├── pages/
+│   │   ├── index.ts
+│   │   ├── Lobby.ts
+│   │   └── Room.ts
+│   ├── chat/index.ts
+│   └── game/
+│       ├── index.ts                # 공통 게임 스타일 (GameBoard, PlayerCircle 등)
+│       ├── gang/
+│       │   └── handRankModal.ts
+│       └── skulking/
+│           ├── bidModal.ts
+│           ├── board.ts
+│           ├── boardCenter.ts
+│           ├── card.ts
+│           ├── helpModal.ts
+│           ├── resultModal.ts
+│           ├── statsModal.ts
+│           └── tigressModal.ts
 ├── types/
 │   └── game.ts                     # 공통 게임 타입 (Card, Room, GameConfig 등)
 └── utils/
@@ -206,9 +239,9 @@ useEffect(() => {
 
 ## Skulking 게임 이벤트
 
-**클라이언트 → 서버:** `startGame`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`
+**클라이언트 → 서버:** `startGame`, `skulkingDrawFirstCard`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`
 
-**서버 → 클라이언트:** `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `skulkingTurnUpdate`, `skulkingTrickResult`, `skulkingRoundResult`, `skulkingGameOver`
+**서버 → 클라이언트:** `skulkingFirstDrawStarted`, `skulkingFirstDrawResult`, `skulkingFirstDrawProgress`, `skulkingFirstDrawFinished`, `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `myHandUpdate`(개인), `skulkingTurnUpdate`(isNewTrick), `skulkingTrickResult`, `skulkingRoundResult`, `skulkingGameOver`
 
 ## Skulking 게임 UI 구조 (SkulkingGameBoard)
 
@@ -229,7 +262,13 @@ useEffect(() => {
   - 내 플레이 차례: 카드 클릭 → 선택 강조 → "카드 내기" 확정 버튼
   - Tigress 클릭 시 Escape/Pirate 선언 모달 표시
   - **Follow suit 제한**: 리드 수트(`leadEntry = currentTrick.find(e => !isSpecialCard(e.card.type))`) 손패에 있으면 리드 수트/특수 카드만 활성화, 나머지는 `opacity: 0.3` + `cursor: not-allowed`
-- **비드 입력** (BidOverlay + BidModal): 풀스크린 오버레이, 내 손패 카드 미리보기 + 0~round 버튼 + 확정 버튼
+- **비드 입력** (`SkulkingBidModal`): 풀스크린 오버레이, 20초 타이머 바(5초 이하 빨간색) + 내 손패 미리보기 + 0~round 버튼 + 확정 버튼
+  - 확정 후: "비드 제출 완료 / N명 완료" 대기 화면으로 전환 (`submitted` prop)
+  - 타이머 만료 시 자동으로 0 제출
+  - 비드는 동시 선언 방식 (`phase === "bid"`이면 모달 항상 표시)
+- **손패** (MyHandArea): 항상 표시. 카드를 내면 해당 카드만 손패에서 제거됨 (`myHandUpdate` 개인 수신)
+- **TrickCardSlot** (내 플레이어): 손패와 겹치지 않도록 `bottom: calc(100% + 140px)`으로 위로 올려 표시
+- **skulkingTurnUpdate `isNewTrick` 플래그**: `true`면 새 트릭 시작(currentTrick 초기화), `false`면 같은 트릭 내 차례 변경(currentTrick 유지)
 - **선뽑기 오버레이**: 카드 뒷면 클릭 → 숫자 공개 → 전원 완료 시 결과 표시 + 2초 후 게임 시작
 - **좌하단 통계 버튼** (DeckDisplay): 클릭 → StatsModal
   - 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수, 합계 행
