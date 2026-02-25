@@ -10,7 +10,13 @@ import {
   TimerBarFill,
   TimerLabel,
 } from "../../../styles/game/skulking/boardCenter";
+import {
+  SKULKING_SUIT_LABELS,
+  SKULKING_SUIT_COLORS,
+  isSpecialCard,
+} from "../../../utils/games/skulking";
 import type { SkulkingPlayer } from "../types";
+import type { TrickEntry } from "../types";
 
 interface Props {
   round: number;
@@ -21,6 +27,7 @@ interface Props {
   currentPlayerId: string | null;
   isMyPlayTurn: boolean;
   players: SkulkingPlayer[];
+  currentTrick: TrickEntry[];
 }
 
 export default function SkulkingBoardCenter({
@@ -32,7 +39,9 @@ export default function SkulkingBoardCenter({
   currentPlayerId,
   isMyPlayTurn,
   players,
+  currentTrick,
 }: Props) {
+  const leadCard = currentTrick.find((e) => !isSpecialCard(e.card.type))?.card ?? null;
   const [timeLeft, setTimeLeft] = React.useState(TURN_TIME);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,10 +62,27 @@ export default function SkulkingBoardCenter({
     <BoardCenterBadge>
       <RoundBadge>라운드 {round} / 10</RoundBadge>
 
-      {phase && (
-        <PhaseBadge $phase={phase}>
-          {phase === "bid" ? "비드 단계" : "트릭 플레이"}
-        </PhaseBadge>
+      {phase === "bid" && (
+        <PhaseBadge $phase={phase}>비드 단계</PhaseBadge>
+      )}
+
+      {phase === "play" && leadCard && (
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "5px" }}>
+          <TimerLabel style={{ color: "rgba(255,255,255,0.6)" }}>리드</TimerLabel>
+          <div style={{
+            width: "22px",
+            height: "30px",
+            borderRadius: "3px",
+            background: SKULKING_SUIT_COLORS[leadCard.type] ?? "#2c3e50",
+            border: "1px solid rgba(255,255,255,0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.85rem",
+          }}>
+            {SKULKING_SUIT_LABELS[leadCard.type] ?? "?"}
+          </div>
+        </div>
       )}
 
       {roundEndCountdown !== null && (

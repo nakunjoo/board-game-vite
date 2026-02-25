@@ -6,6 +6,18 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-26 | `styles/game/index.ts`: 모바일 손패(MyHandArea) 가로 스크롤 — `max-width: 67vw`, `overflow-x: auto`, `flex-wrap: nowrap`, 반투명 배경 + 스크롤바 스타일 |
+| 2026-02-26 | `styles/game/index.ts`: HandCard PC `margin-left: 0` (카드 간격 제거), 모바일 `margin-left: 4px` + `flex-shrink: 0` |
+| 2026-02-26 | `styles/pages/Room.ts`: OtherPlayerCard 겹침 표시 — 가로 `margin-left: -12px`, 세로 `margin-top: -12px`, 모바일 `-9px` |
+| 2026-02-26 | `styles/game/skulking/boardCenter.ts`: BoardCenterBadge `top: 40%`로 위로 이동 |
+| 2026-02-26 | `SkulkingBoardCenter.tsx`: "트릭 플레이" PhaseBadge 제거 → 리드 카드(첫 번째 숫자 카드) 표시 — 같은 줄 "리드" 텍스트 + 22×30px 수트 색상 박스 |
+| 2026-02-26 | `skulking/index.tsx`: 라운드 마지막 트릭 후 **3초 딜레이** → currentTrick/trickWinnerId 초기화 + 5초 카운트다운 시작 (결과 화면 카드 유지) |
+| 2026-02-26 | `SkulkingGameBoard.tsx`: 내 차례 외에도 카드 선택/해제 가능, 카드 제출은 반드시 "카드 내기" 버튼으로만 가능 (재클릭 제출 제거) |
+| 2026-02-26 | `styles/game/skulking/card.ts`: SkCard 선택 강조 강화 — `border: 3px solid #fff` + `box-shadow: 0 0 0 2px #f1c40f, 0 0 12px rgba(241,196,15,0.8)`, 모바일 `transform: none` (카드 잘림 방지) |
+| 2026-02-26 | `styles/game/skulking/bidModal.ts`: BidButton `box-sizing: border-box` 추가, BidButtons max-width 계산식 수정 — PC `perRow*40+(perRow-1)*5`, 모바일 `perRow*34+(perRow-1)*5` (6라운드+ 3줄 버그 수정) |
+| 2026-02-26 | `SkulkingStatsModal.tsx`: `roundHistory` prop 추가 — 과거 라운드 셀에 `(bid)/trick` + 점수 모두 표시 |
+| 2026-02-26 | `skulking/index.tsx`: `roundHistory` 상태 추가 — `ls?.roundBidTrickHistory ?? []`로 초기화, `skulkingRoundResult` 수신 시 갱신 (새로고침 후 통계 유지) |
+| 2026-02-26 | `types.ts` (Skulking): `RoundResult`에 `roundBidTrickHistory` 필드 추가 |
 | 2026-02-25 | `SkulkingBidModal.tsx`: 20초 타이머 바 UI 추가 (5초 이하 빨간색), `submitted` prop으로 제출 후 대기 화면 전환, 타이머 만료 시 자동 0 제출 |
 | 2026-02-25 | `SkulkingGameBoard.tsx`: 비드 모달 표시 조건 `phase === "bid"`로 변경 (동시 선언 방식), 손패 숨김 조건 제거 (항상 표시) |
 | 2026-02-25 | `skulking/index.tsx`: `skulkingTurnUpdate`에서 `isNewTrick: true`일 때만 `currentTrick` 초기화 |
@@ -241,12 +253,14 @@ useEffect(() => {
 
 **클라이언트 → 서버:** `startGame`, `skulkingDrawFirstCard`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`
 
-**서버 → 클라이언트:** `skulkingFirstDrawStarted`, `skulkingFirstDrawResult`, `skulkingFirstDrawProgress`, `skulkingFirstDrawFinished`, `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `myHandUpdate`(개인), `skulkingTurnUpdate`(isNewTrick), `skulkingTrickResult`, `skulkingRoundResult`, `skulkingGameOver`
+**서버 → 클라이언트:** `skulkingFirstDrawStarted`, `skulkingFirstDrawResult`, `skulkingFirstDrawProgress`, `skulkingFirstDrawFinished`, `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `myHandUpdate`(개인), `skulkingTurnUpdate`(isNewTrick), `skulkingTrickResult`, `skulkingRoundResult`(roundBidTrickHistory 포함), `skulkingGameOver`
 
 ## Skulking 게임 UI 구조 (SkulkingGameBoard)
 
 - 기존 `GameBoard`, `PlayerCircle`, `PlayerSeat`, `PlayerAvatar` 등 Gang/Spice와 동일한 스타일 컴포넌트 사용
-- **게임판 정중앙** (BoardCenterBadge): 라운드 뱃지, 페이즈 뱃지, 타이머(20초 카운트다운 바) 표시
+- **게임판 정중앙** (BoardCenterBadge, `top: 40%`): 라운드 뱃지, 리드 카드("리드" + 수트 색상 박스), 타이머(20초 카운트다운 바) 표시
+  - "트릭 플레이" 페이즈 뱃지 제거됨
+  - 리드 카드: 첫 번째 숫자 카드 기준 (`currentTrick.find(e => !isSpecialCard(e.card.type))`)
 - **플레이어 원형 배치**: GangGameBoard와 동일한 seatIndex 계산 방식
   - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
   - `getSeatPosition(totalPlayers, seatIndex)` → `{top?, bottom?, left?, right?}`
@@ -259,7 +273,9 @@ useEffect(() => {
   - 승자 카드: 👑 아이콘 + 금테두리 + glow
   - 리드 카드(첫 번째): 흰 테두리 + "1" 뱃지
 - **손패** (MyHandArea + SkCard): 배경색 = 수트 색상
-  - 내 플레이 차례: 카드 클릭 → 선택 강조 → "카드 내기" 확정 버튼
+  - 카드 클릭 → 선택/해제 (내 차례 아닐 때도 선택 가능)
+  - 제출은 반드시 "카드 내기" 확정 버튼으로만 가능 (재클릭 제출 없음)
+  - 선택된 카드: 두꺼운 흰 테두리 + 노란 글로우로 강조, 모바일 transform 없음
   - Tigress 클릭 시 Escape/Pirate 선언 모달 표시
   - **Follow suit 제한**: 리드 수트(`leadEntry = currentTrick.find(e => !isSpecialCard(e.card.type))`) 손패에 있으면 리드 수트/특수 카드만 활성화, 나머지는 `opacity: 0.3` + `cursor: not-allowed`
 - **비드 입력** (`SkulkingBidModal`): 풀스크린 오버레이, 20초 타이머 바(5초 이하 빨간색) + 내 손패 미리보기 + 0~round 버튼 + 확정 버튼
@@ -272,6 +288,7 @@ useEffect(() => {
 - **선뽑기 오버레이**: 카드 뒷면 클릭 → 숫자 공개 → 전원 완료 시 결과 표시 + 2초 후 게임 시작
 - **좌하단 통계 버튼** (DeckDisplay): 클릭 → StatsModal
   - 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수, 합계 행
+  - 과거 라운드도 (bid)/trick + 점수 모두 표시 (`roundHistory` prop, 새로고침 후에도 유지)
 - **결과 모달**: `SkulkingResultModal` (라운드/최종 모두 처리)
 
 ## Skulking 리드 수트 결정 규칙

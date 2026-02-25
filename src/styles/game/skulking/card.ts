@@ -12,8 +12,8 @@ export const SkCard = styled.div<{
   width: ${({ $small }) => ($small ? "46px" : "56px")};
   height: ${({ $small }) => ($small ? "64px" : "80px")};
   border-radius: 5px;
-  border: 2px solid
-    ${({ $selected }) => ($selected ? "#f1c40f" : "rgba(255,255,255,0.25)")};
+  border: ${({ $selected }) => ($selected ? "3px solid #fff" : "2px solid rgba(255,255,255,0.25)")};
+  box-shadow: ${({ $selected }) => ($selected ? "0 0 0 2px #f1c40f, 0 0 12px rgba(241,196,15,0.8)" : "none")};
   background: ${({ $type }) => SKULKING_SUIT_COLORS[$type] ?? "#2c3e50"};
   display: flex;
   flex-direction: column;
@@ -25,6 +25,7 @@ export const SkCard = styled.div<{
   transition:
     transform 0.15s,
     border-color 0.15s,
+    box-shadow 0.15s,
     opacity 0.15s;
   opacity: ${({ $disabled }) => ($disabled ? 0.3 : 1)};
 
@@ -38,6 +39,11 @@ export const SkCard = styled.div<{
   @media (max-width: 768px) {
     width: ${({ $small }) => ($small ? "36px" : "46px")};
     height: ${({ $small }) => ($small ? "50px" : "64px")};
+    transform: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 

@@ -31,17 +31,33 @@ export const BidTitle = styled.div`
   text-align: center;
 `;
 
-export const BidButtons = styled.div`
+export const BidButtons = styled.div<{ $round?: number }>`
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
+  ${({ $round }) => {
+    if ($round && $round > 5) {
+      const total = $round + 1;
+      const perRow = Math.ceil(total / 2);
+      const maxWidthPc = perRow * 40 + (perRow - 1) * 5;   // PC: 36px + border 4px = 40px
+      const maxWidthMobile = perRow * 34 + (perRow - 1) * 5; // 모바일: 30px + border 4px = 34px
+      return `
+        max-width: ${maxWidthPc}px;
+        @media (max-width: 768px) {
+          max-width: ${maxWidthMobile}px;
+        }
+      `;
+    }
+    return "";
+  }}
 `;
 
 export const BidButton = styled.button<{ $selected?: boolean }>`
   width: 36px;
   height: 36px;
+  box-sizing: border-box;
   border-radius: 50%;
   border: 2px solid ${({ $selected }) => ($selected ? "#f39c12" : "#2c3e50")};
   background: ${({ $selected }) => ($selected ? "#f39c12" : "#1a1a2e")};

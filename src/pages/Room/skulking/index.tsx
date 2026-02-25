@@ -47,6 +47,7 @@ export default function SkulkingRoom() {
     roundScores?: Record<string, number[]>;
     skulkingCurrentPlayerId?: string | null;
     currentTrick?: TrickEntry[];
+    roundBidTrickHistory?: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
   } | null;
 
   const [gameStarted, setGameStarted] = useState(ls?.gameStarted ?? false);
@@ -67,6 +68,7 @@ export default function SkulkingRoom() {
   const [showGameOver, setShowGameOver] = useState(false);
   const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(null);
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
+  const [roundHistory, setRoundHistory] = useState<Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>>(ls?.roundBidTrickHistory ?? []);
 
   // 선뽑기 상태
   const [isFirstDraw, setIsFirstDraw] = useState(false);
@@ -222,28 +224,42 @@ export default function SkulkingRoom() {
           const d = data as { winnerId: string; tricks: Record<string, number> };
           setTricks(d.tricks);
           setTrickWinnerId(d.winnerId);
+          // skulkingTurnUpdate(isNewTrick:true)가 오지 않는 경우(라운드 마지막 트릭 등)를 대비해
+          // 2초 후에도 초기화되지 않았으면 강제 초기화
+          setTimeout(() => {
+            setCurrentTrick((prev) => (prev.length > 0 ? [] : prev));
+            setTrickWinnerId(null);
+          }, 2000);
           break;
         }
         case "skulkingRoundResult": {
           const d = data as RoundResult;
           setScores(d.totalScores);
           setPhase(null);
+          setRoundHistory(d.roundBidTrickHistory);
           if (!d.isLastRound) {
-            setRoundEndCountdown(5);
-            const tick = setInterval(() => {
-              setRoundEndCountdown((c) => {
-                if (c === null || c <= 1) {
-                  clearInterval(tick);
-                  return null;
-                }
-                return c - 1;
-              });
-            }, 1000);
+            setTimeout(() => {
+              setCurrentTrick([]);
+              setTrickWinnerId(null);
+              setRoundEndCountdown(5);
+              const tick = setInterval(() => {
+                setRoundEndCountdown((c) => {
+                  if (c === null || c <= 1) {
+                    clearInterval(tick);
+                    return null;
+                  }
+                  return c - 1;
+                });
+              }, 1000);
+            }, 3000);
             if (isHost) {
               setTimeout(() => {
                 send("skulkingNextRound", { roomName });
-              }, 5000);
+              }, 8000);
             }
+          } else {
+            setCurrentTrick([]);
+            setTrickWinnerId(null);
           }
           break;
         }
@@ -333,6 +349,7 @@ export default function SkulkingRoom() {
         firstDrawWinnerId={firstDrawWinnerId}
         firstDrawWinnerNickname={firstDrawWinnerNickname}
         firstDrawCount={firstDrawCount}
+        roundHistory={roundHistory}
         onStartGame={handleStartGame}
         onBid={handleBid}
         onPlayCard={handlePlayCard}

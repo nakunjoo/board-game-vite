@@ -26,6 +26,7 @@ export interface RoundResult {
   roundScores: Record<string, number>;
   totalScores: Record<string, number>;
   roundScoreHistory: Record<string, number[]>;
+  roundBidTrickHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
   isLastRound: boolean;
 }
 

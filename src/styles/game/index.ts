@@ -63,15 +63,32 @@ export const PlayerCircle = styled.div`
 // 내 손패 영역
 export const MyHandArea = styled.div`
   position: absolute;
-  bottom: 40px;
+  bottom: 55px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: -20px;
   z-index: 10;
 
   @media (max-width: 768px) {
-    bottom: 35px;
+    bottom: 50px;
+    max-width: 67vw;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 8px 10px;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 2px;
+    }
   }
 `;
 
@@ -83,7 +100,7 @@ export const HandCard = styled.div`
   overflow: visible;
   cursor: pointer;
   transition: transform 0.2s;
-  margin-left: 4px;
+  margin-left: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -95,12 +112,22 @@ export const HandCard = styled.div`
 
   &:hover {
     transform: translateY(-10px);
+    z-index: 1;
   }
 
   @media (max-width: 768px) {
     width: 45px;
     height: 63px;
-    margin-left: 3px;
+    margin-left: 4px;
+    flex-shrink: 0;
+
+    &:first-child {
+      margin-left: 0;
+    }
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 

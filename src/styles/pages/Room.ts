@@ -302,7 +302,6 @@ export const OtherPlayerHand = styled.div<{
         transform: translateX(-50%);
         margin-top: 8px;
         flex-direction: row;
-        gap: 6px;
       `;
     }
     // 왼쪽 (left: 0) - 카드를 오른쪽으로 (세로 배치)
@@ -347,13 +346,13 @@ export const OtherPlayerCard = styled.div<{ $vertical?: boolean }>`
     $vertical
       ? css`
           transform: rotate(90deg);
-          margin-top: -4px;
+          margin-top: -12px;
           &:first-child {
             margin-top: 0;
           }
         `
       : css`
-          margin-left: -4px;
+          margin-left: -12px;
           &:first-child {
             margin-left: 0;
           }
@@ -371,10 +370,10 @@ export const OtherPlayerCard = styled.div<{ $vertical?: boolean }>`
     ${({ $vertical }) =>
       $vertical
         ? css`
-            margin-top: -3px;
+            margin-top: -9px;
           `
         : css`
-            margin-left: -3px;
+            margin-left: -9px;
           `}
   }
 `;

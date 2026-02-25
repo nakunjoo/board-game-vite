@@ -3,7 +3,7 @@ import { getSeatPosition } from "../../pages/Room";
 
 export const DeckDisplay = styled.div`
   position: absolute;
-  bottom: 12px;
+  bottom: 4px;
   left: 12px;
   display: flex;
   flex-direction: column;
@@ -61,7 +61,7 @@ export const TrickCardSlot = styled.div<{
   ${({ $totalPlayers, $seatIndex }) => {
     const pos = getSeatPosition($totalPlayers, $seatIndex);
     if (pos.bottom === "0" && pos.left === "50%") {
-      return `bottom: calc(100% + 140px); left: 50%; transform: translateX(-50%);`;
+      return `bottom: calc(100% + 130px); left: 50%; transform: translateX(-50%);`;
     }
     if (pos.top === "0" && pos.left === "50%") {
       return `top: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;
@@ -76,21 +76,37 @@ export const TrickCardSlot = styled.div<{
   }}
 `;
 
-export const OrderBadge = styled.div`
+export const OrderBadge = styled.div<{ $isActive?: boolean }>`
   position: absolute;
-  top: -8px;
-  left: -8px;
-  width: 16px;
-  height: 16px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  top: -10px;
+  left: -10px;
+  width: 20px;
+  height: 20px;
+  background: ${({ $isActive }) => $isActive ? "#f39c12" : "rgba(0, 0, 0, 0.75)"};
+  border: 1px solid ${({ $isActive }) => $isActive ? "#f39c12" : "rgba(255, 255, 255, 0.35)"};
   border-radius: 50%;
-  font-size: 0.6rem;
-  color: #bdc3c7;
+  font-size: 0.7rem;
+  color: ${({ $isActive }) => $isActive ? "#1a1a2e" : "#bdc3c7"};
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+`;
+
+export const LeadBadge = styled.div`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  background: rgba(52, 152, 219, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const PlayerInfoBadge = styled.div`
@@ -102,7 +118,7 @@ export const PlayerInfoBadge = styled.div`
 
 export const ConfirmCardButton = styled.button`
   position: absolute;
-  bottom: 140px;
+  bottom: 170px;
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 24px;
@@ -116,7 +132,7 @@ export const ConfirmCardButton = styled.button`
   white-space: nowrap;
 
   @media (max-width: 768px) {
-    bottom: 110px;
+    bottom: 140px;
     font-size: 0.8rem;
     padding: 6px 18px;
   }

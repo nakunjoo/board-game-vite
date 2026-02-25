@@ -21,6 +21,7 @@ import {
   DeckLabel,
   TrickCardSlot,
   OrderBadge,
+  LeadBadge,
   PlayerInfoBadge,
   ConfirmCardButton,
 } from "../../styles/game/skulking/board";
@@ -72,6 +73,7 @@ interface Props {
   firstDrawCount: number;
   onDrawFirstCard: () => void;
   onKickPlayer?: (targetPlayerId: string) => void;
+  roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
 }
 
 export default function SkulkingGameBoard({
@@ -105,6 +107,7 @@ export default function SkulkingGameBoard({
   onBid,
   onPlayCard,
   onKickPlayer,
+  roundHistory,
 }: Props) {
   const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
   const [tigressPending, setTigressPending] = React.useState<number | null>(null);
@@ -112,6 +115,7 @@ export default function SkulkingGameBoard({
 
   const isMyBidTurn = phase === "bid" && !(myPlayerId in bids);
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
+  const trickLeadPlayerId = currentTrick.length > 0 ? currentTrick[0].playerId : null;
 
   const me = players.find((p) => p.playerId === myPlayerId);
 
@@ -133,19 +137,17 @@ export default function SkulkingGameBoard({
   };
 
   const handleCardClick = (index: number) => {
-    if (!isMyPlayTurn) return;
     const card = myHand[index];
+    if (!isMyPlayTurn) {
+      setSelectedCardIndex((prev) => (prev === index ? null : index));
+      return;
+    }
     if (isCardDisabled(card)) return;
     if (card.type === "sk-tigress") {
       setTigressPending(index);
       return;
     }
-    if (selectedCardIndex === index) {
-      onPlayCard(index);
-      setSelectedCardIndex(null);
-    } else {
-      setSelectedCardIndex(index);
-    }
+    setSelectedCardIndex((prev) => (prev === index ? null : index));
   };
 
   const handleConfirmCard = () => {
@@ -173,6 +175,7 @@ export default function SkulkingGameBoard({
           currentPlayerId={currentPlayerId}
           isMyPlayTurn={isMyPlayTurn}
           players={players}
+          currentTrick={currentTrick}
         />
       )}
 
@@ -254,8 +257,8 @@ export default function SkulkingGameBoard({
                 {gameStarted && (
                   <PlayerInfoBadge>
                     {isVertical
-                      ? `(${bidVal !== undefined ? bidVal : "?"}) / ${round}`
-                      : `${phase === "play" ? `트릭 ${trickVal} | ` : ""}${scoreVal}점`}
+                      ? `(${bidVal !== undefined ? bidVal : "?"}) / ${trickVal}`
+                      : `${scoreVal}점`}
                   </PlayerInfoBadge>
                 )}
 
@@ -264,17 +267,20 @@ export default function SkulkingGameBoard({
                     $isMe={player.isMe}
                     $colorIndex={seatIndex}
                     $isVertical={isVertical}
-                    style={{
-                      outline:
-                        player.playerId === currentPlayerId ||
-                        player.playerId === currentBidPlayerId
-                          ? "2px solid #f39c12"
-                          : undefined,
-                    }}
                   >
                     {player.nickname}
                   </PlayerAvatar>
-                  <OrderBadge>{player.order + 1}</OrderBadge>
+                  <OrderBadge
+                    $isActive={
+                      player.playerId === currentPlayerId ||
+                      player.playerId === currentBidPlayerId
+                    }
+                  >
+                    {player.order + 1}
+                  </OrderBadge>
+                  {trickLeadPlayerId === player.playerId && (
+                    <LeadBadge>⚓</LeadBadge>
+                  )}
                   {isHost && !gameStarted && !player.isMe && onKickPlayer && (
                     <KickButton
                       onClick={() => onKickPlayer(player.playerId)}
@@ -288,8 +294,8 @@ export default function SkulkingGameBoard({
                 {gameStarted && (
                   <PlayerInfoBadge>
                     {isVertical
-                      ? `${phase === "play" ? `트릭 ${trickVal} | ` : ""}${scoreVal}점`
-                      : `(${bidVal !== undefined ? bidVal : "?"}) / ${round}`}
+                      ? `${scoreVal}점`
+                      : `(${bidVal !== undefined ? bidVal : "?"}) / ${trickVal}`}
                   </PlayerInfoBadge>
                 )}
               </div>
@@ -405,6 +411,7 @@ export default function SkulkingGameBoard({
           bids={bids}
           tricks={tricks}
           scores={scores}
+          roundHistory={roundHistory}
           onClose={() => setShowStats(false)}
         />
       )}

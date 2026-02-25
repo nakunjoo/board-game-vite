@@ -15,6 +15,7 @@ interface Props {
   bids: Record<string, number>;
   tricks: Record<string, number>;
   scores: Record<string, number>;
+  roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
   onClose: () => void;
 }
 
@@ -25,6 +26,7 @@ export default function SkulkingStatsModal({
   bids,
   tricks,
   scores,
+  roundHistory,
   onClose,
 }: Props) {
   const sortedPlayers = [...players].sort((a, b) => a.order - b.order);
@@ -108,9 +110,21 @@ export default function SkulkingStatsModal({
                       );
                     } else {
                       const rs = p.roundScores?.[i];
+                      const hist = roundHistory.find((h) => h.round === r);
+                      const hBid = hist?.bids[p.playerId];
+                      const hTrick = hist?.tricks[p.playerId] ?? 0;
                       return (
                         <td key={p.playerId} style={{ color: "#7f8c8d" }}>
-                          {rs !== undefined ? rs : "-"}
+                          {hist ? (
+                            <>
+                              <div>({hBid !== undefined ? hBid : "?"}) / {hTrick}</div>
+                              <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px" }}>
+                                {rs !== undefined ? rs : "-"}
+                              </div>
+                            </>
+                          ) : (
+                            rs !== undefined ? rs : "-"
+                          )}
                         </td>
                       );
                     }

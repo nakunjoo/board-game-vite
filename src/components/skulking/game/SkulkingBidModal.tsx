@@ -149,6 +149,14 @@ export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidC
                   gap: "6px",
                   flexWrap: "wrap",
                   justifyContent: "center",
+                  ...(round > 5
+                    ? {
+                        maxWidth: (() => {
+                          const perRow = Math.ceil(myHand.length / 2);
+                          return `${perRow * 46 + (perRow - 1) * 6}px`;
+                        })(),
+                      }
+                    : {}),
                 }}
               >
                 {myHand.map((card) => (
@@ -169,7 +177,7 @@ export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidC
               </div>
             )}
 
-            <BidButtons>
+            <BidButtons $round={round}>
               {Array.from({ length: round + 1 }, (_, i) => i).map((n) => (
                 <BidButton
                   key={n}
