@@ -110,8 +110,9 @@ export default function SkulkingGameBoard({
   const [tigressPending, setTigressPending] = React.useState<number | null>(null);
   const [showStats, setShowStats] = React.useState(false);
 
-  const isMyBidTurn = phase === "bid" && currentBidPlayerId === myPlayerId;
+  const isMyBidTurn = phase === "bid" && !(myPlayerId in bids);
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
+
   const me = players.find((p) => p.playerId === myPlayerId);
 
   const myOrder = me?.order ?? 0;
@@ -410,8 +411,7 @@ export default function SkulkingGameBoard({
 
       {/* 내 손패 */}
       {gameStarted &&
-        myHand.length > 0 &&
-        !currentTrick.some((e) => e.playerId === myPlayerId) && (
+        myHand.length > 0 && (
           <MyHandArea>
             {myHand.map((card, i) => {
               const disabled = isCardDisabled(card);
@@ -450,16 +450,22 @@ export default function SkulkingGameBoard({
       {/* 카드 확정 버튼 */}
       {isMyPlayTurn &&
         selectedCardIndex !== null &&
-        myHand[selectedCardIndex]?.type !== "sk-tigress" &&
-        !currentTrick.some((e) => e.playerId === myPlayerId) && (
+        myHand[selectedCardIndex]?.type !== "sk-tigress" && (
           <ConfirmCardButton onClick={handleConfirmCard}>
             카드 내기
           </ConfirmCardButton>
         )}
 
       {/* 비드 입력 모달 */}
-      {isMyBidTurn && me?.bid === undefined && (
-        <SkulkingBidModal round={round} myHand={myHand} onBid={onBid} />
+      {phase === "bid" && (
+        <SkulkingBidModal
+          round={round}
+          myHand={myHand}
+          onBid={onBid}
+          submitted={!isMyBidTurn}
+          bidCount={Object.keys(bids).length}
+          totalPlayers={memberCount}
+        />
       )}
 
       {/* Tigress 선언 모달 */}

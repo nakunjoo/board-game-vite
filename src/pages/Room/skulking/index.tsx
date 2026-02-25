@@ -1,34 +1,11 @@
 import { useEffect, useState } from "react";
-import {
-  RoomPage,
-  RoomHeader,
-  RoomInfo,
-  MemberCount,
-  LeaveButton,
-  RoomContent,
-} from "../../../styles/pages/Room";
-import { GameArea } from "../../../styles/game";
 import type { Card, PlayerHand } from "../../../types/game";
-import {
-  ChatToggleButton,
-  ChatToggleButtonWrapper,
-  ChatNotificationBadge,
-  ChatOverlay,
-  ChatArea,
-  ChatHeaderMobile,
-  ChatCloseButton,
-  ChatMessages,
-  NoMessages,
-  ChatMessage,
-  ChatInputArea,
-  ChatInput,
-  ChatSendButton,
-} from "../../../styles/chat";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
 import { SkulkingGameOverModal } from "../../../components/skulking/game/SkulkingResultModal";
 import SkulkingHelpModal from "../../../components/skulking/SkulkingHelpModal";
 import type { TrickEntry, RoundResult, GameOverResult } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
+import RoomLayout from "../common/RoomLayout";
 
 export default function SkulkingRoom() {
   const {
@@ -200,17 +177,16 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingBidPhase": {
-          const d = data as { round: number; currentBidPlayerId: string; bids: Record<string, number> };
+          const d = data as { round: number; bids: Record<string, number> };
           setRound(d.round);
           setPhase("bid");
-          setCurrentBidPlayerId(d.currentBidPlayerId);
+          setCurrentBidPlayerId(null);
           setBids(d.bids);
           break;
         }
         case "skulkingBidUpdate": {
-          const d = data as { bids: Record<string, number>; nextBidPlayerId: string | null };
+          const d = data as { bids: Record<string, number> };
           setBids(d.bids);
-          setCurrentBidPlayerId(d.nextBidPlayerId);
           break;
         }
         case "skulkingPlayPhase": {
@@ -234,10 +210,12 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingTurnUpdate": {
-          const d = data as { currentPlayerId: string };
-          setCurrentTrick([]);
+          const d = data as { currentPlayerId: string; isNewTrick?: boolean };
+          if (d.isNewTrick) {
+            setCurrentTrick([]);
+            setTrickWinnerId(null);
+          }
           setCurrentPlayerId(d.currentPlayerId);
-          setTrickWinnerId(null);
           break;
         }
         case "skulkingTrickResult": {
@@ -303,159 +281,72 @@ export default function SkulkingRoom() {
   };
 
   return (
-    <RoomPage>
-      <RoomHeader>
-        <h1>
-          {roomName}{" "}
-          <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: 400 }}>
-            {gameConfig.displayName}
-          </span>
-        </h1>
-        <RoomInfo>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)",
-              border: "2px solid rgba(255, 255, 255, 0.3)",
-              borderRadius: "50%",
-              color: "#fff",
-              fontSize: "1rem",
-              fontWeight: "bold",
-              cursor: "pointer",
-              width: "22px",
-              height: "22px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: "12px",
-              transition: "all 0.3s",
-            }}
-            onClick={() => setShowHelpModal(true)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.1)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(231, 76, 60, 0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            title="게임 설명 보기"
-          >
-            ?
-          </div>
-          <MemberCount>{memberCount}명 참여중</MemberCount>
-          <LeaveButton onClick={leaveRoom} aria-label="나가기">
-            <span className="leave-text">나가기</span>
-            <svg className="leave-icon" width="20" height="20" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </LeaveButton>
-        </RoomInfo>
-      </RoomHeader>
+    <RoomLayout
+      roomName={roomName ?? ""}
+      displayName={gameConfig.displayName}
+      memberCount={memberCount}
+      helpButtonStyle={{
+        background: "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)",
+        boxShadow: "0 4px 12px rgba(231, 76, 60, 0.4)",
+      }}
+      onHelp={() => setShowHelpModal(true)}
+      onLeave={leaveRoom}
+      messages={messages}
+      inputMessage={inputMessage}
+      isChatOpen={isChatOpen}
+      hasUnreadMessages={hasUnreadMessages}
+      messagesEndRef={messagesEndRef}
+      onInputChange={setInputMessage}
+      onSendMessage={sendMessage}
+      onToggleChat={() => {
+        setIsChatOpen(!isChatOpen);
+        if (!isChatOpen) setHasUnreadMessages(false);
+      }}
+      onCloseChat={() => setIsChatOpen(false)}
+      modals={
+        <SkulkingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+      }
+    >
+      <SkulkingGameBoard
+        round={round}
+        phase={phase}
+        players={players}
+        myHand={myHand}
+        playerHands={playerHands}
+        currentTrick={currentTrick}
+        currentBidPlayerId={currentBidPlayerId}
+        currentPlayerId={currentPlayerId}
+        myPlayerId={playerId}
+        isHost={isHost}
+        memberCount={memberCount}
+        gameStarted={gameStarted}
+        gameOver={gameOver}
+        bids={bids}
+        tricks={tricks}
+        scores={scores}
+        roundEndCountdown={roundEndCountdown}
+        trickWinnerId={trickWinnerId}
+        isFirstDraw={isFirstDraw}
+        myDrawnNumber={myDrawnNumber}
+        firstDrawResults={firstDrawResults}
+        firstDrawFinished={firstDrawFinished}
+        firstDrawWinnerId={firstDrawWinnerId}
+        firstDrawWinnerNickname={firstDrawWinnerNickname}
+        firstDrawCount={firstDrawCount}
+        onStartGame={handleStartGame}
+        onBid={handleBid}
+        onPlayCard={handlePlayCard}
+        onDrawFirstCard={handleDrawFirstCard}
+        onKickPlayer={handleKickPlayer}
+      />
 
-      <RoomContent>
-        <GameArea>
-          <SkulkingGameBoard
-            round={round}
-            phase={phase}
-            players={players}
-            myHand={myHand}
-            playerHands={playerHands}
-            currentTrick={currentTrick}
-            currentBidPlayerId={currentBidPlayerId}
-            currentPlayerId={currentPlayerId}
-            myPlayerId={playerId}
-            isHost={isHost}
-            memberCount={memberCount}
-            gameStarted={gameStarted}
-            gameOver={gameOver}
-            bids={bids}
-            tricks={tricks}
-            scores={scores}
-            roundEndCountdown={roundEndCountdown}
-            trickWinnerId={trickWinnerId}
-            isFirstDraw={isFirstDraw}
-            myDrawnNumber={myDrawnNumber}
-            firstDrawResults={firstDrawResults}
-            firstDrawFinished={firstDrawFinished}
-            firstDrawWinnerId={firstDrawWinnerId}
-            firstDrawWinnerNickname={firstDrawWinnerNickname}
-            firstDrawCount={firstDrawCount}
-            onStartGame={handleStartGame}
-            onBid={handleBid}
-            onPlayCard={handlePlayCard}
-            onDrawFirstCard={handleDrawFirstCard}
-            onKickPlayer={handleKickPlayer}
-          />
-
-          <ChatToggleButtonWrapper>
-            <ChatToggleButton
-              onClick={() => {
-                setIsChatOpen(!isChatOpen);
-                if (!isChatOpen) setHasUnreadMessages(false);
-              }}
-              aria-label="채팅"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </ChatToggleButton>
-            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
-          </ChatToggleButtonWrapper>
-
-          {showGameOver && gameOverResult && (
-            <SkulkingGameOverModal
-              result={gameOverResult}
-              players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
-              isHost={isHost}
-            />
-          )}
-        </GameArea>
-
-        <ChatOverlay $isOpen={isChatOpen} onClick={() => setIsChatOpen(false)} />
-
-        <ChatArea $isOpen={isChatOpen}>
-          <ChatHeaderMobile>
-            <span>채팅</span>
-            <ChatCloseButton onClick={() => setIsChatOpen(false)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </ChatCloseButton>
-          </ChatHeaderMobile>
-          <ChatMessages>
-            {messages.length === 0 ? (
-              <NoMessages>메시지가 없습니다.</NoMessages>
-            ) : (
-              messages.map((msg, index) => (
-                <ChatMessage key={index} $isSystem={msg.isSystem}>
-                  {msg.message}
-                </ChatMessage>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </ChatMessages>
-          <ChatInputArea>
-            <ChatInput
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="메시지 입력..."
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
-            <ChatSendButton onClick={sendMessage} disabled={!inputMessage.trim()}>
-              전송
-            </ChatSendButton>
-          </ChatInputArea>
-        </ChatArea>
-      </RoomContent>
-
-      <SkulkingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
-    </RoomPage>
+      {showGameOver && gameOverResult && (
+        <SkulkingGameOverModal
+          result={gameOverResult}
+          players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
+          isHost={isHost}
+        />
+      )}
+    </RoomLayout>
   );
 }

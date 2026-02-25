@@ -61,7 +61,7 @@ export const TrickCardSlot = styled.div<{
   ${({ $totalPlayers, $seatIndex }) => {
     const pos = getSeatPosition($totalPlayers, $seatIndex);
     if (pos.bottom === "0" && pos.left === "50%") {
-      return `bottom: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;
+      return `bottom: calc(100% + 140px); left: 50%; transform: translateX(-50%);`;
     }
     if (pos.top === "0" && pos.left === "50%") {
       return `top: calc(100% + 36px); left: 50%; transform: translateX(-50%);`;

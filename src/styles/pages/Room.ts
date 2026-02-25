@@ -118,7 +118,7 @@ export const getSeatPosition = (
 ): SeatPosition => {
   const positions =
     SEAT_POSITIONS[Math.min(totalPlayers, 6)] || SEAT_POSITIONS[6];
-  return positions[seatIndex] ?? { bottom: "0", left: "50%" };
+  return positions[seatIndex] ?? { bottom: "5px", left: "50%" };
 };
 
 export const PlayerSeat = styled.div<{

@@ -1,4 +1,4 @@
-import { SpiceSuitIcon } from "./SpiceGameBoard";
+import { SpiceSuitIcon } from "./game/SpiceCard";
 
 interface SpiceHelpModalProps {
   isOpen: boolean;

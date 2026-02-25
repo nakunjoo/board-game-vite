@@ -45,9 +45,12 @@ export const SkCardLabel = styled.div<{ $small?: boolean }>`
   font-size: ${({ $small }) => ($small ? "1rem" : "1.2rem")};
   color: rgba(255, 255, 255, 0.9);
   font-weight: bold;
+  /* text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; */
 `;
 
 export const SkCardValue = styled.div<{ $small?: boolean }>`
-  font-size: ${({ $small }) => ($small ? "0.65rem" : "0.75rem")};
+  font-size: ${({ $small }) => ($small ? "14px" : "14px")};
   color: rgba(255, 255, 255, 0.75);
+  font-weight: bold;
+  /* text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; */
 `;

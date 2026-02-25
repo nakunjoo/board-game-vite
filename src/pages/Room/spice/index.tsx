@@ -1,34 +1,11 @@
 import { useEffect, useState } from "react";
-import {
-  RoomPage,
-  RoomHeader,
-  RoomInfo,
-  MemberCount,
-  LeaveButton,
-  RoomContent,
-} from "../../../styles/pages/Room";
-import { GameArea } from "../../../styles/game";
 import type { Card, PlayerHand } from "../../../types/game";
-import {
-  ChatToggleButton,
-  ChatToggleButtonWrapper,
-  ChatNotificationBadge,
-  ChatOverlay,
-  ChatArea,
-  ChatHeaderMobile,
-  ChatCloseButton,
-  ChatMessages,
-  NoMessages,
-  ChatMessage,
-  ChatInputArea,
-  ChatInput,
-  ChatSendButton,
-} from "../../../styles/chat";
 import SpiceGameBoard from "../../../components/spice/SpiceGameBoard";
 import SpiceResultModal from "../../../components/spice/SpiceResultModal";
 import SpiceHelpModal from "../../../components/spice/SpiceHelpModal";
 import type { PlayerResult } from "../../../components/gang/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
+import RoomLayout from "../common/RoomLayout";
 
 export default function SpiceRoom() {
   const {
@@ -399,7 +376,6 @@ export default function SpiceRoom() {
             wonCardCounts?: Record<string, number>;
           };
           if (ceData.roomName === roomName) {
-            // 게임 상태는 즉시 업데이트
             setCurrentTurnPlayerId(ceData.currentTurnPlayerId);
             setCurrentSuit(ceData.currentSuit);
             setCurrentNumber(ceData.currentNumber);
@@ -440,12 +416,10 @@ export default function SpiceRoom() {
           };
           if (crData.roomName === roomName) {
             setChallengePhase(null);
-            // 패 수 변경은 즉시 반영
             if (crData.playerHands) setPlayerHands(crData.playerHands);
             if (crData.trophies) setTrophies(crData.trophies);
             if (crData.wonCardCounts) setWonCardCounts(crData.wonCardCounts);
             setDeck(crData.deck);
-            // 결과 카드 표시
             setChallengeResult({
               challengerNickname: crData.challengerNickname,
               targetNickname: crData.targetNickname,
@@ -504,7 +478,6 @@ export default function SpiceRoom() {
               nickname: r.nickname,
               hand: r.hand,
               chips: [],
-              // 점수 정보 확장 필드 (결과 모달에서 활용)
               trophyCount: r.trophyCount,
               wonCardCount: r.wonCardCount,
               score: r.score,
@@ -590,202 +563,93 @@ export default function SpiceRoom() {
   };
 
   return (
-    <RoomPage>
-      <RoomHeader>
-        <h1>
-          {roomName}{" "}
-          <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: 400 }}>
-            {gameConfig.displayName}
-          </span>
-        </h1>
-        <RoomInfo>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
-              border: "2px solid rgba(255, 255, 255, 0.3)",
-              borderRadius: "50%",
-              color: "#fff",
-              fontSize: "1rem",
-              fontWeight: "bold",
-              cursor: "pointer",
-              width: "22px",
-              height: "22px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: "12px",
-              transition: "all 0.3s",
-            }}
-            onClick={() => setShowHelpModal(true)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.1)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(243, 156, 18, 0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            title="게임 설명 보기"
-          >
-            ?
-          </div>
-          <MemberCount>{memberCount}명 참여중</MemberCount>
-          <LeaveButton onClick={leaveRoom} aria-label="나가기">
-            <span className="leave-text">나가기</span>
-            <svg
-              className="leave-icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </LeaveButton>
-        </RoomInfo>
-      </RoomHeader>
+    <RoomLayout
+      roomName={roomName ?? ""}
+      displayName={gameConfig.displayName}
+      memberCount={memberCount}
+      helpButtonStyle={{
+        background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
+        boxShadow: "0 4px 12px rgba(243, 156, 18, 0.4)",
+      }}
+      onHelp={() => setShowHelpModal(true)}
+      onLeave={leaveRoom}
+      messages={messages}
+      inputMessage={inputMessage}
+      isChatOpen={isChatOpen}
+      hasUnreadMessages={hasUnreadMessages}
+      messagesEndRef={messagesEndRef}
+      onInputChange={setInputMessage}
+      onSendMessage={sendMessage}
+      onToggleChat={() => {
+        setIsChatOpen(!isChatOpen);
+        if (!isChatOpen) setHasUnreadMessages(false);
+      }}
+      onCloseChat={() => setIsChatOpen(false)}
+      modals={
+        <SpiceHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+      }
+    >
+      <SpiceGameBoard
+        gameStarted={gameStarted}
+        isHost={isHost}
+        memberCount={memberCount}
+        players={players}
+        playerId={playerId}
+        playerHands={playerHands}
+        deck={deck}
+        openCards={openCards}
+        myHand={myHand}
+        notification={notification}
+        showNotification={showNotification}
+        gameOver={gameOver}
+        gameConfig={gameConfig}
+        onStartGame={handleStartGame}
+        onKickPlayer={handleKickPlayer}
+        isFirstDraw={isFirstDraw}
+        myDrawnNumber={myDrawnNumber}
+        firstDrawResults={firstDrawResults}
+        firstDrawFinished={firstDrawFinished}
+        firstPlayerId={firstPlayerId}
+        firstNickname={firstNickname}
+        drawnCount={drawnCount}
+        onDrawFirstCard={handleDrawFirstCard}
+        currentTurnPlayerId={currentTurnPlayerId}
+        currentSuit={currentSuit}
+        currentNumber={currentNumber}
+        tableStackSize={tableStackSize}
+        onPlayCard={handlePlayCard}
+        onPass={handlePass}
+        challengePhase={challengePhase}
+        challengeResult={challengeResult}
+        onChallenge={handleChallenge}
+        trophies={trophies}
+        wonCardCounts={wonCardCounts}
+        reconnectTurnTimeLeft={reconnectTurnTimeLeft}
+        reconnectChallengeTimeLeft={reconnectChallengeTimeLeft}
+        onReconnectTimeLeftConsumed={() => {
+          setReconnectTurnTimeLeft(null);
+          setReconnectChallengeTimeLeft(null);
+        }}
+      />
 
-      <RoomContent>
-        <GameArea>
-          <SpiceGameBoard
-            gameStarted={gameStarted}
-            isHost={isHost}
-            memberCount={memberCount}
-            players={players}
-            playerId={playerId}
-            playerHands={playerHands}
-            deck={deck}
-            openCards={openCards}
-            myHand={myHand}
-            notification={notification}
-            showNotification={showNotification}
-            gameOver={gameOver}
-            gameConfig={gameConfig}
-            onStartGame={handleStartGame}
-            onKickPlayer={handleKickPlayer}
-            isFirstDraw={isFirstDraw}
-            myDrawnNumber={myDrawnNumber}
-            firstDrawResults={firstDrawResults}
-            firstDrawFinished={firstDrawFinished}
-            firstPlayerId={firstPlayerId}
-            firstNickname={firstNickname}
-            drawnCount={drawnCount}
-            onDrawFirstCard={handleDrawFirstCard}
-            currentTurnPlayerId={currentTurnPlayerId}
-            currentSuit={currentSuit}
-            currentNumber={currentNumber}
-            tableStackSize={tableStackSize}
-            onPlayCard={handlePlayCard}
-            onPass={handlePass}
-            challengePhase={challengePhase}
-            challengeResult={challengeResult}
-            onChallenge={handleChallenge}
-            trophies={trophies}
-            wonCardCounts={wonCardCounts}
-            reconnectTurnTimeLeft={reconnectTurnTimeLeft}
-            reconnectChallengeTimeLeft={reconnectChallengeTimeLeft}
-            onReconnectTimeLeftConsumed={() => {
-              setReconnectTurnTimeLeft(null);
-              setReconnectChallengeTimeLeft(null);
-            }}
-          />
-          <ChatToggleButtonWrapper>
-            <ChatToggleButton
-              onClick={() => {
-                setIsChatOpen(!isChatOpen);
-                if (!isChatOpen) setHasUnreadMessages(false);
-              }}
-              aria-label="채팅"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </ChatToggleButton>
-            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
-          </ChatToggleButtonWrapper>
-
-          {gameFinished && (
-            <SpiceResultModal
-              playerResults={playerResults}
-              openCards={openCards}
-              showResults={showResults}
-              isNextRoundReady={isNextRoundReady}
-              nextRoundReadyPlayers={nextRoundReadyPlayers}
-              memberCount={memberCount}
-              gameOver={gameOver}
-              gameOverResult={gameOverResult}
-              isHost={isHost}
-              spiceGameOverMeta={spiceGameOverMeta}
-              onClose={() => setShowResults(false)}
-              onShowResults={() => setShowResults(true)}
-              onNextRound={handleNextRound}
-              onRestart={handleRestart}
-            />
-          )}
-        </GameArea>
-
-        <ChatOverlay $isOpen={isChatOpen} onClick={() => setIsChatOpen(false)} />
-
-        <ChatArea $isOpen={isChatOpen}>
-          <ChatHeaderMobile>
-            <span>채팅</span>
-            <ChatCloseButton onClick={() => setIsChatOpen(false)}>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </ChatCloseButton>
-          </ChatHeaderMobile>
-          <ChatMessages>
-            {messages.length === 0 ? (
-              <NoMessages>메시지가 없습니다.</NoMessages>
-            ) : (
-              messages.map((msg, index) => (
-                <ChatMessage key={index} $isSystem={msg.isSystem}>
-                  {msg.message}
-                </ChatMessage>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </ChatMessages>
-          <ChatInputArea>
-            <ChatInput
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="메시지 입력..."
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
-            <ChatSendButton onClick={sendMessage} disabled={!inputMessage.trim()}>
-              전송
-            </ChatSendButton>
-          </ChatInputArea>
-        </ChatArea>
-      </RoomContent>
-
-      <SpiceHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
-    </RoomPage>
+      {gameFinished && (
+        <SpiceResultModal
+          playerResults={playerResults}
+          openCards={openCards}
+          showResults={showResults}
+          isNextRoundReady={isNextRoundReady}
+          nextRoundReadyPlayers={nextRoundReadyPlayers}
+          memberCount={memberCount}
+          gameOver={gameOver}
+          gameOverResult={gameOverResult}
+          isHost={isHost}
+          spiceGameOverMeta={spiceGameOverMeta}
+          onClose={() => setShowResults(false)}
+          onShowResults={() => setShowResults(true)}
+          onNextRound={handleNextRound}
+          onRestart={handleRestart}
+        />
+      )}
+    </RoomLayout>
   );
 }
