@@ -99,31 +99,33 @@ export default function SkulkingStatsModal({
                     if (isCurrent) {
                       const bid = bids[p.playerId];
                       const trick = tricks[p.playerId] ?? 0;
-                      const score = scores[p.playerId] ?? p.score ?? 0;
                       return (
                         <td key={p.playerId}>
                           <div>({bid !== undefined ? bid : "?"}) / {trick}</div>
-                          <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px" }}>
-                            {score}
+                          <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px", color: "#666" }}>
+                            -
                           </div>
                         </td>
                       );
                     } else {
-                      const rs = p.roundScores?.[i];
+                      const roundScore = p.roundScores?.[i];
                       const hist = roundHistory.find((h) => h.round === r);
                       const hBid = hist?.bids[p.playerId];
                       const hTrick = hist?.tricks[p.playerId] ?? 0;
+                      const scoreColor = roundScore !== undefined
+                        ? roundScore > 0 ? "#4caf50" : roundScore < 0 ? "#e74c3c" : "#7f8c8d"
+                        : "#7f8c8d";
                       return (
                         <td key={p.playerId} style={{ color: "#7f8c8d" }}>
                           {hist ? (
                             <>
                               <div>({hBid !== undefined ? hBid : "?"}) / {hTrick}</div>
-                              <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px" }}>
-                                {rs !== undefined ? rs : "-"}
+                              <div style={{ borderTop: "1px solid #2c3e50", marginTop: "2px", paddingTop: "2px", color: scoreColor }}>
+                                {roundScore !== undefined ? (roundScore > 0 ? `+${roundScore}` : roundScore) : "-"}
                               </div>
                             </>
                           ) : (
-                            rs !== undefined ? rs : "-"
+                            "-"
                           )}
                         </td>
                       );

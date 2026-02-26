@@ -6,6 +6,7 @@ import SkulkingHelpModal from "../../../components/skulking/SkulkingHelpModal";
 import type { TrickEntry, RoundResult, GameOverResult } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+import SkulkingTestPanel from "../../../components/skulking/SkulkingTestPanel";
 
 export default function SkulkingRoom() {
   const {
@@ -63,6 +64,7 @@ export default function SkulkingRoom() {
   const [bids, setBids] = useState<Record<string, number>>(ls?.bids ?? {});
   const [tricks, setTricks] = useState<Record<string, number>>(ls?.tricks ?? {});
   const [scores, setScores] = useState<Record<string, number>>(ls?.scores ?? {});
+  const [roundScores, setRoundScores] = useState<Record<string, number[]>>(ls?.roundScores ?? {});
 
   const [gameOverResult, setGameOverResult] = useState<GameOverResult | null>(null);
   const [showGameOver, setShowGameOver] = useState(false);
@@ -127,6 +129,7 @@ export default function SkulkingRoom() {
             myHand: Card[];
             playerHands: PlayerHand[];
             scores: Record<string, number>;
+            roundScores?: Record<string, number[]>;
           };
           setIsFirstDraw(false);
           setMyDrawnNumber(null);
@@ -140,6 +143,7 @@ export default function SkulkingRoom() {
           setMyHand(d.myHand);
           setPlayerHands(d.playerHands);
           setScores(d.scores);
+          if (d.roundScores) setRoundScores(d.roundScores);
           setCurrentTrick([]);
           setBids({});
           setTricks({});
@@ -235,6 +239,7 @@ export default function SkulkingRoom() {
         case "skulkingRoundResult": {
           const d = data as RoundResult;
           setScores(d.totalScores);
+          if (d.roundScoreHistory) setRoundScores(d.roundScoreHistory);
           setPhase(null);
           setRoundHistory(d.roundBidTrickHistory);
           if (!d.isLastRound) {
@@ -275,6 +280,14 @@ export default function SkulkingRoom() {
     });
     return unsubscribe;
   }, [subscribe, roomName]);
+
+  const skulkingPlayers = players.map((p) => ({
+    ...p,
+    bid: bids[p.playerId],
+    tricks: tricks[p.playerId] ?? 0,
+    score: scores[p.playerId] ?? 0,
+    roundScores: roundScores[p.playerId] ?? [],
+  }));
 
   const handleStartGame = () => {
     if (!roomName) return;
@@ -320,13 +333,22 @@ export default function SkulkingRoom() {
       }}
       onCloseChat={() => setIsChatOpen(false)}
       modals={
-        <SkulkingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+        <>
+          <SkulkingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+          {import.meta.env.DEV && (
+            <SkulkingTestPanel
+              roomName={roomName ?? ""}
+              players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
+              onSend={send}
+            />
+          )}
+        </>
       }
     >
       <SkulkingGameBoard
         round={round}
         phase={phase}
-        players={players}
+        players={skulkingPlayers}
         myHand={myHand}
         playerHands={playerHands}
         currentTrick={currentTrick}
