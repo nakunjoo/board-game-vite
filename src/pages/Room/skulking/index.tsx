@@ -60,6 +60,8 @@ export default function SkulkingRoom() {
   const [phase, setPhase] = useState<"bid" | "play" | null>(ls?.skulkingPhase ?? null);
   const [currentBidPlayerId, setCurrentBidPlayerId] = useState<string | null>(ls?.skulkingCurrentBidPlayerId ?? null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(ls?.skulkingCurrentPlayerId ?? null);
+  const [trickLeadPlayerId, setTrickLeadPlayerId] = useState<string | null>(ls?.skulkingLeadPlayerId ?? null);
+  const [trickOrder, setTrickOrder] = useState<string[]>([]);
   const [currentTrick, setCurrentTrick] = useState<TrickEntry[]>(() => (ls?.currentTrick as TrickEntry[]) ?? []);
   const [bids, setBids] = useState<Record<string, number>>(ls?.bids ?? {});
   const [tricks, setTricks] = useState<Record<string, number>>(ls?.tricks ?? {});
@@ -150,6 +152,7 @@ export default function SkulkingRoom() {
           setPhase(null);
           setCurrentBidPlayerId(null);
           setCurrentPlayerId(null);
+          setTrickLeadPlayerId(null);
           setTrickWinnerId(null);
           break;
         }
@@ -196,9 +199,11 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingPlayPhase": {
-          const d = data as { leadPlayerId: string; bids: Record<string, number> };
+          const d = data as { leadPlayerId: string; bids: Record<string, number>; trickOrder?: string[] };
           setPhase("play");
           setCurrentPlayerId(d.leadPlayerId);
+          setTrickLeadPlayerId(d.leadPlayerId);
+          if (d.trickOrder) setTrickOrder(d.trickOrder);
           setCurrentBidPlayerId(null);
           setBids(d.bids);
           setCurrentTrick([]);
@@ -216,10 +221,12 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingTurnUpdate": {
-          const d = data as { currentPlayerId: string; isNewTrick?: boolean };
+          const d = data as { currentPlayerId: string; isNewTrick?: boolean; trickOrder?: string[] };
           if (d.isNewTrick) {
             setCurrentTrick([]);
             setTrickWinnerId(null);
+            setTrickLeadPlayerId(d.currentPlayerId);
+            if (d.trickOrder) setTrickOrder(d.trickOrder);
           }
           setCurrentPlayerId(d.currentPlayerId);
           break;
@@ -281,13 +288,17 @@ export default function SkulkingRoom() {
     return unsubscribe;
   }, [subscribe, roomName]);
 
-  const skulkingPlayers = players.map((p) => ({
-    ...p,
-    bid: bids[p.playerId],
-    tricks: tricks[p.playerId] ?? 0,
-    score: scores[p.playerId] ?? 0,
-    roundScores: roundScores[p.playerId] ?? [],
-  }));
+  const skulkingPlayers = players.map((p) => {
+    const trickOrderIndex = trickOrder.indexOf(p.playerId);
+    return {
+      ...p,
+      order: trickOrderIndex >= 0 ? trickOrderIndex : p.order,
+      bid: bids[p.playerId],
+      tricks: tricks[p.playerId] ?? 0,
+      score: scores[p.playerId] ?? 0,
+      roundScores: roundScores[p.playerId] ?? [],
+    };
+  });
 
   const handleStartGame = () => {
     if (!roomName) return;
@@ -354,6 +365,7 @@ export default function SkulkingRoom() {
         currentTrick={currentTrick}
         currentBidPlayerId={currentBidPlayerId}
         currentPlayerId={currentPlayerId}
+        trickLeadPlayerId={trickLeadPlayerId}
         myPlayerId={playerId}
         isHost={isHost}
         memberCount={memberCount}

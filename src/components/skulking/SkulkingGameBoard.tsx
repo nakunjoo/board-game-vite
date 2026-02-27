@@ -21,7 +21,6 @@ import {
   DeckLabel,
   TrickCardSlot,
   OrderBadge,
-  LeadBadge,
   PlayerInfoBadge,
   ConfirmCardButton,
 } from "../../styles/game/skulking/board";
@@ -50,6 +49,7 @@ interface Props {
   currentTrick: TrickEntry[];
   currentBidPlayerId: string | null;
   currentPlayerId: string | null;
+  trickLeadPlayerId: string | null;
   myPlayerId: string;
   isHost: boolean;
   memberCount: number;
@@ -85,6 +85,7 @@ export default function SkulkingGameBoard({
   currentTrick,
   currentBidPlayerId,
   currentPlayerId,
+  trickLeadPlayerId,
   myPlayerId,
   isHost,
   memberCount,
@@ -115,7 +116,6 @@ export default function SkulkingGameBoard({
 
   const isMyBidTurn = phase === "bid" && !(myPlayerId in bids);
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
-  const trickLeadPlayerId = currentTrick.length > 0 ? currentTrick[0].playerId : null;
 
   const me = players.find((p) => p.playerId === myPlayerId);
 
@@ -271,16 +271,14 @@ export default function SkulkingGameBoard({
                     {player.nickname}
                   </PlayerAvatar>
                   <OrderBadge
+                    $isLead={trickLeadPlayerId === player.playerId}
                     $isActive={
                       player.playerId === currentPlayerId ||
                       player.playerId === currentBidPlayerId
                     }
                   >
-                    {player.order + 1}
+                    {trickLeadPlayerId === player.playerId ? "⚓" : player.order + 1}
                   </OrderBadge>
-                  {trickLeadPlayerId === player.playerId && (
-                    <LeadBadge>⚓</LeadBadge>
-                  )}
                   {isHost && !gameStarted && !player.isMe && onKickPlayer && (
                     <KickButton
                       onClick={() => onKickPlayer(player.playerId)}

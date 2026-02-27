@@ -76,37 +76,23 @@ export const TrickCardSlot = styled.div<{
   }}
 `;
 
-export const OrderBadge = styled.div<{ $isActive?: boolean }>`
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 20px;
-  height: 20px;
-  background: ${({ $isActive }) => $isActive ? "#f39c12" : "rgba(0, 0, 0, 0.75)"};
-  border: 1px solid ${({ $isActive }) => $isActive ? "#f39c12" : "rgba(255, 255, 255, 0.35)"};
-  border-radius: 50%;
-  font-size: 0.7rem;
-  color: ${({ $isActive }) => $isActive ? "#1a1a2e" : "#bdc3c7"};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-`;
-
-export const LeadBadge = styled.div`
+export const OrderBadge = styled.div<{ $isActive?: boolean; $isLead?: boolean }>`
   position: absolute;
   top: -10px;
   right: -10px;
   width: 20px;
   height: 20px;
-  background: rgba(52, 152, 219, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: ${({ $isLead, $isActive }) =>
+    $isLead ? "rgba(52, 152, 219, 0.9)" : $isActive ? "#f39c12" : "rgba(0, 0, 0, 0.75)"};
+  border: 1px solid ${({ $isLead, $isActive }) =>
+    $isLead ? "rgba(255, 255, 255, 0.5)" : $isActive ? "#f39c12" : "rgba(255, 255, 255, 0.35)"};
   border-radius: 50%;
-  font-size: 0.75rem;
-  color: white;
+  font-size: ${({ $isLead }) => $isLead ? "0.75rem" : "0.7rem"};
+  color: ${({ $isActive, $isLead }) => ($isActive && !$isLead) ? "#1a1a2e" : "white"};
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: bold;
 `;
 
 export const PlayerInfoBadge = styled.div`

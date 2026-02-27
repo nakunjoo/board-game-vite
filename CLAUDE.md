@@ -6,6 +6,16 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-27 | `skulking/index.tsx`: `trickLeadPlayerId` 상태 분리 — `skulkingPlayPhase`/`skulkingTurnUpdate(isNewTrick:true)` 수신 시 갱신, 리드 플레이어 아이콘이 트릭 시작부터 항상 표시 |
+| 2026-02-27 | `skulking/index.tsx`: `trickOrder` 상태 추가 — 서버 `skulkingPlayPhase`/`skulkingTurnUpdate(isNewTrick:true)` 이벤트에서 수신, `skulkingPlayers` 조립 시 `trickOrderIndex` 기반으로 `order` 재계산 (리드 플레이어=0번, 표시는 +1) |
+| 2026-02-27 | `skulking/index.tsx`: `roundScores` 상태 추가 — `skulkingRoundResult`/`skulkingRoundStarted`에서 갱신, `skulkingPlayers`에 `roundScores` 포함 |
+| 2026-02-27 | `SkulkingGameBoard.tsx`: `trickLeadPlayerId` prop 추가 (내부 `currentTrick[0]` 기반 계산 제거) |
+| 2026-02-27 | `SkulkingGameBoard.tsx`: `OrderBadge`와 `LeadBadge` 통합 — 선 플레이어면 ⚓, 아닐 때는 순서 번호 표시 (하나의 뱃지로 통합) |
+| 2026-02-27 | `styles/game/skulking/board.ts`: `OrderBadge` 위치 `left: -10px` → `right: -10px` (오른쪽 상단으로 이동), `$isLead` prop 추가 (선 플레이어일 때 파란색 배경), `LeadBadge` 스타일 제거 |
+| 2026-02-27 | `SkulkingStatsModal.tsx`: 현재 라운드 셀 점수 항상 `-` 표시 (진행 중), 과거 라운드 셀에 `p.roundScores?.[i]` 기반 라운드별 획득 점수 표시 (양수 `+N` 초록, 음수 빨강) |
+| 2026-02-27 | `SkulkingTestPanel.tsx`: DEV 전용 테스트 패널 신규 생성 — `position: fixed` 좌하단, 라운드(1~10) 선택 + 플레이어별 카드 조합 구성, `skulkingTestStart` 이벤트 전송 |
+| 2026-02-27 | `skulking/index.tsx`: `SkulkingTestPanel` import 및 `modals` prop에 DEV 조건부 마운트 |
+| 2026-02-27 | `skulking/index.tsx`: 트릭 승자 판정 버그 수정 (탈출카드 리드 + 숫자카드 상황) — 서버 `skulking.handler.ts` `determineTrickWinner`에서 `firstNonEscapeEntry` 로직으로 처음 나온 숫자 수트 카드 기준으로 승자 판정 |
 | 2026-02-26 | `styles/game/index.ts`: 모바일 손패(MyHandArea) 가로 스크롤 — `max-width: 67vw`, `overflow-x: auto`, `flex-wrap: nowrap`, 반투명 배경 + 스크롤바 스타일 |
 | 2026-02-26 | `styles/game/index.ts`: HandCard PC `margin-left: 0` (카드 간격 제거), 모바일 `margin-left: 4px` + `flex-shrink: 0` |
 | 2026-02-26 | `styles/pages/Room.ts`: OtherPlayerCard 겹침 표시 — 가로 `margin-left: -12px`, 세로 `margin-top: -12px`, 모바일 `-9px` |
@@ -251,9 +261,9 @@ useEffect(() => {
 
 ## Skulking 게임 이벤트
 
-**클라이언트 → 서버:** `startGame`, `skulkingDrawFirstCard`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`
+**클라이언트 → 서버:** `startGame`, `skulkingDrawFirstCard`, `skulkingBid`, `skulkingPlayCard`, `skulkingNextRound`, `skulkingTestStart`(DEV 전용, 라운드+손패 지정 테스트 시작)
 
-**서버 → 클라이언트:** `skulkingFirstDrawStarted`, `skulkingFirstDrawResult`, `skulkingFirstDrawProgress`, `skulkingFirstDrawFinished`, `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`, `skulkingCardPlayed`, `myHandUpdate`(개인), `skulkingTurnUpdate`(isNewTrick), `skulkingTrickResult`, `skulkingRoundResult`(roundBidTrickHistory 포함), `skulkingGameOver`
+**서버 → 클라이언트:** `skulkingFirstDrawStarted`, `skulkingFirstDrawResult`, `skulkingFirstDrawProgress`, `skulkingFirstDrawFinished`, `skulkingRoundStarted`, `skulkingBidPhase`, `skulkingBidUpdate`, `skulkingPlayPhase`(trickOrder 포함), `skulkingCardPlayed`, `myHandUpdate`(개인), `skulkingTurnUpdate`(isNewTrick, trickOrder), `skulkingTrickResult`, `skulkingRoundResult`(roundBidTrickHistory, roundScoreHistory 포함), `skulkingGameOver`
 
 ## Skulking 게임 UI 구조 (SkulkingGameBoard)
 
@@ -265,7 +275,7 @@ useEffect(() => {
   - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
   - `getSeatPosition(totalPlayers, seatIndex)` → `{top?, bottom?, left?, right?}`
   - `isVertical = pos.left === "0" || pos.right === "0"` (좌우 플레이어)
-  - **OrderBadge**: 아바타 좌상단에 순번(player.order + 1) 표시
+  - **OrderBadge** (아바타 우상단): 선 플레이어면 ⚓ (파란색 배경), 아닐 때는 순서 번호 표시 (리드 플레이어=1번). 차례인 플레이어는 주황 강조 (`$isActive`). `trickLeadPlayerId` prop 기반 (내부 계산 없음)
   - **점수 뱃지**: 수평 플레이어는 좌측/위, 수직 플레이어는 아래 배치
   - **비드 뱃지**: 수평 플레이어는 우측/위, 수직 플레이어는 아래 배치, 형식 `(N) / 라운드`
   - 차례인 플레이어 아바타에 `outline: 2px solid #f39c12` 강조
@@ -288,7 +298,9 @@ useEffect(() => {
 - **선뽑기 오버레이**: 카드 뒷면 클릭 → 숫자 공개 → 전원 완료 시 결과 표시 + 2초 후 게임 시작
 - **좌하단 통계 버튼** (DeckDisplay): 클릭 → StatsModal
   - 행=라운드(1~10), 열=플레이어(첫 글자+색), 셀=(비드)/트릭 + 점수, 합계 행
-  - 과거 라운드도 (bid)/trick + 점수 모두 표시 (`roundHistory` prop, 새로고침 후에도 유지)
+  - 현재 라운드: (비드)/트릭 표시, 점수는 `-` (진행 중)
+  - 과거 라운드: (bid)/trick + 해당 라운드 획득 점수 (`p.roundScores?.[i]`, 양수 초록/음수 빨강)
+  - `roundHistory` prop으로 과거 비드/트릭 복원, `roundScores` 상태로 라운드별 획득 점수 관리
 - **결과 모달**: `SkulkingResultModal` (라운드/최종 모두 처리)
 
 ## Skulking 리드 수트 결정 규칙
