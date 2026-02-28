@@ -18,17 +18,24 @@ interface RoundResultModalProps {
   onNextRound: () => void;
 }
 
-export function SkulkingRoundResultModal({ result, players, isHost, onNextRound }: RoundResultModalProps) {
+export function SkulkingRoundResultModal({
+  result,
+  players,
+  isHost,
+  onNextRound,
+}: RoundResultModalProps) {
   const { round, bids, tricks, roundScores, totalScores, isLastRound } = result;
 
   const sortedPlayers = [...players].sort(
-    (a, b) => (totalScores[b.playerId] ?? 0) - (totalScores[a.playerId] ?? 0)
+    (a, b) => (totalScores[b.playerId] ?? 0) - (totalScores[a.playerId] ?? 0),
   );
 
   return (
     <ResultOverlay>
       <ResultModal>
-        <ResultTitle>{isLastRound ? "🏁 게임 종료" : `라운드 ${round} 결과`}</ResultTitle>
+        <ResultTitle>
+          {isLastRound ? "🏁 게임 종료" : `라운드 ${round} 결과`}
+        </ResultTitle>
 
         <ResultTable>
           <thead>
@@ -52,7 +59,10 @@ export function SkulkingRoundResultModal({ result, players, isHost, onNextRound 
                   <ResultTd>{p.nickname}</ResultTd>
                   <ResultTd>{bid}</ResultTd>
                   <ResultTd>{trick}</ResultTd>
-                  <ResultTd $positive={success && rs > 0} $negative={!success || rs < 0}>
+                  <ResultTd
+                    $positive={success && rs > 0}
+                    $negative={!success || rs < 0}
+                  >
                     {rs > 0 ? `+${rs}` : rs}
                   </ResultTd>
                   <ResultTd $highlight>{ts}</ResultTd>
@@ -70,7 +80,13 @@ export function SkulkingRoundResultModal({ result, players, isHost, onNextRound 
           </ResultButtonRow>
         )}
         {!isHost && (
-          <p style={{ textAlign: "center", color: "#7f8c8d", fontSize: "0.85rem" }}>
+          <p
+            style={{
+              textAlign: "center",
+              color: "#7f8c8d",
+              fontSize: "0.85rem",
+            }}
+          >
             방장이 다음 라운드를 시작할 때까지 기다려주세요
           </p>
         )}
@@ -86,7 +102,11 @@ interface GameOverModalProps {
   onRestart?: () => void;
 }
 
-export function SkulkingGameOverModal({ result, players, isHost, onRestart }: GameOverModalProps) {
+export function SkulkingGameOverModal({
+  result,
+  isHost,
+  onRestart,
+}: GameOverModalProps) {
   const { ranking } = result;
 
   return (
@@ -107,11 +127,21 @@ export function SkulkingGameOverModal({ result, players, isHost, onRestart }: Ga
               <tr key={p.playerId}>
                 <ResultTd>
                   <RankBadge $rank={p.rank}>
-                    {p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : p.rank === 3 ? "🥉" : p.rank}
+                    {p.rank === 1
+                      ? "🥇"
+                      : p.rank === 2
+                        ? "🥈"
+                        : p.rank === 3
+                          ? "🥉"
+                          : p.rank}
                   </RankBadge>
                 </ResultTd>
                 <ResultTd $highlight={p.rank === 1}>{p.nickname}</ResultTd>
-                <ResultTd $highlight={p.rank === 1} $positive={p.score > 0} $negative={p.score < 0}>
+                <ResultTd
+                  $highlight={p.rank === 1}
+                  $positive={p.score > 0}
+                  $negative={p.score < 0}
+                >
                   {p.score}점
                 </ResultTd>
               </tr>
@@ -121,7 +151,9 @@ export function SkulkingGameOverModal({ result, players, isHost, onRestart }: Ga
 
         {isHost && onRestart && (
           <ResultButtonRow>
-            <ResultButton $primary onClick={onRestart}>다시 시작</ResultButton>
+            <ResultButton $primary onClick={onRestart}>
+              다시 시작
+            </ResultButton>
           </ResultButtonRow>
         )}
       </ResultModal>

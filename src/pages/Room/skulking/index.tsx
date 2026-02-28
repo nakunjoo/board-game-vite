@@ -3,11 +3,19 @@ import type { Card, PlayerHand } from "../../../types/game";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
 import { SkulkingGameOverModal } from "../../../components/skulking/game/SkulkingResultModal";
 import SkulkingHelpModal from "../../../components/skulking/SkulkingHelpModal";
-import type { TrickEntry, RoundResult, GameOverResult } from "../../../components/skulking/types";
+import type {
+  TrickEntry,
+  RoundResult,
+  GameOverResult,
+} from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
 import SkulkingTestPanel from "../../../components/skulking/SkulkingTestPanel";
-import { SKULKING_SUIT_LABELS, SKULKING_SUIT_NAMES, isSpecialCard } from "../../../utils/games/skulking";
+import {
+  SKULKING_SUIT_LABELS,
+  SKULKING_SUIT_NAMES,
+  isSpecialCard,
+} from "../../../utils/games/skulking";
 
 export default function SkulkingRoom() {
   const {
@@ -51,54 +59,99 @@ export default function SkulkingRoom() {
     return `${emoji} ${card.value}`;
   };
 
-  const ls = locationState as LocationState & {
-    myHand?: Card[];
-    playerHands?: PlayerHand[];
-    gameStarted?: boolean;
-    gameOver?: boolean;
-    skulkingRound?: number;
-    skulkingPhase?: "bid" | "play";
-    skulkingCurrentBidPlayerId?: string | null;
-    bids?: Record<string, number>;
-    tricks?: Record<string, number>;
-    scores?: Record<string, number>;
-    roundScores?: Record<string, number[]>;
-    skulkingCurrentPlayerId?: string | null;
-    currentTrick?: TrickEntry[];
-    roundBidTrickHistory?: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
-  } | null;
+  const ls = locationState as
+    | (LocationState & {
+        myHand?: Card[];
+        playerHands?: PlayerHand[];
+        gameStarted?: boolean;
+        gameOver?: boolean;
+        skulkingRound?: number;
+        skulkingPhase?: "bid" | "play";
+        skulkingCurrentBidPlayerId?: string | null;
+        bids?: Record<string, number>;
+        tricks?: Record<string, number>;
+        scores?: Record<string, number>;
+        roundScores?: Record<string, number[]>;
+        skulkingCurrentPlayerId?: string | null;
+        skulkingLeadPlayerId?: string | null;
+        currentTrick?: TrickEntry[];
+        roundBidTrickHistory?: Array<{
+          round: number;
+          bids: Record<string, number>;
+          tricks: Record<string, number>;
+        }>;
+      })
+    | null;
 
   const [gameStarted, setGameStarted] = useState(ls?.gameStarted ?? false);
   const [gameOver, setGameOver] = useState(ls?.gameOver ?? false);
-  const [myHand, setMyHand] = useState<Card[]>(() => (ls?.myHand as Card[]) ?? []);
-  const [playerHands, setPlayerHands] = useState<PlayerHand[]>(() => (ls?.playerHands as PlayerHand[]) ?? []);
+  const [myHand, setMyHand] = useState<Card[]>(
+    () => (ls?.myHand as Card[]) ?? [],
+  );
+  const [playerHands, setPlayerHands] = useState<PlayerHand[]>(
+    () => (ls?.playerHands as PlayerHand[]) ?? [],
+  );
 
   const [round, setRound] = useState(ls?.skulkingRound ?? 1);
-  const [phase, setPhase] = useState<"bid" | "play" | null>(ls?.skulkingPhase ?? null);
-  const [currentBidPlayerId, setCurrentBidPlayerId] = useState<string | null>(ls?.skulkingCurrentBidPlayerId ?? null);
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(ls?.skulkingCurrentPlayerId ?? null);
-  const [trickLeadPlayerId, setTrickLeadPlayerId] = useState<string | null>(ls?.skulkingLeadPlayerId ?? null);
+  const [phase, setPhase] = useState<"bid" | "play" | null>(
+    ls?.skulkingPhase ?? null,
+  );
+  const [currentBidPlayerId, setCurrentBidPlayerId] = useState<string | null>(
+    ls?.skulkingCurrentBidPlayerId ?? null,
+  );
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
+    ls?.skulkingCurrentPlayerId ?? null,
+  );
+  const [trickLeadPlayerId, setTrickLeadPlayerId] = useState<string | null>(
+    ls?.skulkingLeadPlayerId ?? null,
+  );
   const [trickOrder, setTrickOrder] = useState<string[]>([]);
-  const [currentTrick, setCurrentTrick] = useState<TrickEntry[]>(() => (ls?.currentTrick as TrickEntry[]) ?? []);
+  const [currentTrick, setCurrentTrick] = useState<TrickEntry[]>(
+    () => (ls?.currentTrick as TrickEntry[]) ?? [],
+  );
   const [bids, setBids] = useState<Record<string, number>>(ls?.bids ?? {});
-  const [tricks, setTricks] = useState<Record<string, number>>(ls?.tricks ?? {});
-  const [scores, setScores] = useState<Record<string, number>>(ls?.scores ?? {});
-  const [roundScores, setRoundScores] = useState<Record<string, number[]>>(ls?.roundScores ?? {});
+  const [tricks, setTricks] = useState<Record<string, number>>(
+    ls?.tricks ?? {},
+  );
+  const [scores, setScores] = useState<Record<string, number>>(
+    ls?.scores ?? {},
+  );
+  const [roundScores, setRoundScores] = useState<Record<string, number[]>>(
+    ls?.roundScores ?? {},
+  );
 
-  const [gameOverResult, setGameOverResult] = useState<GameOverResult | null>(null);
+  const [gameOverResult, setGameOverResult] = useState<GameOverResult | null>(
+    null,
+  );
   const [showGameOver, setShowGameOver] = useState(false);
-  const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(null);
+  const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(
+    null,
+  );
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
-  const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<number | null>(null);
-  const [roundHistory, setRoundHistory] = useState<Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>>(ls?.roundBidTrickHistory ?? []);
+  const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<
+    number | null
+  >(null);
+  const [roundHistory, setRoundHistory] = useState<
+    Array<{
+      round: number;
+      bids: Record<string, number>;
+      tricks: Record<string, number>;
+    }>
+  >(ls?.roundBidTrickHistory ?? []);
 
   // 선뽑기 상태
   const [isFirstDraw, setIsFirstDraw] = useState(false);
   const [myDrawnNumber, setMyDrawnNumber] = useState<number | null>(null);
-  const [firstDrawResults, setFirstDrawResults] = useState<Record<string, number>>({});
+  const [firstDrawResults, setFirstDrawResults] = useState<
+    Record<string, number>
+  >({});
   const [firstDrawFinished, setFirstDrawFinished] = useState(false);
-  const [firstDrawWinnerId, setFirstDrawWinnerId] = useState<string | null>(null);
-  const [firstDrawWinnerNickname, setFirstDrawWinnerNickname] = useState<string | null>(null);
+  const [firstDrawWinnerId, setFirstDrawWinnerId] = useState<string | null>(
+    null,
+  );
+  const [firstDrawWinnerNickname, setFirstDrawWinnerNickname] = useState<
+    string | null
+  >(null);
   const [firstDrawCount, setFirstDrawCount] = useState(0);
 
   useEffect(() => {
@@ -119,7 +172,11 @@ export default function SkulkingRoom() {
             tricks?: Record<string, number>;
             scores?: Record<string, number>;
             roundScores?: Record<string, number[]>;
-            roundBidTrickHistory?: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
+            roundBidTrickHistory?: Array<{
+              round: number;
+              bids: Record<string, number>;
+              tricks: Record<string, number>;
+            }>;
             skulkingCurrentPlayerId?: string | null;
             skulkingLeadPlayerId?: string | null;
             skulkingTrickOrder?: string[];
@@ -140,16 +197,20 @@ export default function SkulkingRoom() {
           if (d.gameOver !== undefined) setGameOver(d.gameOver);
           if (d.skulkingRound) setRound(d.skulkingRound);
           if (d.skulkingPhase) setPhase(d.skulkingPhase);
-          if (d.skulkingCurrentBidPlayerId !== undefined) setCurrentBidPlayerId(d.skulkingCurrentBidPlayerId);
+          if (d.skulkingCurrentBidPlayerId !== undefined)
+            setCurrentBidPlayerId(d.skulkingCurrentBidPlayerId);
           if (d.bids) setBids(d.bids);
           if (d.tricks) setTricks(d.tricks);
           if (d.scores) setScores(d.scores);
           if (d.roundScores) setRoundScores(d.roundScores);
           if (d.roundBidTrickHistory) setRoundHistory(d.roundBidTrickHistory);
-          if (d.skulkingCurrentPlayerId !== undefined) setCurrentPlayerId(d.skulkingCurrentPlayerId);
-          if (d.skulkingLeadPlayerId !== undefined) setTrickLeadPlayerId(d.skulkingLeadPlayerId);
+          if (d.skulkingCurrentPlayerId !== undefined)
+            setCurrentPlayerId(d.skulkingCurrentPlayerId);
+          if (d.skulkingLeadPlayerId !== undefined)
+            setTrickLeadPlayerId(d.skulkingLeadPlayerId);
           if (d.skulkingTrickOrder?.length) setTrickOrder(d.skulkingTrickOrder);
-          if (d.skulkingTimerTimeLeft !== undefined) setInitialTimerTimeLeft(d.skulkingTimerTimeLeft);
+          if (d.skulkingTimerTimeLeft !== undefined)
+            setInitialTimerTimeLeft(d.skulkingTimerTimeLeft);
           if (d.currentTrick) setCurrentTrick(d.currentTrick);
           break;
         }
@@ -207,7 +268,11 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingFirstDrawFinished": {
-          const d = data as { results: Record<string, number>; firstPlayerId: string; firstNickname: string };
+          const d = data as {
+            results: Record<string, number>;
+            firstPlayerId: string;
+            firstNickname: string;
+          };
           setFirstDrawResults(d.results);
           setFirstDrawFinished(true);
           setFirstDrawWinnerId(d.firstPlayerId);
@@ -228,7 +293,11 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingPlayPhase": {
-          const d = data as { leadPlayerId: string; bids: Record<string, number>; trickOrder?: string[] };
+          const d = data as {
+            leadPlayerId: string;
+            bids: Record<string, number>;
+            trickOrder?: string[];
+          };
           setPhase("play");
           setCurrentPlayerId(d.leadPlayerId);
           setTrickLeadPlayerId(d.leadPlayerId);
@@ -239,7 +308,13 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingCardPlayed": {
-          const d = data as { nickname: string; card: Card; tigressDeclared?: "escape" | "pirate"; currentTrick: TrickEntry[]; playerHands: PlayerHand[] };
+          const d = data as {
+            nickname: string;
+            card: Card;
+            tigressDeclared?: "escape" | "pirate";
+            currentTrick: TrickEntry[];
+            playerHands: PlayerHand[];
+          };
           setCurrentTrick(d.currentTrick);
           setPlayerHands(d.playerHands);
           addGameLog(`${d.nickname}: ${cardLabel(d.card, d.tigressDeclared)}`);
@@ -251,7 +326,11 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingTurnUpdate": {
-          const d = data as { currentPlayerId: string; isNewTrick?: boolean; trickOrder?: string[] };
+          const d = data as {
+            currentPlayerId: string;
+            isNewTrick?: boolean;
+            trickOrder?: string[];
+          };
           if (d.isNewTrick) {
             setCurrentTrick([]);
             setTrickWinnerId(null);
@@ -262,12 +341,26 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingTrickResult": {
-          const d = data as { winnerId: string; winnerNickname: string; trick: TrickEntry[]; tricks: Record<string, number>; bonus: number; trickCount: number; totalTricks: number };
+          const d = data as {
+            winnerId: string;
+            winnerNickname: string;
+            trick: TrickEntry[];
+            tricks: Record<string, number>;
+            bonus: number;
+            trickCount: number;
+            totalTricks: number;
+          };
           setTricks(d.tricks);
           setTrickWinnerId(d.winnerId);
-          const trickLines = d.trick.map((e) => `  ${e.nickname}: ${cardLabel(e.card, e.tigressDeclared)}`).join("\n");
+          const trickLines = d.trick
+            .map(
+              (e) => `  ${e.nickname}: ${cardLabel(e.card, e.tigressDeclared)}`,
+            )
+            .join("\n");
           const bonusText = d.bonus > 0 ? ` (+${d.bonus} 보너스)` : "";
-          addGameLog(`🏆 ${d.winnerNickname} 트릭 획득${bonusText} [${d.trickCount}/${d.totalTricks}]\n${trickLines}`);
+          addGameLog(
+            `🏆 ${d.winnerNickname} 트릭 획득${bonusText} [${d.trickCount}/${d.totalTricks}]\n${trickLines}`,
+          );
           // skulkingTurnUpdate(isNewTrick:true)가 오지 않는 경우(라운드 마지막 트릭 등)를 대비해
           // 2초 후에도 초기화되지 않았으면 강제 초기화
           setTimeout(() => {
@@ -283,15 +376,17 @@ export default function SkulkingRoom() {
           setPhase(null);
           setRoundHistory(d.roundBidTrickHistory);
           {
-            const lines = players.map((p) => {
-              const bid = d.bids[p.playerId] ?? 0;
-              const won = d.tricks[p.playerId] ?? 0;
-              const score = d.roundScores[p.playerId] ?? 0;
-              const success = bid === won;
-              const mark = success ? "✅" : "❌";
-              const scoreText = score >= 0 ? `+${score}` : `${score}`;
-              return `  ${mark} ${p.nickname}: 비드 ${bid} / 트릭 ${won} (${scoreText}점)`;
-            }).join("\n");
+            const lines = players
+              .map((p) => {
+                const bid = d.bids[p.playerId] ?? 0;
+                const won = d.tricks[p.playerId] ?? 0;
+                const score = d.roundScores[p.playerId] ?? 0;
+                const success = bid === won;
+                const mark = success ? "✅" : "❌";
+                const scoreText = score >= 0 ? `+${score}` : `${score}`;
+                return `  ${mark} ${p.nickname}: 비드 ${bid} / 트릭 ${won} (${scoreText}점)`;
+              })
+              .join("\n");
             addGameLog(`📊 라운드 ${d.round} 결과\n${lines}`);
           }
           if (!d.isLastRound) {
@@ -337,7 +432,8 @@ export default function SkulkingRoom() {
     const trickOrderIndex = trickOrder.indexOf(p.playerId);
     return {
       ...p,
-      order: trickOrderIndex >= 0 ? trickOrderIndex : p.order,
+      order: trickOrderIndex >= 0 ? trickOrderIndex : (p.order ?? 0),
+      cardCount: p.cardCount ?? 0,
       bid: bids[p.playerId],
       tricks: tricks[p.playerId] ?? 0,
       score: scores[p.playerId] ?? 0,
@@ -360,7 +456,10 @@ export default function SkulkingRoom() {
     send("skulkingBid", { roomName, bid });
   };
 
-  const handlePlayCard = (cardIndex: number, tigressDeclared?: "escape" | "pirate") => {
+  const handlePlayCard = (
+    cardIndex: number,
+    tigressDeclared?: "escape" | "pirate",
+  ) => {
     if (!roomName) return;
     send("skulkingPlayCard", { roomName, cardIndex, tigressDeclared });
   };
@@ -390,11 +489,17 @@ export default function SkulkingRoom() {
       onCloseChat={() => setIsChatOpen(false)}
       modals={
         <>
-          <SkulkingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+          <SkulkingHelpModal
+            isOpen={showHelpModal}
+            onClose={() => setShowHelpModal(false)}
+          />
           {import.meta.env.DEV && (
             <SkulkingTestPanel
               roomName={roomName ?? ""}
-              players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
+              players={players.map((p) => ({
+                playerId: p.playerId,
+                nickname: p.nickname,
+              }))}
               onSend={send}
             />
           )}
@@ -440,7 +545,10 @@ export default function SkulkingRoom() {
       {showGameOver && gameOverResult && (
         <SkulkingGameOverModal
           result={gameOverResult}
-          players={players.map((p) => ({ playerId: p.playerId, nickname: p.nickname }))}
+          players={players.map((p) => ({
+            playerId: p.playerId,
+            nickname: p.nickname,
+          }))}
           isHost={isHost}
         />
       )}

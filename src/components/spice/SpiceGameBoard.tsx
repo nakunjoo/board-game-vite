@@ -18,7 +18,10 @@ import { playTickSound } from "../../utils/audio";
 import type { Player } from "../gang/types";
 import { SpiceSuitIcon, SpiceCard, SpiceCardBack } from "./game/SpiceCard";
 import SpiceOtherPlayerFan from "./game/SpiceOtherPlayerFan";
-import { SpiceDeclareModal, SpiceCardPickModal } from "./game/SpiceDeclareModal";
+import {
+  SpiceDeclareModal,
+  SpiceCardPickModal,
+} from "./game/SpiceDeclareModal";
 import SpiceChallengeOverlay from "./game/SpiceChallengeOverlay";
 
 interface SpiceGameBoardProps {
@@ -485,7 +488,9 @@ export default function SpiceGameBoard({
                       (최소 2명 필요)
                     </div>
                   </>
-                ) : "게임 시작"}
+                ) : (
+                  "게임 시작"
+                )}
               </StartGameButton>
             ) : (
               <StartGameButton
@@ -1081,7 +1086,7 @@ export default function SpiceGameBoard({
                 )}
               </PlayerAvatarWrapper>
               {!player.isMe && cardCount > 0 && (
-                <OtherPlayerFan
+                <SpiceOtherPlayerFan
                   cardCount={cardCount}
                   pos={pos}
                   isVertical={isVertical}

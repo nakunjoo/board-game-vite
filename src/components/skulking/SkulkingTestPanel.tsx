@@ -14,10 +14,26 @@ interface SkulkingTestPanelProps {
 }
 
 type SuitType = "sk-black" | "sk-yellow" | "sk-purple" | "sk-green";
-type SpecialType = "sk-escape" | "sk-pirate" | "sk-mermaid" | "sk-skulking" | "sk-tigress";
+type SpecialType =
+  | "sk-escape"
+  | "sk-pirate"
+  | "sk-mermaid"
+  | "sk-skulking"
+  | "sk-tigress";
 
-const NUMBER_SUITS: SuitType[] = ["sk-black", "sk-yellow", "sk-purple", "sk-green"];
-const SPECIAL_TYPES: SpecialType[] = ["sk-escape", "sk-pirate", "sk-mermaid", "sk-skulking", "sk-tigress"];
+const NUMBER_SUITS: SuitType[] = [
+  "sk-black",
+  "sk-yellow",
+  "sk-purple",
+  "sk-green",
+];
+const SPECIAL_TYPES: SpecialType[] = [
+  "sk-escape",
+  "sk-pirate",
+  "sk-mermaid",
+  "sk-skulking",
+  "sk-tigress",
+];
 
 const SUIT_LABELS: Record<SuitType, string> = {
   "sk-black": "♠ 검정",
@@ -34,15 +50,6 @@ const SPECIAL_LABELS: Record<SpecialType, string> = {
   "sk-tigress": "T 타이그레스",
 };
 
-// 특수 카드의 최대 장수
-const SPECIAL_MAX: Record<SpecialType, number> = {
-  "sk-escape": 5,
-  "sk-pirate": 5,
-  "sk-mermaid": 2,
-  "sk-skulking": 1,
-  "sk-tigress": 1,
-};
-
 interface CardEntry {
   id: string;
   type: string;
@@ -53,7 +60,11 @@ function makeCard(type: string, value: number): Card {
   return { type, value, image: "", name: `${type}-${value}` };
 }
 
-export default function SkulkingTestPanel({ roomName, players, onSend }: SkulkingTestPanelProps) {
+export default function SkulkingTestPanel({
+  roomName,
+  players,
+  onSend,
+}: SkulkingTestPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [round, setRound] = useState(3);
   const [handMap, setHandMap] = useState<Record<string, CardEntry[]>>({});
@@ -64,12 +75,19 @@ export default function SkulkingTestPanel({ roomName, players, onSend }: Skulkin
   const getHand = (pid: string): CardEntry[] => handMap[pid] ?? [];
 
   const addCard = (pid: string, type: string, value: number) => {
-    const entry: CardEntry = { id: `${type}-${value}-${Date.now()}`, type, value };
+    const entry: CardEntry = {
+      id: `${type}-${value}-${Date.now()}`,
+      type,
+      value,
+    };
     setHandMap((prev) => ({ ...prev, [pid]: [...(prev[pid] ?? []), entry] }));
   };
 
   const removeCard = (pid: string, id: string) => {
-    setHandMap((prev) => ({ ...prev, [pid]: (prev[pid] ?? []).filter((c) => c.id !== id) }));
+    setHandMap((prev) => ({
+      ...prev,
+      [pid]: (prev[pid] ?? []).filter((c) => c.id !== id),
+    }));
   };
 
   const clearAll = () => setHandMap({});
@@ -77,7 +95,9 @@ export default function SkulkingTestPanel({ roomName, players, onSend }: Skulkin
   const handleStart = () => {
     const hands: Record<string, Card[]> = {};
     for (const p of players) {
-      hands[p.playerId] = getHand(p.playerId).map((c) => makeCard(c.type, c.value));
+      hands[p.playerId] = getHand(p.playerId).map((c) =>
+        makeCard(c.type, c.value),
+      );
     }
     console.log("[TestPanel] skulkingTestStart", { roomName, round, hands });
     onSend("skulkingTestStart", { roomName, round, hands });
@@ -94,7 +114,9 @@ export default function SkulkingTestPanel({ roomName, players, onSend }: Skulkin
         <div style={styles.panel}>
           <div style={styles.header}>
             <span style={styles.title}>스컬킹 테스트 모드</span>
-            <button onClick={() => setIsOpen(false)} style={styles.closeBtn}>✕</button>
+            <button onClick={() => setIsOpen(false)} style={styles.closeBtn}>
+              ✕
+            </button>
           </div>
 
           <div style={styles.row}>
@@ -124,7 +146,9 @@ export default function SkulkingTestPanel({ roomName, players, onSend }: Skulkin
           </div>
 
           <div style={styles.footer}>
-            <button onClick={clearAll} style={styles.clearBtn}>전체 초기화</button>
+            <button onClick={clearAll} style={styles.clearBtn}>
+              전체 초기화
+            </button>
             <button onClick={handleStart} style={styles.startBtn}>
               테스트 시작
             </button>
@@ -145,7 +169,13 @@ interface PlayerHandEditorProps {
   onRemove: (pid: string, id: string) => void;
 }
 
-function PlayerHandEditor({ player, hand, round, onAdd, onRemove }: PlayerHandEditorProps) {
+function PlayerHandEditor({
+  player,
+  hand,
+  round,
+  onAdd,
+  onRemove,
+}: PlayerHandEditorProps) {
   const [selectedType, setSelectedType] = useState<string>("sk-black");
   const [selectedValue, setSelectedValue] = useState<number>(1);
 
@@ -158,16 +188,28 @@ function PlayerHandEditor({ player, hand, round, onAdd, onRemove }: PlayerHandEd
 
   return (
     <div style={styles.playerBox}>
-      <div style={styles.playerName}>{player.nickname} <span style={styles.cardCount}>({hand.length}/{round}장)</span></div>
+      <div style={styles.playerName}>
+        {player.nickname}{" "}
+        <span style={styles.cardCount}>
+          ({hand.length}/{round}장)
+        </span>
+      </div>
 
       <div style={styles.cardList}>
         {hand.map((c) => (
           <span key={c.id} style={styles.cardTag}>
             {getCardLabel(c.type, c.value)}
-            <button onClick={() => onRemove(player.playerId, c.id)} style={styles.removeBtn}>×</button>
+            <button
+              onClick={() => onRemove(player.playerId, c.id)}
+              style={styles.removeBtn}
+            >
+              ×
+            </button>
           </span>
         ))}
-        {hand.length === 0 && <span style={styles.emptyHint}>카드 없음 (서버가 랜덤 배분)</span>}
+        {hand.length === 0 && (
+          <span style={styles.emptyHint}>카드 없음 (서버가 랜덤 배분)</span>
+        )}
       </div>
 
       {hand.length < round && (
@@ -182,12 +224,16 @@ function PlayerHandEditor({ player, hand, round, onAdd, onRemove }: PlayerHandEd
           >
             <optgroup label="숫자 수트">
               {NUMBER_SUITS.map((s) => (
-                <option key={s} value={s}>{SUIT_LABELS[s]}</option>
+                <option key={s} value={s}>
+                  {SUIT_LABELS[s]}
+                </option>
               ))}
             </optgroup>
             <optgroup label="특수 카드">
               {SPECIAL_TYPES.map((s) => (
-                <option key={s} value={s}>{SPECIAL_LABELS[s]}</option>
+                <option key={s} value={s}>
+                  {SPECIAL_LABELS[s]}
+                </option>
               ))}
             </optgroup>
           </select>
@@ -203,7 +249,9 @@ function PlayerHandEditor({ player, hand, round, onAdd, onRemove }: PlayerHandEd
             />
           )}
 
-          <button onClick={handleAdd} style={styles.addBtn}>추가</button>
+          <button onClick={handleAdd} style={styles.addBtn}>
+            추가
+          </button>
         </div>
       )}
     </div>

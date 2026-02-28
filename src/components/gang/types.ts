@@ -5,6 +5,11 @@ export interface Player {
   nickname: string;
   isMe: boolean;
   order?: number;
+  bid?: number;
+  tricks?: number;
+  score?: number;
+  roundScores?: number[];
+  cardCount?: number;
 }
 
 export interface ChipData {
