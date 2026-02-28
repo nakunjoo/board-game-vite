@@ -74,6 +74,7 @@ interface Props {
   onDrawFirstCard: () => void;
   onKickPlayer?: (targetPlayerId: string) => void;
   roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
+  initialTimerTimeLeft?: number | null;
 }
 
 export default function SkulkingGameBoard({
@@ -109,6 +110,7 @@ export default function SkulkingGameBoard({
   onPlayCard,
   onKickPlayer,
   roundHistory,
+  initialTimerTimeLeft,
 }: Props) {
   const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
   const [tigressPending, setTigressPending] = React.useState<number | null>(null);
@@ -176,6 +178,7 @@ export default function SkulkingGameBoard({
           isMyPlayTurn={isMyPlayTurn}
           players={players}
           currentTrick={currentTrick}
+          initialTimerTimeLeft={initialTimerTimeLeft}
         />
       )}
 
@@ -230,6 +233,7 @@ export default function SkulkingGameBoard({
           const isVertical = pos.left === "0" || pos.right === "0";
           const isLeftSide = pos.left === "0";
           const isRightSide = pos.right === "0";
+          const isTopCenter = pos.top === "0" && pos.left === "50%";
           const bidVal = bids[player.playerId];
           const trickVal = tricks[player.playerId] ?? 0;
           const scoreVal = scores[player.playerId] ?? player.score ?? 0;
@@ -276,6 +280,8 @@ export default function SkulkingGameBoard({
                       player.playerId === currentPlayerId ||
                       player.playerId === currentBidPlayerId
                     }
+                    $isTop={isTopCenter}
+                    $isRightSide={isRightSide}
                   >
                     {trickLeadPlayerId === player.playerId ? "⚓" : player.order + 1}
                   </OrderBadge>
@@ -470,6 +476,7 @@ export default function SkulkingGameBoard({
           submitted={!isMyBidTurn}
           bidCount={Object.keys(bids).length}
           totalPlayers={memberCount}
+          initialTimerTimeLeft={initialTimerTimeLeft}
         />
       )}
 

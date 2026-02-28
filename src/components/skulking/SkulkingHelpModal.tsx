@@ -178,9 +178,15 @@ export default function SkulkingHelpModal({ isOpen, onClose }: Props) {
                 <strong style={{ color: "#f1c40f" }}>라운드 수 × 10점</strong>
               </HelpText>
               <HelpText>
-                • 비드 실패:{" "}
+                • 비드 실패 (비드 &gt; 0):{" "}
                 <strong style={{ color: "#e74c3c" }}>
                   |비드 - 실제| × -10점
+                </strong>
+              </HelpText>
+              <HelpText>
+                • 비드 실패 (비드 = 0):{" "}
+                <strong style={{ color: "#e74c3c" }}>
+                  라운드 수 × -10점
                 </strong>
               </HelpText>
               <HelpText>

@@ -76,10 +76,10 @@ export const TrickCardSlot = styled.div<{
   }}
 `;
 
-export const OrderBadge = styled.div<{ $isActive?: boolean; $isLead?: boolean }>`
+export const OrderBadge = styled.div<{ $isActive?: boolean; $isLead?: boolean; $isTop?: boolean; $isRightSide?: boolean }>`
   position: absolute;
-  top: -10px;
-  right: -10px;
+  ${({ $isTop }) => $isTop ? "bottom: -10px;" : "top: -10px;"}
+  ${({ $isRightSide }) => $isRightSide ? "left: -10px;" : "right: -10px;"}
   width: 20px;
   height: 20px;
   background: ${({ $isLead, $isActive }) =>

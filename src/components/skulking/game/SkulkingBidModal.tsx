@@ -24,16 +24,17 @@ interface Props {
   submitted: boolean;
   bidCount: number;
   totalPlayers: number;
+  initialTimerTimeLeft?: number | null;
 }
 
-export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidCount, totalPlayers }: Props) {
+export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidCount, totalPlayers, initialTimerTimeLeft }: Props) {
   const [selectedBid, setSelectedBid] = React.useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = React.useState(BID_TIME_LIMIT);
+  const [timeLeft, setTimeLeft] = React.useState(initialTimerTimeLeft ?? BID_TIME_LIMIT);
   const submittedRef = React.useRef(false);
 
   React.useEffect(() => {
     submittedRef.current = false;
-    setTimeLeft(BID_TIME_LIMIT);
+    setTimeLeft(initialTimerTimeLeft ?? BID_TIME_LIMIT);
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {

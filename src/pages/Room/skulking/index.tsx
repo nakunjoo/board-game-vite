@@ -7,6 +7,7 @@ import type { TrickEntry, RoundResult, GameOverResult } from "../../../component
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
 import SkulkingTestPanel from "../../../components/skulking/SkulkingTestPanel";
+import { SKULKING_SUIT_LABELS, SKULKING_SUIT_NAMES, isSpecialCard } from "../../../utils/games/skulking";
 
 export default function SkulkingRoom() {
   const {
@@ -19,6 +20,7 @@ export default function SkulkingRoom() {
     memberCount,
     isHost,
     messages,
+    setMessages,
     inputMessage,
     setInputMessage,
     isChatOpen,
@@ -33,6 +35,21 @@ export default function SkulkingRoom() {
     handleKickPlayer,
     locationState,
   } = useRoomBase();
+
+  const addGameLog = (message: string) => {
+    setMessages((prev) => [...prev, { message, isSystem: true }]);
+  };
+
+  const cardLabel = (card: Card, tigressDeclared?: "escape" | "pirate") => {
+    if (card.type === "sk-tigress") {
+      const declared = tigressDeclared === "pirate" ? "해적" : "탈출";
+      return `🃏 타이그레스(${declared})`;
+    }
+    const emoji = SKULKING_SUIT_LABELS[card.type] ?? "?";
+    const name = SKULKING_SUIT_NAMES[card.type] ?? card.type;
+    if (isSpecialCard(card.type)) return `${emoji} ${name}`;
+    return `${emoji} ${card.value}`;
+  };
 
   const ls = locationState as LocationState & {
     myHand?: Card[];
@@ -72,6 +89,7 @@ export default function SkulkingRoom() {
   const [showGameOver, setShowGameOver] = useState(false);
   const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(null);
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
+  const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<number | null>(null);
   const [roundHistory, setRoundHistory] = useState<Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>>(ls?.roundBidTrickHistory ?? []);
 
   // 선뽑기 상태
@@ -100,7 +118,12 @@ export default function SkulkingRoom() {
             bids?: Record<string, number>;
             tricks?: Record<string, number>;
             scores?: Record<string, number>;
+            roundScores?: Record<string, number[]>;
+            roundBidTrickHistory?: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
             skulkingCurrentPlayerId?: string | null;
+            skulkingLeadPlayerId?: string | null;
+            skulkingTrickOrder?: string[];
+            skulkingTimerTimeLeft?: number | null;
             currentTrick?: TrickEntry[];
             skulkingIsFirstDraw?: boolean;
             skulkingDrawnCount?: number;
@@ -121,7 +144,12 @@ export default function SkulkingRoom() {
           if (d.bids) setBids(d.bids);
           if (d.tricks) setTricks(d.tricks);
           if (d.scores) setScores(d.scores);
+          if (d.roundScores) setRoundScores(d.roundScores);
+          if (d.roundBidTrickHistory) setRoundHistory(d.roundBidTrickHistory);
           if (d.skulkingCurrentPlayerId !== undefined) setCurrentPlayerId(d.skulkingCurrentPlayerId);
+          if (d.skulkingLeadPlayerId !== undefined) setTrickLeadPlayerId(d.skulkingLeadPlayerId);
+          if (d.skulkingTrickOrder?.length) setTrickOrder(d.skulkingTrickOrder);
+          if (d.skulkingTimerTimeLeft !== undefined) setInitialTimerTimeLeft(d.skulkingTimerTimeLeft);
           if (d.currentTrick) setCurrentTrick(d.currentTrick);
           break;
         }
@@ -154,6 +182,7 @@ export default function SkulkingRoom() {
           setCurrentPlayerId(null);
           setTrickLeadPlayerId(null);
           setTrickWinnerId(null);
+          addGameLog(`━━━ 🃏 라운드 ${d.round} 시작 ━━━`);
           break;
         }
         case "skulkingFirstDrawStarted": {
@@ -210,9 +239,10 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingCardPlayed": {
-          const d = data as { currentTrick: TrickEntry[]; playerHands: PlayerHand[] };
+          const d = data as { nickname: string; card: Card; tigressDeclared?: "escape" | "pirate"; currentTrick: TrickEntry[]; playerHands: PlayerHand[] };
           setCurrentTrick(d.currentTrick);
           setPlayerHands(d.playerHands);
+          addGameLog(`${d.nickname}: ${cardLabel(d.card, d.tigressDeclared)}`);
           break;
         }
         case "myHandUpdate": {
@@ -232,9 +262,12 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingTrickResult": {
-          const d = data as { winnerId: string; tricks: Record<string, number> };
+          const d = data as { winnerId: string; winnerNickname: string; trick: TrickEntry[]; tricks: Record<string, number>; bonus: number; trickCount: number; totalTricks: number };
           setTricks(d.tricks);
           setTrickWinnerId(d.winnerId);
+          const trickLines = d.trick.map((e) => `  ${e.nickname}: ${cardLabel(e.card, e.tigressDeclared)}`).join("\n");
+          const bonusText = d.bonus > 0 ? ` (+${d.bonus} 보너스)` : "";
+          addGameLog(`🏆 ${d.winnerNickname} 트릭 획득${bonusText} [${d.trickCount}/${d.totalTricks}]\n${trickLines}`);
           // skulkingTurnUpdate(isNewTrick:true)가 오지 않는 경우(라운드 마지막 트릭 등)를 대비해
           // 2초 후에도 초기화되지 않았으면 강제 초기화
           setTimeout(() => {
@@ -249,6 +282,18 @@ export default function SkulkingRoom() {
           if (d.roundScoreHistory) setRoundScores(d.roundScoreHistory);
           setPhase(null);
           setRoundHistory(d.roundBidTrickHistory);
+          {
+            const lines = players.map((p) => {
+              const bid = d.bids[p.playerId] ?? 0;
+              const won = d.tricks[p.playerId] ?? 0;
+              const score = d.roundScores[p.playerId] ?? 0;
+              const success = bid === won;
+              const mark = success ? "✅" : "❌";
+              const scoreText = score >= 0 ? `+${score}` : `${score}`;
+              return `  ${mark} ${p.nickname}: 비드 ${bid} / 트릭 ${won} (${scoreText}점)`;
+            }).join("\n");
+            addGameLog(`📊 라운드 ${d.round} 결과\n${lines}`);
+          }
           if (!d.isLastRound) {
             setTimeout(() => {
               setCurrentTrick([]);
@@ -384,6 +429,7 @@ export default function SkulkingRoom() {
         firstDrawWinnerNickname={firstDrawWinnerNickname}
         firstDrawCount={firstDrawCount}
         roundHistory={roundHistory}
+        initialTimerTimeLeft={initialTimerTimeLeft}
         onStartGame={handleStartGame}
         onBid={handleBid}
         onPlayCard={handlePlayCard}

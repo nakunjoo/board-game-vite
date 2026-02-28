@@ -6,6 +6,17 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-02-28 | `SkulkingHelpModal.tsx`: 점수 계산 규칙에 "비드 실패 (비드 = 0): 라운드 수 × -10점" 항목 추가 |
+| 2026-02-28 | `skulking/index.tsx`: 채팅창 게임 로그 추가 — `skulkingRoundStarted`(라운드 시작), `skulkingCardPlayed`(카드 정보), `skulkingTrickResult`(트릭 승자+카드 목록+보너스), `skulkingRoundResult`(라운드 결과 요약) 이벤트 수신 시 `addGameLog()`로 시스템 메시지 추가 |
+| 2026-02-28 | `styles/chat/index.ts`: `ChatMessage` — `white-space: pre-wrap` 추가(게임 로그 줄바꿈), `text-align: left` 고정(기존 시스템 메시지 center 제거) |
+| 2026-02-28 | `skulking/index.tsx`: `roomJoined` 수신 시 `skulkingTrickOrder` → `setTrickOrder`, `skulkingLeadPlayerId` → `setTrickLeadPlayerId` 복원 — 새로고침 후 턴 순서/선 플레이어 표시 정상화 |
+| 2026-02-28 | `skulking/index.tsx`: `roomJoined` 수신 시 `roundScores` → `setRoundScores`, `roundBidTrickHistory` → `setRoundHistory` 복원 — 새로고침 후 통계 정보 유지 |
+| 2026-02-28 | `skulking/index.tsx`: `roomJoined` 수신 시 `skulkingTimerTimeLeft` → `setInitialTimerTimeLeft` 복원, `SkulkingBoardCenter`/`SkulkingBidModal`에 `initialTimerTimeLeft` prop 전달 — 새로고침 후 타이머 동기화 |
+| 2026-02-28 | `SkulkingBoardCenter.tsx`: `initialTimerTimeLeft` prop 추가 — `pendingInitialTime` ref로 새로고침 직후 1회만 서버 남은 시간으로 타이머 초기화, 이후 턴 변경 시 풀타임(20초) 리셋 |
+| 2026-02-28 | `SkulkingBidModal.tsx`: `initialTimerTimeLeft` prop 추가 — `useState(initialTimerTimeLeft ?? BID_TIME_LIMIT)`로 초기값, 라운드 시작 시 `setTimeLeft(initialTimerTimeLeft ?? BID_TIME_LIMIT)` |
+| 2026-02-28 | `styles/game/skulking/board.ts`: `OrderBadge`에 `$isTop` prop 추가 — 12시 위치 플레이어(`top: "0" && left: "50%"`) 뱃지를 오른쪽 하단(`bottom: -10px`)으로 이동 |
+| 2026-02-28 | `styles/game/skulking/board.ts`: `OrderBadge`에 `$isRightSide` prop 추가 — 오른쪽 위치 플레이어(`right: "0"`) 뱃지를 왼쪽 상단(`left: -10px`)으로 이동 |
+| 2026-02-28 | `SkulkingGameBoard.tsx`: `isTopCenter` 변수 추가(`pos.top === "0" && pos.left === "50%"`), `OrderBadge`에 `$isTop={isTopCenter}` / `$isRightSide={isRightSide}` prop 전달 |
 | 2026-02-27 | `skulking/index.tsx`: `trickLeadPlayerId` 상태 분리 — `skulkingPlayPhase`/`skulkingTurnUpdate(isNewTrick:true)` 수신 시 갱신, 리드 플레이어 아이콘이 트릭 시작부터 항상 표시 |
 | 2026-02-27 | `skulking/index.tsx`: `trickOrder` 상태 추가 — 서버 `skulkingPlayPhase`/`skulkingTurnUpdate(isNewTrick:true)` 이벤트에서 수신, `skulkingPlayers` 조립 시 `trickOrderIndex` 기반으로 `order` 재계산 (리드 플레이어=0번, 표시는 +1) |
 | 2026-02-27 | `skulking/index.tsx`: `roundScores` 상태 추가 — `skulkingRoundResult`/`skulkingRoundStarted`에서 갱신, `skulkingPlayers`에 `roundScores` 포함 |
@@ -275,7 +286,8 @@ useEffect(() => {
   - `seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers`
   - `getSeatPosition(totalPlayers, seatIndex)` → `{top?, bottom?, left?, right?}`
   - `isVertical = pos.left === "0" || pos.right === "0"` (좌우 플레이어)
-  - **OrderBadge** (아바타 우상단): 선 플레이어면 ⚓ (파란색 배경), 아닐 때는 순서 번호 표시 (리드 플레이어=1번). 차례인 플레이어는 주황 강조 (`$isActive`). `trickLeadPlayerId` prop 기반 (내부 계산 없음)
+  - **OrderBadge** 위치: `$isTop`(12시 위치) → 오른쪽 하단, `$isRightSide`(오른쪽 위치) → 왼쪽 상단, 나머지 → 오른쪽 상단(기본)
+  - **OrderBadge** (위치 가변): 선 플레이어면 ⚓ (파란색 배경), 아닐 때는 순서 번호 표시 (리드 플레이어=1번). 차례인 플레이어는 주황 강조 (`$isActive`). `trickLeadPlayerId` prop 기반 (내부 계산 없음)
   - **점수 뱃지**: 수평 플레이어는 좌측/위, 수직 플레이어는 아래 배치
   - **비드 뱃지**: 수평 플레이어는 우측/위, 수직 플레이어는 아래 배치, 형식 `(N) / 라운드`
   - 차례인 플레이어 아바타에 `outline: 2px solid #f39c12` 강조
@@ -330,8 +342,35 @@ const leadEntry = currentTrick.find((e) => this.isNumberSuit(this.getEffectiveTy
 ## SkulkingHelpModal 구조 (3탭)
 
 - **게임 규칙 탭**: 목표, 진행 방식, 리드 수트 결정, 점수 계산
+  - 점수 계산: 비드 성공(>0): ×20점 / 성공(=0): 라운드×10점 / 실패(>0): |차이|×-10점 / 실패(=0): 라운드×-10점
 - **카드 족보 탭**: 1위(해골왕)~7위(탈출) 세로 카드 아이콘 + 설명, 하단 보너스 점수 박스
 - **카드 구성 탭**: 숫자 수트 4종 + 특수 카드 5종 테이블, 카드 색상 아이콘 인라인 표시
+
+## 채팅 게임 로그 (skulking/index.tsx)
+
+- `addGameLog(message)`: `setMessages((prev) => [...prev, { message, isSystem: true }])`로 시스템 메시지 추가
+- `cardLabel(card, tigressDeclared)`: 카드를 `"♠ 7"` / `"💀 해골왕"` 형태 문자열로 변환 (`SKULKING_SUIT_LABELS`, `SKULKING_SUIT_NAMES` 활용)
+- **로그 발생 이벤트**:
+  - `skulkingRoundStarted` → `━━━ 🃏 라운드 N 시작 ━━━`
+  - `skulkingCardPlayed` → `닉네임: ♠ 7` (카드 타입별 emoji + 숫자/이름)
+  - `skulkingTrickResult` → `🏆 닉네임 트릭 획득 (+보너스) [트릭수/전체]\n  닉네임: 카드 ...`
+  - `skulkingRoundResult` → `📊 라운드 N 결과\n  ✅/❌ 닉네임: 비드 N / 트릭 N (+/-점)`
+- `ChatMessage` (`styles/chat/index.ts`): `white-space: pre-wrap` + `text-align: left` → 줄바꿈(`\n`) 렌더링 지원
+
+## Skulking 재연결 복원 항목 (roomJoined 수신 시)
+
+`skulking/index.tsx` `roomJoined` 케이스에서 처리:
+- `skulkingTrickOrder` → `setTrickOrder` (턴 순서 복원)
+- `skulkingLeadPlayerId` → `setTrickLeadPlayerId` (선 플레이어 표시 복원)
+- `roundScores` → `setRoundScores` (통계 모달 라운드별 점수 복원)
+- `roundBidTrickHistory` → `setRoundHistory` (통계 모달 비드/트릭 기록 복원)
+- `skulkingTimerTimeLeft` → `setInitialTimerTimeLeft` → `SkulkingBoardCenter`/`SkulkingBidModal`의 `initialTimerTimeLeft` prop으로 전달
+
+## Skulking 타이머 동기화 (재연결 시)
+
+- 서버 `buildSkulkingState`에서 `skulkingTimerTimeLeft` 계산: `Date.now() - skulkingBidTimerStartedAt` (또는 Play) 기반 남은 초
+- `SkulkingBoardCenter`: `pendingInitialTime` ref에 저장 → `currentPlayerId` 변경 effect에서 첫 실행 시 소비 후 null, 이후는 `TURN_TIME`(20초)으로 리셋
+- `SkulkingBidModal`: `useState(initialTimerTimeLeft ?? BID_TIME_LIMIT)` 초기값, 의존성 없는 effect에서 한 번만 `setTimeLeft`
 
 ## Skulking 카드 구성 (66장)
 

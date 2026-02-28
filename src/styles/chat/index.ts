@@ -170,13 +170,15 @@ export const NoMessages = styled.p`
 
 export const ChatMessage = styled.div<{ $isSystem?: boolean }>`
   margin-bottom: 0.75rem;
-  padding: ${({ $isSystem }) => ($isSystem ? "0.25rem" : "0.5rem 0.75rem")};
+  padding: ${({ $isSystem }) => ($isSystem ? "0.25rem 0" : "0.5rem 0.75rem")};
   background-color: ${({ $isSystem }) =>
     $isSystem ? "transparent" : "#2a2a2a"};
   border-radius: 6px;
-  text-align: ${({ $isSystem }) => ($isSystem ? "center" : "left")};
-  color: ${({ $isSystem }) => ($isSystem ? "#888" : "#e0e0e0")};
-  font-size: ${({ $isSystem }) => ($isSystem ? "0.85rem" : "inherit")};
+  text-align: left;
+  color: ${({ $isSystem }) => ($isSystem ? "#7f8c8d" : "#e0e0e0")};
+  font-size: ${({ $isSystem }) => ($isSystem ? "0.82rem" : "inherit")};
+  white-space: pre-wrap;
+  word-break: break-word;
 `;
 
 export const ChatInputArea = styled.div`
