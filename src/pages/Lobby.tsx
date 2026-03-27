@@ -11,7 +11,15 @@ import {
   ModalButtons,
   ModalButton,
   CheckboxOption,
+  ModalTabs,
+  ModalTab,
+  SingleGameList,
+  SingleGameItem,
 } from "../styles/pages/Lobby";
+
+const SINGLE_GAMES = [
+  { value: "slide-puzzle", label: "슬라이드 퍼즐", icon: "🧩", desc: "타일을 밀어 순서대로 맞추세요" },
+];
 
 interface Room {
   name: string;
@@ -29,6 +37,7 @@ const GAME_TYPES = [
 
 type ModalMode = "create" | "join";
 type JoinStep = "password" | "nickname";
+type CreateTab = "multi" | "single";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
@@ -44,6 +53,7 @@ export default function Lobby() {
   const [passwordInput, setPasswordInput] = useState("");
   const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
   const [joinStep, setJoinStep] = useState<JoinStep>("password");
+  const [createTab, setCreateTab] = useState<CreateTab>("multi");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,6 +143,7 @@ export default function Lobby() {
     setGameType("gang");
     setIsPrivate(false);
     setPasswordInput("");
+    setCreateTab("multi");
     setShowModal(true);
   };
 
@@ -208,7 +219,7 @@ export default function Lobby() {
     }
   };
 
-  const isConfirmDisabled = false;
+  const isConfirmDisabled = modalMode === "create" && createTab === "multi" && !connected;
 
   return (
     <div className="lobby">
@@ -220,7 +231,7 @@ export default function Lobby() {
       {error && <div className="error-message">{error}</div>}
 
       <div className="create-room">
-        <button onClick={openCreateModal} disabled={!connected}>
+        <button onClick={openCreateModal}>
           방 만들기
         </button>
       </div>
@@ -273,55 +284,84 @@ export default function Lobby() {
             <h2>{modalMode === "create" ? "방 만들기" : `${joinTargetRoom} 입장`}</h2>
             {modalMode === "create" && (
               <>
-                <ModalInput
-                  type="text"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder="방 이름 입력"
-                  onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                  autoFocus
-                />
-                <ModalInput
-                  type="text"
-                  value={nicknameInput}
-                  onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
-                  placeholder="닉네임 (미입력 시 랜덤)"
-                  maxLength={6}
-                  onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                />
-                <RadioGroup>
-                  <label>게임 타입</label>
-                  <RadioOptions>
-                    {GAME_TYPES.map((type) => (
-                      <RadioOption key={type.value}>
-                        <input
-                          type="radio"
-                          name="gameType"
-                          value={type.value}
-                          checked={gameType === type.value}
-                          onChange={(e) => setGameType(e.target.value)}
-                        />
-                        {type.label}
-                      </RadioOption>
+                <ModalTabs>
+                  <ModalTab $active={createTab === "multi"} onClick={() => setCreateTab("multi")}>멀티</ModalTab>
+                  <ModalTab $active={createTab === "single"} onClick={() => setCreateTab("single")}>싱글</ModalTab>
+                </ModalTabs>
+
+                {createTab === "multi" && (
+                  <>
+                    <ModalInput
+                      type="text"
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      placeholder="방 이름 입력"
+                      onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                      autoFocus
+                    />
+                    <ModalInput
+                      type="text"
+                      value={nicknameInput}
+                      onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
+                      placeholder="닉네임 (미입력 시 랜덤)"
+                      maxLength={6}
+                      onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                    />
+                    <RadioGroup>
+                      <label>게임 타입</label>
+                      <RadioOptions>
+                        {GAME_TYPES.map((type) => (
+                          <RadioOption key={type.value}>
+                            <input
+                              type="radio"
+                              name="gameType"
+                              value={type.value}
+                              checked={gameType === type.value}
+                              onChange={(e) => setGameType(e.target.value)}
+                            />
+                            {type.label}
+                          </RadioOption>
+                        ))}
+                      </RadioOptions>
+                    </RadioGroup>
+                    <CheckboxOption>
+                      <input
+                        type="checkbox"
+                        checked={isPrivate}
+                        onChange={(e) => setIsPrivate(e.target.checked)}
+                      />
+                      비밀방
+                    </CheckboxOption>
+                    {isPrivate && (
+                      <ModalInput
+                        type="text"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="비밀번호 입력"
+                        onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+                      />
+                    )}
+                  </>
+                )}
+
+                {createTab === "single" && (
+                  <SingleGameList>
+                    {SINGLE_GAMES.map((game) => (
+                      <SingleGameItem
+                        key={game.value}
+                        onClick={() => {
+                          setShowModal(false);
+                          navigate(`/single/${game.value}`);
+                        }}
+                      >
+                        <span className="icon">{game.icon}</span>
+                        <span className="info">
+                          <span className="name">{game.label}</span>
+                          <span className="desc">{game.desc}</span>
+                        </span>
+                      </SingleGameItem>
                     ))}
-                  </RadioOptions>
-                </RadioGroup>
-                <CheckboxOption>
-                  <input
-                    type="checkbox"
-                    checked={isPrivate}
-                    onChange={(e) => setIsPrivate(e.target.checked)}
-                  />
-                  비밀방
-                </CheckboxOption>
-                {isPrivate && (
-                  <ModalInput
-                    type="text"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="비밀번호 입력"
-                    onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                  />
+                  </SingleGameList>
                 )}
               </>
             )}
@@ -346,16 +386,18 @@ export default function Lobby() {
                 autoFocus
               />
             )}
-            <ModalButtons>
-              <ModalButton onClick={() => setShowModal(false)}>취소</ModalButton>
-              <ModalButton
-                $primary
-                onClick={handleConfirm}
-                disabled={isConfirmDisabled}
-              >
-                {modalMode === "create" ? "만들기" : joinTargetIsPrivate && joinStep === "password" ? "확인" : "입장"}
-              </ModalButton>
-            </ModalButtons>
+            {!(modalMode === "create" && createTab === "single") && (
+              <ModalButtons>
+                <ModalButton onClick={() => setShowModal(false)}>취소</ModalButton>
+                <ModalButton
+                  $primary
+                  onClick={handleConfirm}
+                  disabled={isConfirmDisabled}
+                >
+                  {modalMode === "create" ? "만들기" : joinTargetIsPrivate && joinStep === "password" ? "확인" : "입장"}
+                </ModalButton>
+              </ModalButtons>
+            )}
           </ModalContent>
         </ModalOverlay>
       )}

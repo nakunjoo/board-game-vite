@@ -117,6 +117,80 @@ export const ModalButton = styled.button<{ $primary?: boolean }>`
   }
 `;
 
+// 모달 탭
+export const ModalTabs = styled.div`
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #3a3a3a;
+  margin-bottom: -0.5rem;
+`;
+
+export const ModalTab = styled.button<{ $active?: boolean }>`
+  flex: 1;
+  padding: 0.55rem 0;
+  border: none;
+  background: none;
+  color: ${({ $active }) => ($active ? "#e0e0e0" : "#666")};
+  font-size: 0.95rem;
+  font-weight: ${({ $active }) => ($active ? "600" : "400")};
+  cursor: pointer;
+  border-bottom: 2px solid ${({ $active }) => ($active ? "#646cff" : "transparent")};
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: #ccc;
+  }
+`;
+
+// 싱글 게임 선택 목록
+export const SingleGameList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const SingleGameItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: #646cff;
+    background: #252535;
+  }
+
+  .icon {
+    font-size: 1.4rem;
+    width: 2rem;
+    text-align: center;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .name {
+    font-weight: 600;
+  }
+
+  .desc {
+    font-size: 0.8rem;
+    color: #888;
+  }
+`;
+
 // 체크박스 옵션
 export const CheckboxOption = styled.label`
   display: flex;

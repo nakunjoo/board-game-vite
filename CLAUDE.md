@@ -6,6 +6,24 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-03-27 | 슬라이드 퍼즐 싱글게임 추가: `components/single/slide-puzzle/`, `pages/Single/SlidePuzzle/`, `styles/single/slide-puzzle/` 신규 생성 |
+| 2026-03-27 | `App.tsx`: WebSocketProvider를 멀티플레이어 라우트(/,/room/:roomName)에만 스코프, `/single/slide-puzzle` 라우트 추가 |
+| 2026-03-27 | `Lobby.tsx`: 방만들기 모달에 멀티/싱글 탭 추가. 싱글 탭 선택 시 바로 해당 게임 페이지로 이동. 방만들기 버튼은 서버 연결 여부와 무관하게 항상 활성화 |
+| 2026-03-27 | 슬라이드 퍼즐 구조 분리: `types.ts`(GridSize 3~7, BestRecord, DefaultImage), `utils.ts`(보드 로직·이미지 생성·localStorage), `constants.ts`(BG_THEMES), `SlidePuzzleBoard.tsx`, `SlidePuzzleSubBar.tsx`, `modal/SetupModal.tsx`, `modal/ClearModal.tsx`, `modal/CropModal.tsx` |
+| 2026-03-27 | 슬라이드 퍼즐 스타일 분리: `layout.ts`(헤더·페이지), `board.ts`(보드·타일), `subbar.ts`(서브바·설정패널), `modal.ts`(모달), `cropModal.ts`(크롭 모달) |
+| 2026-03-27 | 슬라이드 퍼즐 보드: N cols × (N+1) rows 구조. 이미지 타일 N×N + 하단 행(빈칸 1개 + 막힘 N-1개). 타일 슬라이딩은 같은 행/열 내에서만 허용, 대각선 불가. CSS transition(top/left 0.13s)으로 이동 애니메이션 |
+| 2026-03-27 | 슬라이드 퍼즐 타일 크기: `calcTileDims(containerW, containerH, size)` → `{ tileW, tileH }` 각각 독립 계산. Main 요소를 ResizeObserver로 측정하여 화면을 꽉 채우도록 자동 계산. 타일은 직사각형 허용(정사각형 강제 없음) |
+| 2026-03-27 | 슬라이드 퍼즐 이미지: canvas API로 생성된 기본 이미지 4종 + 커스텀 업로드. 타일별 `background-image` + `backgroundSize: tileW*N x tileH*N` + `backgroundPosition: -origCol*tileW -origRow*tileH`로 슬라이싱 |
+| 2026-03-27 | 슬라이드 퍼즐 이미지 크롭: 업로드 시 SetupModal 닫히고 CropModal 표시. SVG 마스크 오버레이로 선택 영역 외 어둡게 처리. tileW/tileH 비율 고정, 드래그로 위치만 조절. 확인 시 canvas로 크롭 후 JPEG dataURL 저장 |
+| 2026-03-27 | 슬라이드 퍼즐 게임 흐름: SetupModal(크기+이미지 선택) → 정렬된 미리보기 표시 → 서브바 "게임 시작" 버튼 클릭 → 셔플 후 게임 시작. 재시작 버튼은 미리보기 상태로 복귀 |
+| 2026-03-27 | 슬라이드 퍼즐 일시정지: 헤더 우측 ⏸/▶ 버튼. 일시정지 시 타이머 정지 + 타일 클릭 차단 |
+| 2026-03-27 | 슬라이드 퍼즐 클리어 모달: 로비 버튼 제거 → 우상단 ✕ 닫기 버튼. 클리어 시간/이동횟수 표시 |
+| 2026-03-27 | 슬라이드 퍼즐 이전 기록: localStorage(`slide-puzzle-best-{size}`)에 최고 시간/최소 이동 저장. 막힘 영역(하단 행 wall tiles) 위에 오버레이로 표시. 반투명 검정 배경 + 흰 글자 |
+| 2026-03-27 | 슬라이드 퍼즐 순번 표시: 설정 패널(⚙ 설정)의 토글 스위치로 on/off. 타일 좌상단에 반투명 검정 배경 + 흰 글자로 표시 |
+| 2026-03-27 | 슬라이드 퍼즐 설정 패널: ⚙ 설정 버튼(서브바 우측)에서 드롭다운으로 표시. 퍼즐판 배경색(다크/파스텔/라이트 탭, 각 12색)과 순번 표시 토글 포함. 배경색 변경 시 막힘 영역도 동일색으로 변경 |
+| 2026-03-27 | 슬라이드 퍼즐 서브바 레이아웃: 1행(재시작/새게임 버튼), 2행(이미지 미리보기 왼쪽 / 게임시작 버튼 가운데 / 설정 버튼 오른쪽) |
+| 2026-03-27 | `styles/single/slide-puzzle/subbar.ts`: `ColorSwatch` — `border-radius: 50%` → `border-radius: 6px`(사각형), `width: 28px` → `width: 38px`(크기 증가) |
+| 2026-03-27 | `styles/single/slide-puzzle/board.ts`: `Tile` — `border` 및 `box-shadow` 제거. correct 강조 border/shadow, hover border 변경 모두 제거 |
 | 2026-02-28 | `SkulkingHelpModal.tsx`: 점수 계산 규칙에 "비드 실패 (비드 = 0): 라운드 수 × -10점" 항목 추가 |
 | 2026-02-28 | `skulking/index.tsx`: 채팅창 게임 로그 추가 — `skulkingRoundStarted`(라운드 시작), `skulkingCardPlayed`(카드 정보), `skulkingTrickResult`(트릭 승자+카드 목록+보너스), `skulkingRoundResult`(라운드 결과 요약) 이벤트 수신 시 `addGameLog()`로 시스템 메시지 추가 |
 | 2026-02-28 | `styles/chat/index.ts`: `ChatMessage` — `white-space: pre-wrap` 추가(게임 로그 줄바꿈), `text-align: left` 고정(기존 시스템 메시지 center 제거) |
@@ -130,6 +148,20 @@ src/
 │       ├── gang/index.tsx          # Gang Room (게임 전용 상태 관리)
 │       ├── spice/index.tsx         # Spice Room (게임 전용 상태 관리)
 │       └── skulking/index.tsx      # Skulking Room (게임 전용 상태 관리)
+├── pages/Single/
+│   └── SlidePuzzle/
+│       └── index.tsx               # 슬라이드 퍼즐 (상태 관리 + 핸들러)
+├── components/single/
+│   └── slide-puzzle/
+│       ├── types.ts                # GridSize(3~7), BestRecord, DefaultImage
+│       ├── utils.ts                # 보드 로직, 이미지 생성, localStorage, calcTileDims
+│       ├── constants.ts            # BG_THEMES (다크/파스텔/라이트 각 12색)
+│       ├── SlidePuzzleBoard.tsx    # 보드 + 타일 렌더링 + 이전 기록 오버레이
+│       ├── SlidePuzzleSubBar.tsx   # 서브바 + 설정 패널 (내부 상태 관리)
+│       └── modal/
+│           ├── SetupModal.tsx      # 게임 설정 (크기 3~7 + 이미지 선택)
+│           ├── ClearModal.tsx      # 클리어 결과 (✕ 닫기 + 다시하기)
+│           └── CropModal.tsx       # 이미지 크롭 (SVG 마스크, 이동만 허용)
 ├── styles/
 │   ├── index.ts
 │   ├── pages/
@@ -137,19 +169,27 @@ src/
 │   │   ├── Lobby.ts
 │   │   └── Room.ts
 │   ├── chat/index.ts
-│   └── game/
-│       ├── index.ts                # 공통 게임 스타일 (GameBoard, PlayerCircle 등)
-│       ├── gang/
-│       │   └── handRankModal.ts
-│       └── skulking/
-│           ├── bidModal.ts
-│           ├── board.ts
-│           ├── boardCenter.ts
-│           ├── card.ts
-│           ├── helpModal.ts
-│           ├── resultModal.ts
-│           ├── statsModal.ts
-│           └── tigressModal.ts
+│   ├── game/
+│   │   ├── index.ts                # 공통 게임 스타일 (GameBoard, PlayerCircle 등)
+│   │   ├── gang/
+│   │   │   └── handRankModal.ts
+│   │   └── skulking/
+│   │       ├── bidModal.ts
+│   │       ├── board.ts
+│   │       ├── boardCenter.ts
+│   │       ├── card.ts
+│   │       ├── helpModal.ts
+│   │       ├── resultModal.ts
+│   │       ├── statsModal.ts
+│   │       └── tigressModal.ts
+│   └── single/
+│       └── slide-puzzle/
+│           ├── index.ts            # re-export (하위 4개 파일)
+│           ├── layout.ts           # PageWrapper, Header, PauseButton, Main 등
+│           ├── board.ts            # Board, Tile, TileNumber, WallRecord 등
+│           ├── subbar.ts           # SubBar, ActionButton, SettingsPanel, ColorSwatch 등
+│           ├── modal.ts            # ModalOverlay, ModalBox, SetupModalBox 등
+│           └── cropModal.ts        # CropModalBox, CropArea, CropBox, CropOverlaySvg 등
 ├── types/
 │   └── game.ts                     # 공통 게임 타입 (Card, Room, GameConfig 등)
 └── utils/
@@ -212,10 +252,14 @@ npm run preview  # 빌드된 결과물 미리보기
 
 ## 라우팅
 
+**멀티플레이어 (WebSocketProvider 포함)**
 - `/` - 로비
 - `/room/gang/:roomName` - Gang 게임 룸
 - `/room/spice/:roomName` - Spice 게임 룸
 - `/room/skulking/:roomName` - Skulking 게임 룸
+
+**싱글플레이어 (WebSocket 없음)**
+- `/single/slide-puzzle` - 슬라이드 퍼즐
 
 ## WebSocket 통신
 
