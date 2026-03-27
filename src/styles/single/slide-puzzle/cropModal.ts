@@ -37,6 +37,23 @@ export const CropBox = styled.div`
   touch-action: none;
 `;
 
+export const CropHandle = styled.div<{ $corner: "nw" | "ne" | "sw" | "se" }>`
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid rgba(100, 108, 255, 0.9);
+  border-radius: 3px;
+  box-sizing: border-box;
+  z-index: 4;
+  touch-action: none;
+
+  ${({ $corner }) => $corner === "nw" && "top: -7px; left: -7px; cursor: nw-resize;"}
+  ${({ $corner }) => $corner === "ne" && "top: -7px; right: -7px; cursor: ne-resize;"}
+  ${({ $corner }) => $corner === "sw" && "bottom: -7px; left: -7px; cursor: sw-resize;"}
+  ${({ $corner }) => $corner === "se" && "bottom: -7px; right: -7px; cursor: se-resize;"}
+`;
+
 export const CropOverlaySvg = styled.svg`
   position: absolute;
   inset: 0;

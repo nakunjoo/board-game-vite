@@ -1,4 +1,4 @@
-import type { GridSize, BestRecord, DefaultImage } from "./types";
+import type { GridSize, TileShape, BestRecord, DefaultImage } from "./types";
 
 // ─── 보드 상수 ────────────────────────────────────────────────
 export const COLS = (size: GridSize) => size;     // 열 수 = N
@@ -35,11 +35,16 @@ export function calcTileDims(
   containerW: number,
   containerH: number,
   size: GridSize,
+  tileShape: TileShape = "fit",
 ): { tileW: number; tileH: number } {
   const cols = COLS(size);
   const rows = ROWS(size);
   const tileW = Math.max(1, Math.floor((containerW - PAD * 2 - GAP * (cols - 1)) / cols));
   const tileH = Math.max(1, Math.floor((containerH - PAD * 2 - GAP * (rows - 1)) / rows));
+  if (tileShape === "square") {
+    const s = Math.min(tileW, tileH);
+    return { tileW: s, tileH: s };
+  }
   return { tileW, tileH };
 }
 

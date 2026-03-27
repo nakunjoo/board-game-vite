@@ -24,6 +24,8 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 | 2026-03-27 | 슬라이드 퍼즐 서브바 레이아웃: 1행(재시작/새게임 버튼), 2행(이미지 미리보기 왼쪽 / 게임시작 버튼 가운데 / 설정 버튼 오른쪽) |
 | 2026-03-27 | `styles/single/slide-puzzle/subbar.ts`: `ColorSwatch` — `border-radius: 50%` → `border-radius: 6px`(사각형), `width: 28px` → `width: 38px`(크기 증가) |
 | 2026-03-27 | `styles/single/slide-puzzle/board.ts`: `Tile` — `border` 및 `box-shadow` 제거. correct 강조 border/shadow, hover border 변경 모두 제거 |
+| 2026-03-27 | 슬라이드 퍼즐 타일 비율 선택: `TileShape` 타입(`"fit"` \| `"square"`) 추가. `calcTileDims`에 `tileShape` 파라미터 추가 — `"square"` 시 `Math.min(tileW, tileH)`로 정사각형 강제. `SetupModal`에 "화면 맞춤 / 정사각형" 버튼 그룹 추가. `setupSnapshot`에 `tileShape` 포함(취소 시 복원). 크롭 박스 비율은 `aspectRatio`(tileW/tileH)에서 자동 반영 |
+| 2026-03-27 | `CropModal.tsx`: 크롭 박스 4 코너 리사이즈 핸들 추가 — 드래그 시 `aspectRatio` 고정 유지, 이미지 영역 내로 클램핑. `ActionState` 유니온 타입(`move`/`resize`)으로 이동·리사이즈 단일 포인터 핸들러로 통합. `cropModal.ts`에 `CropHandle` styled component 추가 |
 | 2026-02-28 | `SkulkingHelpModal.tsx`: 점수 계산 규칙에 "비드 실패 (비드 = 0): 라운드 수 × -10점" 항목 추가 |
 | 2026-02-28 | `skulking/index.tsx`: 채팅창 게임 로그 추가 — `skulkingRoundStarted`(라운드 시작), `skulkingCardPlayed`(카드 정보), `skulkingTrickResult`(트릭 승자+카드 목록+보너스), `skulkingRoundResult`(라운드 결과 요약) 이벤트 수신 시 `addGameLog()`로 시스템 메시지 추가 |
 | 2026-02-28 | `styles/chat/index.ts`: `ChatMessage` — `white-space: pre-wrap` 추가(게임 로그 줄바꿈), `text-align: left` 고정(기존 시스템 메시지 center 제거) |
@@ -153,15 +155,15 @@ src/
 │       └── index.tsx               # 슬라이드 퍼즐 (상태 관리 + 핸들러)
 ├── components/single/
 │   └── slide-puzzle/
-│       ├── types.ts                # GridSize(3~7), BestRecord, DefaultImage
-│       ├── utils.ts                # 보드 로직, 이미지 생성, localStorage, calcTileDims
+│       ├── types.ts                # GridSize(3~7), TileShape("fit"|"square"), BestRecord, DefaultImage
+│       ├── utils.ts                # 보드 로직, 이미지 생성, localStorage, calcTileDims(tileShape 지원)
 │       ├── constants.ts            # BG_THEMES (다크/파스텔/라이트 각 12색)
 │       ├── SlidePuzzleBoard.tsx    # 보드 + 타일 렌더링 + 이전 기록 오버레이
-│       ├── SlidePuzzleSubBar.tsx   # 서브바 + 설정 패널 (내부 상태 관리)
+│       ├── SlidePuzzleSubBar.tsx   # 서브바 + 설정 패널 (배경색·순번 표시)
 │       └── modal/
-│           ├── SetupModal.tsx      # 게임 설정 (크기 3~7 + 이미지 선택)
+│           ├── SetupModal.tsx      # 게임 설정 (크기 3~7 + 타일 비율 + 이미지 선택)
 │           ├── ClearModal.tsx      # 클리어 결과 (✕ 닫기 + 다시하기)
-│           └── CropModal.tsx       # 이미지 크롭 (SVG 마스크, 이동만 허용)
+│           └── CropModal.tsx       # 이미지 크롭 (SVG 마스크, 이동+비율고정 리사이즈)
 ├── styles/
 │   ├── index.ts
 │   ├── pages/
@@ -189,7 +191,7 @@ src/
 │           ├── board.ts            # Board, Tile, TileNumber, WallRecord 등
 │           ├── subbar.ts           # SubBar, ActionButton, SettingsPanel, ColorSwatch 등
 │           ├── modal.ts            # ModalOverlay, ModalBox, SetupModalBox 등
-│           └── cropModal.ts        # CropModalBox, CropArea, CropBox, CropOverlaySvg 등
+│           └── cropModal.ts        # CropModalBox, CropArea, CropBox, CropHandle, CropOverlaySvg 등
 ├── types/
 │   └── game.ts                     # 공통 게임 타입 (Card, Room, GameConfig 등)
 └── utils/
@@ -203,6 +205,55 @@ src/
         ├── skulking.ts             # Skulking 설정 (SKULKING_SUIT_COLORS/LABELS/NAMES, isSpecialCard, SKULKING_CONFIG)
         └── index.ts
 ```
+
+## 슬라이드 퍼즐 (싱글플레이어)
+
+### 게임 흐름
+1. 로비 → 방만들기 → 싱글 탭 → 슬라이드 퍼즐 선택 → `/single/slide-puzzle` 이동
+2. **SetupModal**: 그리드 크기(3~7) + 타일 비율(화면 맞춤/정사각형) + 이미지 선택
+3. 이미지 업로드 시 SetupModal 닫힘 → **CropModal** 표시 (비율 고정, 이동+리사이즈)
+4. 크롭 확인 → SetupModal 다시 열림 → "시작" → 정렬된 미리보기 표시
+5. 서브바 "게임 시작" 버튼 → 셔플 후 타이머 시작
+6. 클리어 → ClearModal (✕ 닫기 / 다시하기)
+
+### 보드 구조
+- **N cols × (N+1) rows**: 상단 N×N = 이미지 타일, 하단 행 = 빈칸(0) 1개 + 막힘(-1) N-1개
+- 타일 슬라이딩: 같은 행 또는 같은 열 내에서만 허용 (대각선 불가)
+- CSS `transition: top 0.13s ease, left 0.13s ease`으로 이동 애니메이션
+- 타일은 `position: absolute`로 배치, key=셀 값으로 DOM 재사용
+
+### 타일 크기 계산 (`calcTileDims`)
+```typescript
+calcTileDims(containerW, containerH, size, tileShape) → { tileW, tileH }
+```
+- `"fit"`: tileW/tileH 독립 계산 → 직사각형 타일 (화면 꽉 채움)
+- `"square"`: `Math.min(tileW, tileH)`로 통일 → 정사각형 타일
+- Main 요소 ResizeObserver(`contentRect`) → mainSize → calcTileDims
+
+### 이미지 처리
+- 기본 이미지 4종: canvas API로 생성 (노을·밤하늘·오로라·바다)
+- 커스텀 업로드: SetupModal에서 + 버튼 → CropModal
+- 타일 이미지 슬라이싱: `backgroundSize: ${tileW*N}px ${tileH*N}px` + `backgroundPosition: -${origCol*tileW}px -${origRow*tileH}px`
+
+### CropModal
+- SVG mask 오버레이로 크롭 영역 외 어둡게 처리 (z-index: img=1, svg=2, cropbox=3, handle=4)
+- **이동**: CropBox 본체 드래그
+- **리사이즈**: 4 코너 CropHandle 드래그 — 반대 코너를 anchor로 고정, `Math.min(rawW, rawH * aspectRatio)`로 비율 유지, 이미지 영역 내 클램핑, 최소 크기 40px
+- `ActionState` 유니온(`move`/`resize`)으로 단일 포인터 핸들러 처리
+- `aspectRatio = tileW / tileH` (tileShape 반영됨)
+
+### 설정
+- **타일 비율**: SetupModal에서 선택 ("화면 맞춤" / "정사각형"), setupSnapshot에 포함되어 취소 시 복원
+- **배경색**: 서브바 ⚙ 설정 패널 — 다크/파스텔/라이트 탭, 각 12색 swatch (38×28px, border-radius: 6px)
+- **순번 표시**: 설정 패널 토글 — 타일 좌상단 반투명 검정 배경 + 흰 글자
+- **일시정지**: 헤더 ⏸/▶ 버튼 — 타이머 정지 + 타일 클릭 차단
+
+### 이전 기록
+- `localStorage` 키: `slide-puzzle-best-{size}`
+- 저장: `{ time: number, moves: number }` (최고 시간, 최소 이동)
+- 표시: 하단 막힘 영역(wall tiles) 위에 절대위치 오버레이 — "최고 시간 / 최소 이동" 반투명 배경 + 흰 글자
+
+---
 
 ## 코드 컨벤션
 

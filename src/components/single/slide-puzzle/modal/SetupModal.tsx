@@ -14,16 +14,18 @@ import {
   ModalButton,
 } from "../../../../styles/single/slide-puzzle/modal";
 import { DEFAULT_IMAGES } from "../utils";
-import type { GridSize } from "../types";
+import type { GridSize, TileShape } from "../types";
 
 interface Props {
   size: GridSize;
   selectedIdx: number;
   customImageUrl: string | null;
   hasSnapshot: boolean;
+  tileShape: TileShape;
   onSizeChange: (s: GridSize) => void;
   onSelectImage: (idx: number) => void;
   onUploadClick: () => void;
+  onTileShapeChange: (s: TileShape) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -33,9 +35,11 @@ export default function SetupModal({
   selectedIdx,
   customImageUrl,
   hasSnapshot,
+  tileShape,
   onSizeChange,
   onSelectImage,
   onUploadClick,
+  onTileShapeChange,
   onConfirm,
   onCancel,
 }: Props) {
@@ -49,6 +53,14 @@ export default function SetupModal({
               {s}×{s}
             </SizeButton>
           ))}
+        </ControlBar>
+        <ControlBar>
+          <SizeButton $active={tileShape === "fit"} onClick={() => onTileShapeChange("fit")}>
+            화면 맞춤
+          </SizeButton>
+          <SizeButton $active={tileShape === "square"} onClick={() => onTileShapeChange("square")}>
+            정사각형
+          </SizeButton>
         </ControlBar>
         <ImageSection>
           <ImageSectionLabel>이미지</ImageSectionLabel>

@@ -11,7 +11,7 @@ import {
   PauseButton,
   Main,
 } from "../../../styles/single/slide-puzzle/layout";
-import type { GridSize, BestRecord } from "../../../components/single/slide-puzzle/types";
+import type { GridSize, TileShape, BestRecord } from "../../../components/single/slide-puzzle/types";
 import {
   shuffleBoard,
   makeGoalBoard,
@@ -52,9 +52,11 @@ export default function SlidePuzzle() {
     size: GridSize;
     selectedIdx: number;
     customImageUrl: string | null;
+    tileShape: TileShape;
   } | null>(null);
 
   const [showNumbers, setShowNumbers] = useState(false);
+  const [tileShape, setTileShape] = useState<TileShape>("fit");
   const [boardBg, setBoardBg] = useState("#161616");
   const [bgTab, setBgTab] = useState(0);
   const [mainSize, setMainSize] = useState({ w: window.innerWidth, h: window.innerHeight - 200 });
@@ -112,15 +114,16 @@ export default function SlidePuzzle() {
   }, [size]);
 
   const handleNewGame = useCallback(() => {
-    setSetupSnapshot({ size, selectedIdx, customImageUrl });
+    setSetupSnapshot({ size, selectedIdx, customImageUrl, tileShape });
     setShowSetupModal(true);
-  }, [size, selectedIdx, customImageUrl]);
+  }, [size, selectedIdx, customImageUrl, tileShape]);
 
   const handleCancelSetup = useCallback(() => {
     if (setupSnapshot) {
       setSize(setupSnapshot.size);
       setSelectedIdx(setupSnapshot.selectedIdx);
       setCustomImageUrl(setupSnapshot.customImageUrl);
+      setTileShape(setupSnapshot.tileShape);
     }
     setShowSetupModal(false);
   }, [setupSnapshot]);
@@ -200,8 +203,8 @@ export default function SlidePuzzle() {
   };
 
   const { tileW, tileH } = useMemo(
-    () => calcTileDims(mainSize.w, mainSize.h, size),
-    [mainSize, size]
+    () => calcTileDims(mainSize.w, mainSize.h, size, tileShape),
+    [mainSize, size, tileShape]
   );
   const boardSize = useMemo(() => calcBoardSize(tileW, tileH, size), [tileW, tileH, size]);
   const aspectRatio = useMemo(() => (tileH > 0 ? tileW / tileH : 1), [tileW, tileH]);
@@ -291,9 +294,11 @@ export default function SlidePuzzle() {
           selectedIdx={selectedIdx}
           customImageUrl={customImageUrl}
           hasSnapshot={!!setupSnapshot}
+          tileShape={tileShape}
           onSizeChange={handleSizeChange}
           onSelectImage={handleSelectImage}
           onUploadClick={handleUploadClick}
+          onTileShapeChange={setTileShape}
           onConfirm={handleConfirmSetup}
           onCancel={handleCancelSetup}
         />

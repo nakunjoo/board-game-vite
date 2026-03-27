@@ -3,6 +3,7 @@ import { ModalOverlay } from "../../../../styles/single/slide-puzzle/modal";
 import {
   CropArea,
   CropBox,
+  CropHandle,
   CropOverlaySvg,
   CropBtn,
   CropButtonRow,
@@ -19,7 +20,13 @@ interface Props {
 }
 
 interface Rect { x: number; y: number; w: number; h: number; }
-interface DragState { startX: number; startY: number; startBox: Rect; }
+type Corner = "nw" | "ne" | "sw" | "se";
+type ActionState =
+  | { kind: "move"; startX: number; startY: number; startBox: Rect }
+  | { kind: "resize"; corner: Corner; anchorX: number; anchorY: number };
+
+const MIN_SIZE = 40;
+const CORNERS: Corner[] = ["nw", "ne", "sw", "se"];
 
 export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
@@ -30,12 +37,14 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
   const [displayRect, setDisplayRect] = useState<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   const [cropBox, setCropBox] = useState<Rect>({ x: 0, y: 0, w: 0, h: 0 });
 
-  const dragRef = useRef<DragState | null>(null);
+  const actionRef = useRef<ActionState | null>(null);
   const cropBoxRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   const displayRectRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
+  const aspectRatioRef = useRef(aspectRatio);
 
   useEffect(() => { cropBoxRef.current = cropBox; }, [cropBox]);
   useEffect(() => { displayRectRef.current = displayRect; }, [displayRect]);
+  useEffect(() => { aspectRatioRef.current = aspectRatio; }, [aspectRatio]);
 
   // 이미지 로드
   useEffect(() => {
@@ -73,7 +82,6 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
     const dispY = (areaH - dispH) / 2;
     const dr: Rect = { x: dispX, y: dispY, w: dispW, h: dispH };
 
-    // 크롭박스: aspectRatio 유지하며 최대 크기
     let cbW: number, cbH: number;
     if (dispW / dispH > aspectRatio) {
       cbH = dispH; cbW = cbH * aspectRatio;
@@ -92,33 +100,99 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
     displayRectRef.current = dr;
   }, [loaded, areaSize, aspectRatio]);
 
-  const handlePointerMove = (e: PointerEvent) => {
-    if (!dragRef.current) return;
-    const { startX, startY, startBox } = dragRef.current;
-    const dr = displayRectRef.current;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-    const x = Math.max(dr.x, Math.min(dr.x + dr.w - startBox.w, startBox.x + dx));
-    const y = Math.max(dr.y, Math.min(dr.y + dr.h - startBox.h, startBox.y + dy));
-    const next = { x, y, w: startBox.w, h: startBox.h };
+  const handlePointerMove = (e: PointerEvent) => {
+    const action = actionRef.current;
+    if (!action) return;
+    const dr = displayRectRef.current;
+    const ar = aspectRatioRef.current;
+
+    if (action.kind === "move") {
+      const { startX, startY, startBox } = action;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const x = clamp(startBox.x + dx, dr.x, dr.x + dr.w - startBox.w);
+      const y = clamp(startBox.y + dy, dr.y, dr.y + dr.h - startBox.h);
+      const next = { x, y, w: startBox.w, h: startBox.h };
+      cropBoxRef.current = next;
+      setCropBox({ ...next });
+      return;
+    }
+
+    // resize
+    const { corner, anchorX, anchorY } = action;
+
+    let rawW: number, rawH: number;
+    let maxW: number, maxH: number;
+
+    if (corner === "se") {
+      rawW = e.clientX - anchorX;
+      rawH = e.clientY - anchorY;
+      maxW = dr.x + dr.w - anchorX;
+      maxH = dr.y + dr.h - anchorY;
+    } else if (corner === "sw") {
+      rawW = anchorX - e.clientX;
+      rawH = e.clientY - anchorY;
+      maxW = anchorX - dr.x;
+      maxH = dr.y + dr.h - anchorY;
+    } else if (corner === "ne") {
+      rawW = e.clientX - anchorX;
+      rawH = anchorY - e.clientY;
+      maxW = dr.x + dr.w - anchorX;
+      maxH = anchorY - dr.y;
+    } else {
+      // nw
+      rawW = anchorX - e.clientX;
+      rawH = anchorY - e.clientY;
+      maxW = anchorX - dr.x;
+      maxH = anchorY - dr.y;
+    }
+
+    const clampedW = clamp(rawW, MIN_SIZE, maxW);
+    const clampedH = clamp(rawH, MIN_SIZE, maxH);
+    const newW = Math.min(clampedW, clampedH * ar);
+    const newH = newW / ar;
+
+    let newX: number, newY: number;
+    if (corner === "se") { newX = anchorX; newY = anchorY; }
+    else if (corner === "sw") { newX = anchorX - newW; newY = anchorY; }
+    else if (corner === "ne") { newX = anchorX; newY = anchorY - newH; }
+    else { newX = anchorX - newW; newY = anchorY - newH; }
+
+    const next = { x: newX, y: newY, w: newW, h: newH };
     cropBoxRef.current = next;
     setCropBox({ ...next });
   };
 
   const handlePointerUp = () => {
-    dragRef.current = null;
+    actionRef.current = null;
     window.removeEventListener("pointermove", handlePointerMove);
     window.removeEventListener("pointerup", handlePointerUp);
   };
 
-  const startDrag = (e: React.PointerEvent) => {
+  const startMove = (e: React.PointerEvent) => {
     e.stopPropagation();
-    dragRef.current = {
+    actionRef.current = {
+      kind: "move",
       startX: e.clientX,
       startY: e.clientY,
       startBox: { ...cropBoxRef.current },
     };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
+  const startResize = (corner: Corner) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    const cb = cropBoxRef.current;
+    let anchorX: number, anchorY: number;
+    if (corner === "se") { anchorX = cb.x; anchorY = cb.y; }
+    else if (corner === "sw") { anchorX = cb.x + cb.w; anchorY = cb.y; }
+    else if (corner === "ne") { anchorX = cb.x; anchorY = cb.y + cb.h; }
+    else { anchorX = cb.x + cb.w; anchorY = cb.y + cb.h; }
+
+    actionRef.current = { kind: "resize", corner, anchorX, anchorY };
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
   };
@@ -162,7 +236,6 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
           {!loaded && <CropLoading>⏳ 이미지 불러오는 중...</CropLoading>}
           {loaded && (
             <>
-              {/* 이미지 (z-index 없음, 가장 아래) */}
               <img
                 src={imageUrl}
                 alt=""
@@ -180,7 +253,6 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
                 draggable={false}
               />
 
-              {/* SVG 오버레이 — 크롭 영역만 뚫린 어두운 마스크 (z-index: 2) */}
               <CropOverlaySvg>
                 <defs>
                   <mask id="crop-hole">
@@ -199,15 +271,22 @@ export default function CropModal({ imageUrl, aspectRatio, onConfirm, onCancel }
                 />
               </CropOverlaySvg>
 
-              {/* 크롭 박스 테두리 + 드래그 (z-index: 3) */}
               <CropBox
                 style={{ left: cropBox.x, top: cropBox.y, width: cropBox.w, height: cropBox.h }}
-                onPointerDown={startDrag}
-              />
+                onPointerDown={startMove}
+              >
+                {CORNERS.map((corner) => (
+                  <CropHandle
+                    key={corner}
+                    $corner={corner}
+                    onPointerDown={startResize(corner)}
+                  />
+                ))}
+              </CropBox>
             </>
           )}
         </CropArea>
-        <CropHint>드래그하여 위치를 조정하세요</CropHint>
+        <CropHint>드래그로 이동, 모서리를 드래그하면 크기 조절 (비율 고정)</CropHint>
         <CropButtonRow>
           <CropBtn onClick={onCancel}>취소</CropBtn>
           <CropBtn $primary onClick={handleConfirm} disabled={!loaded}>적용</CropBtn>
