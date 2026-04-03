@@ -19,6 +19,7 @@ import {
 
 const SINGLE_GAMES = [
   { value: "slide-puzzle", label: "슬라이드 퍼즐", icon: "🧩", desc: "타일을 밀어 순서대로 맞추세요" },
+  { value: "minesweeper", label: "지뢰찾기", icon: "💣", desc: "지뢰를 피해 모든 칸을 열어보세요" },
 ];
 
 interface Room {

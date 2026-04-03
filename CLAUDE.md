@@ -6,6 +6,16 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-03 | 지뢰찾기 싱글게임 추가: `components/single/minesweeper/`, `pages/Single/Minesweeper/`, `styles/single/minesweeper/` 신규 생성 |
+| 2026-04-03 | `App.tsx`: `/single/minesweeper` 라우트 추가. `Lobby.tsx`: SINGLE_GAMES에 지뢰찾기 추가 |
+| 2026-04-03 | 지뢰찾기 구조: `types.ts`(Difficulty, CellStatus, GamePhase, Cell, BestRecord), `constants.ts`(DIFFICULTIES, NUMBER_COLORS), `utils.ts`(보드 로직·localStorage), `MinesweeperBoard.tsx`, `modal/SetupModal.tsx`, `modal/ResultModal.tsx` |
+| 2026-04-03 | 지뢰찾기 난이도: 초급(9×9, 10개), 중급(16×16, 40개), 고급(22행×16열, 99개) — 행×열 순서로 표기 |
+| 2026-04-03 | 지뢰찾기 게임 흐름: SetupModal(난이도 선택) → 보드 표시(지뢰 미배치) → 첫 클릭 시 지뢰 배치(첫 클릭 주변 3×3 안전 보장) + 타이머 시작 → 클리어/폭발 시 ResultModal |
+| 2026-04-03 | 지뢰찾기 깃발 없음: 깃발 기능 미구현. 지뢰 제외한 모든 칸 공개 시 승리 |
+| 2026-04-03 | 지뢰찾기 셀 크기: `calcCellSize(containerW, containerH, rows, cols)` → `Math.max(Math.min(byW, byH), 20)` — 최소 20px, 최대 제한 없음. 화면을 항상 꽉 채우도록 자동 계산 (스크롤 없음) |
+| 2026-04-03 | 지뢰찾기 GameBar: 여백 \| 😊 재시작 버튼(중앙) \| 타이머(우측). 높이 최소화(padding 4px) |
+| 2026-04-03 | 지뢰찾기 최고 기록: localStorage(`minesweeper-best-{difficulty}`)에 난이도별 최고 시간 저장 |
+| 2026-04-03 | 지뢰찾기 연쇄 공개: 빈 칸(adjacentMines=0) 클릭 시 BFS로 인접 빈 칸 자동 공개 |
 | 2026-03-27 | 슬라이드 퍼즐 싱글게임 추가: `components/single/slide-puzzle/`, `pages/Single/SlidePuzzle/`, `styles/single/slide-puzzle/` 신규 생성 |
 | 2026-03-27 | `App.tsx`: WebSocketProvider를 멀티플레이어 라우트(/,/room/:roomName)에만 스코프, `/single/slide-puzzle` 라우트 추가 |
 | 2026-03-27 | `Lobby.tsx`: 방만들기 모달에 멀티/싱글 탭 추가. 싱글 탭 선택 시 바로 해당 게임 페이지로 이동. 방만들기 버튼은 서버 연결 여부와 무관하게 항상 활성화 |

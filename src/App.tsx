@@ -3,6 +3,7 @@ import { WebSocketProvider } from "./contexts/WebSocketContext";
 import Lobby from "./pages/Lobby";
 import Room from "./pages/Room/index";
 import SlidePuzzle from "./pages/Single/SlidePuzzle/index";
+import Minesweeper from "./pages/Single/Minesweeper/index";
 import "./App.css";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
 
         {/* 싱글 게임 (소켓 없음) */}
         <Route path="/single/slide-puzzle" element={<SlidePuzzle />} />
+        <Route path="/single/minesweeper" element={<Minesweeper />} />
       </Routes>
     </BrowserRouter>
   );
