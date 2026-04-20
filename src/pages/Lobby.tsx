@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket, getPlayerIdForRoom, getNicknameForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
+import { useAuth } from "../contexts/AuthContext";
 import {
   ModalOverlay,
   ModalContent,
@@ -42,9 +43,22 @@ type CreateTab = "multi" | "single";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
+  const { user, signOut } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [newRoomName, setNewRoomName] = useState("");
   const [nicknameInput, setNicknameInput] = useState("");
@@ -225,6 +239,38 @@ export default function Lobby() {
   return (
     <div className="lobby">
       <h1>BOBOGANG</h1>
+
+      {user && (
+        <div ref={profileRef} style={{ position: "fixed", top: 16, right: 20, zIndex: 100 }}>
+          <div
+            onClick={() => setShowProfileMenu((v) => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: "rgba(255,255,255,0.08)", borderRadius: 24, padding: "5px 12px 5px 6px", border: "1px solid rgba(255,255,255,0.12)" }}
+          >
+            {user.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#646cff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700 }}>
+                {(user.user_metadata?.name || user.email || "?")[0].toUpperCase()}
+              </div>
+            )}
+            <span style={{ color: "#eee", fontSize: "0.85rem", fontWeight: 500 }}>
+              {user.user_metadata?.name || user.email?.split("@")[0] || "유저"}
+            </span>
+          </div>
+
+          {showProfileMenu && (
+            <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "#1e1e2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "6px 0", minWidth: 130, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+              <button
+                onClick={() => { signOut(); setShowProfileMenu(false); }}
+                style={{ width: "100%", background: "none", border: "none", color: "#ff6b6b", padding: "10px 16px", textAlign: "left", cursor: "pointer", fontSize: "0.9rem" }}
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="connection-status">
         {connected ? "서버 연결됨" : "서버 연결 중..."}
       </div>
