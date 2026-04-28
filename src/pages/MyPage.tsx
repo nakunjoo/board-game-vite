@@ -71,7 +71,7 @@ interface HistoryEntry {
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const { user, session, nickname, nicknameUpdatedAt, updateNickname } = useAuth();
+  const { session, nickname, nicknameUpdatedAt, updateNickname } = useAuth();
   const [input, setInput] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
