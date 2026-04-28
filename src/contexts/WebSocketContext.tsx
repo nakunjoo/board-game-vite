@@ -6,48 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
-const SUITS = ["♠", "♥", "♦", "♣"];
-const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-
-function generateCardName(): string {
-  const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
-  const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
-  const id = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-  return `${suit}${rank}${id}`;
-}
-
-function getPlayerIdKey(roomName: string): string {
-  return `playerId:${roomName}`;
-}
-
-function getRoomNicknameKey(roomName: string): string {
-  return `nickname:${roomName}`;
-}
-
-export function getPlayerIdForRoom(roomName: string): string {
-  const saved = sessionStorage.getItem(getPlayerIdKey(roomName));
-  if (saved) return saved;
-  const newId = generateCardName();
-  sessionStorage.setItem(getPlayerIdKey(roomName), newId);
-  return newId;
-}
-
-export function getNicknameForRoom(roomName: string): string {
-  const saved = sessionStorage.getItem(getRoomNicknameKey(roomName));
-  if (saved) return saved;
-  // 닉네임 미입력 시 playerId와 동일
-  return getPlayerIdForRoom(roomName);
-}
-
-export function setNicknameForRoom(roomName: string, nickname: string): void {
-  sessionStorage.setItem(getRoomNicknameKey(roomName), nickname);
-}
-
-export function clearNicknameForRoom(roomName: string): void {
-  sessionStorage.removeItem(getRoomNicknameKey(roomName));
-  sessionStorage.removeItem(getPlayerIdKey(roomName));
-}
+import { useAuth } from "./AuthContext";
 
 interface WebSocketContextType {
   connected: boolean;
@@ -58,6 +17,7 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
+  const { session, loading } = useAuth();
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const listenersRef = useRef<Set<(event: string, data: unknown) => void>>(
@@ -78,8 +38,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // 환경 변수에서 WebSocket URL 가져오기
-    const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:9030/ws";
+    if (loading || !session?.access_token) return;
+
+    const wsBase = import.meta.env.VITE_WS_URL || "ws://localhost:9030/ws";
+    const wsUrl = `${wsBase}?token=${encodeURIComponent(session.access_token)}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -100,7 +62,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return () => {
       ws.close();
     };
-  }, []);
+  }, [loading, session?.access_token]);
 
   return (
     <WebSocketContext.Provider

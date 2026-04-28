@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import {
-  useWebSocket,
-  getPlayerIdForRoom,
-  getNicknameForRoom,
-  clearNicknameForRoom,
-} from "../../../contexts/WebSocketContext";
+import { useWebSocket } from "../../../contexts/WebSocketContext";
+import { useAuth } from "../../../contexts/AuthContext";
 import { getGameConfig } from "../../../utils/games";
 import type { GameConfig } from "../../../types/game";
 import type { Player } from "../../../components/gang/types";
@@ -41,8 +37,9 @@ interface ChatMessageData {
 export function useRoomBase() {
   const { roomName } = useParams<{ roomName: string }>();
   const { connected, send, subscribe } = useWebSocket();
-  const playerId = roomName ? getPlayerIdForRoom(roomName) : "";
-  const nickname = roomName ? getNicknameForRoom(roomName) : "";
+  const { user, nickname: authNickname } = useAuth();
+  const playerId = user?.id ?? "";
+  const nickname = authNickname ?? user?.email ?? "";
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
@@ -219,7 +216,6 @@ export function useRoomBase() {
           alert(errorData.message);
           if (errorData.message.includes("방이 존재하지 않습니다")) {
             if (roomName) {
-              clearNicknameForRoom(roomName);
               sessionStorage.removeItem(`joined:${roomName}`);
             }
             navigate("/");
@@ -251,7 +247,7 @@ export function useRoomBase() {
   useEffect(() => {
     if (connected && roomName && isRefresh) {
       const timer = setTimeout(() => {
-        send("joinRoom", { name: roomName, playerId, nickname });
+        send("joinRoom", { name: roomName, nickname });
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -266,7 +262,6 @@ export function useRoomBase() {
   const leaveRoom = () => {
     if (roomName) {
       send("leaveRoom", { name: roomName });
-      clearNicknameForRoom(roomName);
       sessionStorage.removeItem(`joined:${roomName}`);
     }
   };

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
+import { recordSingleGame } from "../../../utils/recordSingleGame";
 import type { Cell, Difficulty, GamePhase, BestRecord } from "../../../components/single/minesweeper/types";
 import { DIFFICULTIES } from "../../../components/single/minesweeper/constants";
 import {
@@ -32,6 +34,7 @@ import {
 
 export default function Minesweeper() {
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const config = useMemo(() => DIFFICULTIES[difficulty], [difficulty]);
@@ -123,6 +126,9 @@ export default function Minesweeper() {
           setPhase("lost");
           setFaceEmoji("😵");
           setIsWon(false);
+          if (session?.access_token) {
+            recordSingleGame(session.access_token, "minesweeper", false, secondsRef.current, { difficulty });
+          }
           setTimeout(() => setShowResultModal(true), 800);
           return revealedBoard;
         }
@@ -139,6 +145,9 @@ export default function Minesweeper() {
           if (!prevBest || elapsed < prevBest.time) {
             saveBest(difficulty, newBest);
             setBest(newBest);
+          }
+          if (session?.access_token) {
+            recordSingleGame(session.access_token, "minesweeper", true, elapsed, { difficulty });
           }
           setTimeout(() => setShowResultModal(true), 500);
         }

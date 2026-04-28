@@ -158,3 +158,72 @@ export const PlaceholderBox = styled.div`
   color: #444;
   font-size: 0.9rem;
 `;
+
+export const HistoryList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const HistoryItem = styled.div<{ $status: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #252525;
+  border-radius: 8px;
+  border-left: 3px solid ${({ $status }) =>
+    $status === "abandoned_voluntary"
+      ? "#f39c12"
+      : $status === "abandoned_disconnected"
+        ? "#555"
+        : "transparent"};
+`;
+
+export const HistoryBadge = styled.span<{ $gameType: string; $abandoned?: boolean }>`
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: ${({ $gameType, $abandoned }) =>
+    $abandoned
+      ? "#333"
+      : $gameType === "gang"
+        ? "rgba(155,89,182,0.3)"
+        : $gameType === "spice"
+          ? "rgba(230,126,34,0.3)"
+          : "rgba(231,76,60,0.3)"};
+  color: ${({ $gameType, $abandoned }) =>
+    $abandoned
+      ? "#666"
+      : $gameType === "gang"
+        ? "#c39bd3"
+        : $gameType === "spice"
+          ? "#f0a060"
+          : "#e88"};
+`;
+
+export const HistoryInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  .title {
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+
+  .sub {
+    font-size: 0.78rem;
+    color: #555;
+    margin-top: 0.1rem;
+  }
+`;
+
+export const HistoryResult = styled.div<{ $isWinner?: boolean | null }>`
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: ${({ $isWinner }) =>
+    $isWinner === true ? "#22c55e" : $isWinner === false ? "#ef4444" : "#666"};
+`;

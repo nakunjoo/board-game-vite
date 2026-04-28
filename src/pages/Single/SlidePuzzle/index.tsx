@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
+import { recordSingleGame } from "../../../utils/recordSingleGame";
 import {
   PageWrapper,
   Header,
@@ -32,6 +34,7 @@ import CropModal from "../../../components/single/slide-puzzle/modal/CropModal";
 
 export default function SlidePuzzle() {
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const [size, setSize] = useState<GridSize>(4);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -199,6 +202,9 @@ export default function SlidePuzzle() {
       };
       saveBest(size, newBest);
       setBest(newBest);
+      if (session?.access_token) {
+        recordSingleGame(session.access_token, "slide-puzzle", true, seconds, { size, moves: newMoves });
+      }
     }
   };
 

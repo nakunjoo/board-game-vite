@@ -10,6 +10,10 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-28 | **인증 기반 플레이어 식별 전환**: 랜덤 `playerId` 생성(sessionStorage) 제거 → Supabase `user.id`(UUID)를 `playerId`로 사용 |
+| 2026-04-28 | `WebSocketContext.tsx`: 랜덤 id 생성 함수(`generateCardName`, `getPlayerIdForRoom`, `clearNicknameForRoom`) 전체 제거. WS 연결 시 `?token=ACCESS_TOKEN` 쿼리파람 추가 (Supabase `session.access_token`). `loading` / `session.access_token` 변경 시 재연결 |
+| 2026-04-28 | `Lobby.tsx`: `createRoom`/`joinRoom` payload에서 `playerId`/`userId` 필드 제거 — 서버가 토큰 검증 후 직접 userId 결정. `setNicknameForRoom` 호출 제거 |
+| 2026-04-28 | `useRoomBase.ts`: `playerId = user?.id ?? ""`, `nickname = authNickname ?? user?.email ?? ""` 로 변경. `getPlayerIdForRoom`, `getNicknameForRoom`, `clearNicknameForRoom` 의존성 제거. 재연결 `joinRoom` payload에서 `playerId`/`userId` 제거 |
 | 2026-04-28 | 음성 통화 기능 추가 (WebRTC P2P): `pages/Room/common/useVoice.ts` 신규 생성 |
 | 2026-04-28 | `styles/chat/index.ts`: `VoiceToggleButton`, `VoicePanel`, `VoiceParticipantList`, `VoiceConnectButton` 등 음성 스타일 컴포넌트 추가 |
 | 2026-04-28 | `RoomLayout.tsx`: 채팅 버튼 위 마이크 아이콘 버튼 추가, 하단 슬라이드 음성 패널 추가. 음성 패널은 참여자 목록 + 연결하기/연결끊기 버튼으로 구성. `send`, `subscribe`, `playerId` optional props 추가 |

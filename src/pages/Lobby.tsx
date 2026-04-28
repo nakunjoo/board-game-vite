@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useWebSocket, getPlayerIdForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
+import { useWebSocket } from "../contexts/WebSocketContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
   LobbyHeader,
@@ -119,10 +119,8 @@ export default function Lobby() {
         case "passwordVerified": {
           const verifyData = data as { name: string; success: boolean };
           if (verifyData.success) {
-            const pid = getPlayerIdForRoom(verifyData.name);
             const nick = nickname || "플레이어";
-            setNicknameForRoom(verifyData.name, nick);
-            send("joinRoom", { name: verifyData.name, playerId: pid, nickname: nick });
+            send("joinRoom", { name: verifyData.name, nickname: nick });
             setShowModal(false);
           } else {
             setError("비밀번호가 일치하지 않습니다");
@@ -177,12 +175,9 @@ export default function Lobby() {
       return;
     }
     const effectiveRoomName = newRoomName.trim() || `${nickname || '플레이어'}의방`;
-    const pid = getPlayerIdForRoom(effectiveRoomName);
     const nick = nickname || "플레이어";
-    setNicknameForRoom(effectiveRoomName, nick);
-    const roomData: { name: string; playerId: string; nickname: string; gameType: string; password?: string } = {
+    const roomData: { name: string; nickname: string; gameType: string; password?: string } = {
       name: effectiveRoomName,
-      playerId: pid,
       nickname: nick,
       gameType,
     };
@@ -194,10 +189,8 @@ export default function Lobby() {
   };
 
   const joinRoom = () => {
-    const pid = getPlayerIdForRoom(joinTargetRoom);
     const nick = nickname || "플레이어";
-    setNicknameForRoom(joinTargetRoom, nick);
-    send("joinRoom", { name: joinTargetRoom, playerId: pid, nickname: nick });
+    send("joinRoom", { name: joinTargetRoom, nickname: nick });
     setShowModal(false);
   };
 
