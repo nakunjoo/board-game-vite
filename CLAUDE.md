@@ -2,6 +2,10 @@
 
 React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케이션
 
+## Supabase
+
+DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCHEMA.md) 참조
+
 ## 변경 이력
 
 | 날짜 | 내용 |

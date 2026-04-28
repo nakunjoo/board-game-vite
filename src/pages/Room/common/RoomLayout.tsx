@@ -295,7 +295,7 @@ export default function RoomLayout({
                 <VoiceEmptyMessage>아직 통화 참여자가 없습니다.</VoiceEmptyMessage>
               ) : (
                 voice.voiceParticipants.map((p) => (
-                  <VoiceParticipantItem key={p.playerId}>
+                  <VoiceParticipantItem key={p.playerId} $isSpeaking={p.isSpeaking}>
                     <div className="avatar">{p.nickname.charAt(0).toUpperCase()}</div>
                     <span className="name">{p.nickname}</span>
                     <span className="mic-icon">

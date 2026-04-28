@@ -134,13 +134,16 @@ export const VoiceParticipantList = styled.div`
   gap: 0.5rem;
 `;
 
-export const VoiceParticipantItem = styled.div`
+export const VoiceParticipantItem = styled.div<{ $isSpeaking?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   background-color: #2a2a2a;
   border-radius: 8px;
+  border: 1.5px solid ${({ $isSpeaking }) => ($isSpeaking ? "#22c55e" : "transparent")};
+  box-shadow: ${({ $isSpeaking }) => ($isSpeaking ? "0 0 8px rgba(34,197,94,0.4)" : "none")};
+  transition: border-color 0.15s, box-shadow 0.15s;
 
   .avatar {
     width: 32px;
@@ -154,6 +157,8 @@ export const VoiceParticipantItem = styled.div`
     font-weight: 700;
     color: white;
     flex-shrink: 0;
+    outline: ${({ $isSpeaking }) => ($isSpeaking ? "2px solid #22c55e" : "none")};
+    outline-offset: 2px;
   }
 
   .name {
@@ -162,9 +167,10 @@ export const VoiceParticipantItem = styled.div`
   }
 
   .mic-icon {
-    color: #22c55e;
+    color: ${({ $isSpeaking }) => ($isSpeaking ? "#22c55e" : "#555")};
     display: flex;
     align-items: center;
+    transition: color 0.15s;
   }
 `;
 

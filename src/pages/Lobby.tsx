@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useWebSocket, getPlayerIdForRoom, getNicknameForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
+import { useWebSocket, getPlayerIdForRoom, setNicknameForRoom } from "../contexts/WebSocketContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  LobbyHeader,
+  ProfileButton,
+  ProfileDropdown,
   ModalOverlay,
   ModalContent,
   ModalInput,
@@ -38,12 +41,11 @@ const GAME_TYPES = [
 ];
 
 type ModalMode = "create" | "join";
-type JoinStep = "password" | "nickname";
 type CreateTab = "multi" | "single";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
-  const { user, signOut } = useAuth();
+  const { user, signOut, nickname } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -61,13 +63,11 @@ export default function Lobby() {
   }, []);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [newRoomName, setNewRoomName] = useState("");
-  const [nicknameInput, setNicknameInput] = useState("");
   const [gameType, setGameType] = useState("gang");
   const [joinTargetRoom, setJoinTargetRoom] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
-  const [joinStep, setJoinStep] = useState<JoinStep>("password");
   const [createTab, setCreateTab] = useState<CreateTab>("multi");
   const navigate = useNavigate();
 
@@ -119,7 +119,11 @@ export default function Lobby() {
         case "passwordVerified": {
           const verifyData = data as { name: string; success: boolean };
           if (verifyData.success) {
-            setJoinStep("nickname");
+            const pid = getPlayerIdForRoom(verifyData.name);
+            const nick = nickname || "플레이어";
+            setNicknameForRoom(verifyData.name, nick);
+            send("joinRoom", { name: verifyData.name, playerId: pid, nickname: nick });
+            setShowModal(false);
           } else {
             setError("비밀번호가 일치하지 않습니다");
             setTimeout(() => setError(null), 3000);
@@ -143,18 +147,9 @@ export default function Lobby() {
     return () => clearInterval(interval);
   }, [connected, send]);
 
-  const resolveNickname = (roomName: string): string => {
-    if (nicknameInput.trim()) {
-      setNicknameForRoom(roomName, nicknameInput.trim());
-      return nicknameInput.trim();
-    }
-    return getNicknameForRoom(roomName);
-  };
-
   const openCreateModal = () => {
     setModalMode("create");
     setNewRoomName("");
-    setNicknameInput("");
     setGameType("gang");
     setIsPrivate(false);
     setPasswordInput("");
@@ -171,8 +166,6 @@ export default function Lobby() {
     setModalMode("join");
     setJoinTargetRoom(name);
     setJoinTargetIsPrivate(isPrivateRoom || false);
-    setJoinStep(isPrivateRoom ? "password" : "nickname");
-    setNicknameInput("");
     setPasswordInput("");
     setShowModal(true);
   };
@@ -183,9 +176,10 @@ export default function Lobby() {
       setTimeout(() => setError(null), 3000);
       return;
     }
-    const effectiveRoomName = newRoomName.trim() || `${nicknameInput.trim() || '플레이어'}의방`;
+    const effectiveRoomName = newRoomName.trim() || `${nickname || '플레이어'}의방`;
     const pid = getPlayerIdForRoom(effectiveRoomName);
-    const nick = resolveNickname(effectiveRoomName);
+    const nick = nickname || "플레이어";
+    setNicknameForRoom(effectiveRoomName, nick);
     const roomData: { name: string; playerId: string; nickname: string; gameType: string; password?: string } = {
       name: effectiveRoomName,
       playerId: pid,
@@ -200,29 +194,17 @@ export default function Lobby() {
   };
 
   const joinRoom = () => {
-    if (joinTargetIsPrivate && !passwordInput.trim()) {
-      setError("비밀번호를 입력해주세요");
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
     const pid = getPlayerIdForRoom(joinTargetRoom);
-    const nick = resolveNickname(joinTargetRoom);
-    const joinData: { name: string; playerId: string; nickname: string; password?: string } = {
-      name: joinTargetRoom,
-      playerId: pid,
-      nickname: nick,
-    };
-    if (joinTargetIsPrivate && passwordInput.trim()) {
-      joinData.password = passwordInput.trim();
-    }
-    send("joinRoom", joinData);
+    const nick = nickname || "플레이어";
+    setNicknameForRoom(joinTargetRoom, nick);
+    send("joinRoom", { name: joinTargetRoom, playerId: pid, nickname: nick });
     setShowModal(false);
   };
 
   const handleConfirm = () => {
     if (modalMode === "create") {
       createRoom();
-    } else if (joinTargetIsPrivate && joinStep === "password") {
+    } else if (joinTargetIsPrivate) {
       if (!passwordInput.trim()) {
         setError("비밀번호를 입력해주세요");
         setTimeout(() => setError(null), 3000);
@@ -238,38 +220,29 @@ export default function Lobby() {
 
   return (
     <div className="lobby">
-      <h1>BOBOGANG</h1>
-
-      {user && (
-        <div ref={profileRef} style={{ position: "fixed", top: 16, right: 20, zIndex: 100 }}>
-          <div
-            onClick={() => setShowProfileMenu((v) => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: "rgba(255,255,255,0.08)", borderRadius: 24, padding: "5px 12px 5px 6px", border: "1px solid rgba(255,255,255,0.12)" }}
-          >
-            {user.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#646cff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700 }}>
-                {(user.user_metadata?.name || user.email || "?")[0].toUpperCase()}
+      <LobbyHeader>
+        <h1 className="title">BOBOGANG</h1>
+        {user && (
+          <div ref={profileRef} style={{ position: "relative" }}>
+            <ProfileButton onClick={() => setShowProfileMenu((v) => !v)}>
+              <div className="avatar-fallback">
+                {(nickname || "?")[0].toUpperCase()}
               </div>
+              <span className="name">{nickname || "..."}</span>
+            </ProfileButton>
+            {showProfileMenu && (
+              <ProfileDropdown>
+                <button onClick={() => { navigate("/mypage"); setShowProfileMenu(false); }}>
+                  마이페이지
+                </button>
+                <button onClick={() => { signOut(); setShowProfileMenu(false); }}>
+                  로그아웃
+                </button>
+              </ProfileDropdown>
             )}
-            <span style={{ color: "#eee", fontSize: "0.85rem", fontWeight: 500 }}>
-              {user.user_metadata?.name || user.email?.split("@")[0] || "유저"}
-            </span>
           </div>
-
-          {showProfileMenu && (
-            <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "#1e1e2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "6px 0", minWidth: 130, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
-              <button
-                onClick={() => { signOut(); setShowProfileMenu(false); }}
-                style={{ width: "100%", background: "none", border: "none", color: "#ff6b6b", padding: "10px 16px", textAlign: "left", cursor: "pointer", fontSize: "0.9rem" }}
-              >
-                로그아웃
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </LobbyHeader>
 
       <div className="connection-status">
         {connected ? "서버 연결됨" : "서버 연결 중..."}
@@ -346,14 +319,6 @@ export default function Lobby() {
                       onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
                       autoFocus
                     />
-                    <ModalInput
-                      type="text"
-                      value={nicknameInput}
-                      onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
-                      placeholder="닉네임 (미입력 시 랜덤)"
-                      maxLength={6}
-                      onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                    />
                     <RadioGroup>
                       <label>게임 타입</label>
                       <RadioOptions>
@@ -412,23 +377,12 @@ export default function Lobby() {
                 )}
               </>
             )}
-            {modalMode === "join" && joinTargetIsPrivate && joinStep === "password" && (
+            {modalMode === "join" && joinTargetIsPrivate && (
               <ModalInput
                 type="text"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="비밀번호 입력"
-                onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
-                autoFocus
-              />
-            )}
-            {modalMode === "join" && (!joinTargetIsPrivate || joinStep === "nickname") && (
-              <ModalInput
-                type="text"
-                value={nicknameInput}
-                onChange={(e) => setNicknameInput(e.target.value.slice(0, 6))}
-                placeholder="닉네임 (미입력 시 랜덤)"
-                maxLength={6}
                 onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
                 autoFocus
               />
@@ -441,7 +395,7 @@ export default function Lobby() {
                   onClick={handleConfirm}
                   disabled={isConfirmDisabled}
                 >
-                  {modalMode === "create" ? "만들기" : joinTargetIsPrivate && joinStep === "password" ? "확인" : "입장"}
+                  {modalMode === "create" ? "만들기" : joinTargetIsPrivate ? "확인" : "입장"}
                 </ModalButton>
               </ModalButtons>
             )}

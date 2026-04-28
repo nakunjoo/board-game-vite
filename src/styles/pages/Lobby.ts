@@ -1,5 +1,94 @@
 import styled from "styled-components";
 
+export const LobbyHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+
+  .title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #e0e0e0;
+    margin: 0;
+  }
+`;
+
+export const ProfileButton = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 5px 12px 5px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .avatar-fallback {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #646cff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #fff;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .name {
+    color: #eee;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+`;
+
+export const ProfileDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 6px 0;
+  min-width: 130px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+
+  button {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    padding: 10px 16px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+
+    &:hover {
+      background: rgba(255, 107, 107, 0.08);
+    }
+  }
+`;
+
 // 모달 오버레이
 export const ModalOverlay = styled.div`
   position: fixed;

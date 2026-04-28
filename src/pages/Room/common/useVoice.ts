@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 export interface VoiceParticipant {
   playerId: string;
   nickname: string;
+  isSpeaking?: boolean;
 }
 
 type SendFn = (event: string, data: unknown) => void;
@@ -11,6 +12,8 @@ type SubscribeFn = (handler: (event: string, data: unknown) => void) => () => vo
 const STUN_CONFIG: RTCConfiguration = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
+
+const SPEAKING_THRESHOLD = 15;
 
 export function useVoice({
   send,
@@ -29,6 +32,8 @@ export function useVoice({
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const sendRef = useRef(send);
   sendRef.current = send;
 
@@ -65,12 +70,43 @@ export function useVoice({
     [roomName, playerId],
   );
 
+  const setupSpeakingDetection = useCallback(
+    (stream: MediaStream) => {
+      const audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let wasSpeaking = false;
+
+      const check = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        const speaking = avg > SPEAKING_THRESHOLD;
+
+        if (speaking !== wasSpeaking) {
+          wasSpeaking = speaking;
+          sendRef.current("voiceSpeaking", { roomName, playerId, isSpeaking: speaking });
+        }
+
+        animationFrameRef.current = requestAnimationFrame(check);
+      };
+
+      animationFrameRef.current = requestAnimationFrame(check);
+      audioContextRef.current = audioCtx;
+    },
+    [roomName, playerId],
+  );
+
   useEffect(() => {
     const unsubscribe = subscribe(async (event, data: unknown) => {
       const d = data as Record<string, unknown>;
 
       if (event === "voiceJoined") {
-        // Server tells us who's already in voice - create offers to each of them
         const existing = (d.existingParticipants as VoiceParticipant[]) ?? [];
         for (const participant of existing) {
           if (participant.playerId === playerId) continue;
@@ -90,6 +126,18 @@ export function useVoice({
       if (event === "voiceParticipants") {
         if (d.roomName === roomName) {
           setVoiceParticipants((d.participants as VoiceParticipant[]) ?? []);
+        }
+      }
+
+      if (event === "voiceSpeaking") {
+        if (d.roomName === roomName) {
+          const { playerId: speakerId, isSpeaking } = d as {
+            playerId: string;
+            isSpeaking: boolean;
+          };
+          setVoiceParticipants((prev) =>
+            prev.map((p) => (p.playerId === speakerId ? { ...p, isSpeaking } : p)),
+          );
         }
       }
 
@@ -133,6 +181,7 @@ export function useVoice({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       localStreamRef.current = stream;
+      setupSpeakingDetection(stream);
       sendRef.current("voiceJoin", { roomName, playerId });
       setIsConnected(true);
     } catch {
@@ -141,6 +190,9 @@ export function useVoice({
   };
 
   const disconnect = () => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    audioContextRef.current?.close();
+    audioContextRef.current = null;
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     peerConnectionsRef.current.forEach((pc) => pc.close());
@@ -151,6 +203,8 @@ export function useVoice({
 
   useEffect(() => {
     return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      audioContextRef.current?.close();
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((t) => t.stop());
       }

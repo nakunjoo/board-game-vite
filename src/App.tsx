@@ -8,6 +8,7 @@ import Lobby from "./pages/Lobby";
 import Room from "./pages/Room/index";
 import SlidePuzzle from "./pages/Single/SlidePuzzle/index";
 import Minesweeper from "./pages/Single/Minesweeper/index";
+import MyPage from "./pages/MyPage";
 import "./App.css";
 
 function App() {
@@ -39,6 +40,9 @@ function App() {
               </AuthGuard>
             }
           />
+
+          {/* 마이페이지 */}
+          <Route path="/mypage" element={<AuthGuard><MyPage /></AuthGuard>} />
 
           {/* 싱글 게임 */}
           <Route path="/single/slide-puzzle" element={<AuthGuard><SlidePuzzle /></AuthGuard>} />
