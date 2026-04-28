@@ -8,8 +8,6 @@ import {
   MyPageTitle,
   Section,
   SectionTitle,
-  AvatarBlock,
-  AvatarFallback,
   AvatarInfo,
   NicknameForm,
   NicknameInput,
@@ -83,15 +81,10 @@ export default function MyPage() {
 
       <Section>
         <SectionTitle>프로필</SectionTitle>
-        <AvatarBlock>
-          <AvatarFallback>
-            {(nickname || "?")[0].toUpperCase()}
-          </AvatarFallback>
-          <AvatarInfo>
-            <span className="current-nickname">{nickname || "..."}</span>
-            <span className="sub">현재 닉네임</span>
-          </AvatarInfo>
-        </AvatarBlock>
+        <AvatarInfo>
+          <span className="current-nickname">{nickname || "..."}</span>
+          <span className="sub">현재 닉네임</span>
+        </AvatarInfo>
 
         <NicknameForm>
           <NicknameInput

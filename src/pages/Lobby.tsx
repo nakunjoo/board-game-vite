@@ -225,9 +225,6 @@ export default function Lobby() {
         {user && (
           <div ref={profileRef} style={{ position: "relative" }}>
             <ProfileButton onClick={() => setShowProfileMenu((v) => !v)}>
-              <div className="avatar-fallback">
-                {(nickname || "?")[0].toUpperCase()}
-              </div>
               <span className="name">{nickname || "..."}</span>
             </ProfileButton>
             {showProfileMenu && (
