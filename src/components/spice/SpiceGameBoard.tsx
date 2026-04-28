@@ -124,9 +124,11 @@ export default function SpiceGameBoard({
   onReconnectTimeLeftConsumed,
 }: SpiceGameBoardProps) {
   const me = players.find((p) => p.isMe);
-  const myOrder = me?.order ?? 0;
   const totalPlayers = players.length;
   const isMyTurn = !!me && currentTurnPlayerId === me.playerId;
+
+  const sortedPlayers = [...players].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const myIndexInSorted = sortedPlayers.findIndex((p) => p.isMe);
 
   // step1: 선언 모달 (향신료+숫자 선택)
   // step2: 실제 낼 손패 카드 선택
@@ -284,9 +286,8 @@ export default function SpiceGameBoard({
     closeDeclareModal();
   };
 
-  const playerSeats = players.map((player) => {
-    const playerOrder = player.order ?? 0;
-    const seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers;
+  const playerSeats = sortedPlayers.map((player, idx) => {
+    const seatIndex = (idx - myIndexInSorted + totalPlayers) % totalPlayers;
     return { player, seatIndex };
   });
 
@@ -765,7 +766,7 @@ export default function SpiceGameBoard({
                 (p) => p.playerId === currentTurnPlayerId,
               );
               const currentPlayerSeatIndex = currentPlayer
-                ? ((currentPlayer.order ?? 0) - myOrder + totalPlayers) %
+                ? (sortedPlayers.findIndex((p) => p.playerId === currentPlayer.playerId) - myIndexInSorted + totalPlayers) %
                   totalPlayers
                 : 0;
               const nameColor = isMyTurn

@@ -108,15 +108,14 @@ export default function GangGameBoard({
 }: GangGameBoardProps) {
   const [showHandRankModal, setShowHandRankModal] = useState(false);
 
-  // 나를 기준으로 상대적 좌석 계산
-  const me = players.find((p) => p.isMe);
-  const myOrder = me?.order ?? 0;
   const totalPlayers = players.length;
 
-  const playerSeats = players.map((player) => {
-    const playerOrder = player.order ?? 0;
-    // 나를 0번 자리(6시)로 하고, 다른 플레이어들의 상대적 위치 계산
-    const seatIndex = (playerOrder - myOrder + totalPlayers) % totalPlayers;
+  // order 기준 정렬 후 인덱스로 seatIndex 계산 (플레이어 이탈 시 겹침 방지)
+  const sortedPlayers = [...players].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const myIndexInSorted = sortedPlayers.findIndex((p) => p.isMe);
+
+  const playerSeats = sortedPlayers.map((player, idx) => {
+    const seatIndex = (idx - myIndexInSorted + totalPlayers) % totalPlayers;
     return {
       player,
       seatIndex,

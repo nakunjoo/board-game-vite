@@ -119,12 +119,11 @@ export default function SkulkingGameBoard({
   const isMyBidTurn = phase === "bid" && !(myPlayerId in bids);
   const isMyPlayTurn = phase === "play" && currentPlayerId === myPlayerId;
 
-  const me = players.find((p) => p.playerId === myPlayerId);
-
-  const myOrder = me?.order ?? 0;
   const totalPlayers = players.length;
-  const playerSeats = players.map((player) => {
-    const seatIndex = ((player.order ?? 0) - myOrder + totalPlayers) % totalPlayers;
+  const sortedPlayers = [...players].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const myIndexInSorted = sortedPlayers.findIndex((p) => p.playerId === myPlayerId);
+  const playerSeats = sortedPlayers.map((player, idx) => {
+    const seatIndex = (idx - myIndexInSorted + totalPlayers) % totalPlayers;
     return { player, seatIndex };
   });
 

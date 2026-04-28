@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject, useEffect } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import {
   RoomPage,
   RoomHeader,
@@ -102,19 +102,37 @@ export default function RoomLayout({
       : { send: () => {}, subscribe: () => () => {}, roomName: "", playerId: "" },
   );
 
-  const handleLeave = () => {
-    if (!window.confirm("방에서 나가시겠습니까?")) return;
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const showLeaveConfirmRef = useRef(false);
+
+  const openLeaveConfirm = () => {
+    history.pushState(null, "", location.href);
+    showLeaveConfirmRef.current = true;
+    setShowLeaveConfirm(true);
+  };
+
+  const closeLeaveConfirm = () => {
+    showLeaveConfirmRef.current = false;
+    setShowLeaveConfirm(false);
+  };
+
+  const confirmLeave = () => {
     if (voice.isConnected) voice.disconnect();
     onLeave();
   };
 
+  const handleLeave = () => openLeaveConfirm();
+
   useEffect(() => {
     history.pushState(null, "", location.href);
     const handlePopState = () => {
-      history.pushState(null, "", location.href);
-      if (window.confirm("방에서 나가시겠습니까?")) {
-        if (voice.isConnected) voice.disconnect();
-        onLeave();
+      if (showLeaveConfirmRef.current) {
+        // 다이얼로그 열려있으면 뒤로가기 = 닫기 (pushState 안 함, 엔트리 소비)
+        closeLeaveConfirm();
+      } else {
+        history.pushState(null, "", location.href);
+        showLeaveConfirmRef.current = true;
+        setShowLeaveConfirm(true);
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -355,6 +373,42 @@ export default function RoomLayout({
       )}
 
       {modals}
+
+      {showLeaveConfirm && (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          }}
+          onClick={closeLeaveConfirm}
+        >
+          <div
+            style={{
+              background: "#2a2a2a", borderRadius: 12, padding: "1.5rem",
+              width: "90%", maxWidth: 320, display: "flex", flexDirection: "column", gap: "1.25rem",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ margin: 0, color: "#e0e0e0", fontSize: "1rem", textAlign: "center" }}>
+              방에서 나가시겠습니까?
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button
+                onClick={closeLeaveConfirm}
+                style={{ padding: "0.6rem 1.2rem", borderRadius: 6, border: "none", background: "#3a3a3a", color: "#ccc", cursor: "pointer", fontSize: "0.95rem" }}
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmLeave}
+                style={{ padding: "0.6rem 1.2rem", borderRadius: 6, border: "none", background: "#ff6b6b", color: "#fff", cursor: "pointer", fontSize: "0.95rem" }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </RoomPage>
   );
 }
