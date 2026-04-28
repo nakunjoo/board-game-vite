@@ -6,8 +6,8 @@ export const ToggleButtonStack = styled.div`
   right: 0.5rem;
   z-index: 10;
   display: none;
-  flex-direction: column-reverse;
-  gap: 2px;
+  flex-direction: column;
+  gap: 10px;
 
   @media (max-width: 1080px) {
     display: flex;
