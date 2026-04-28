@@ -6,6 +6,10 @@ React 19 + TypeScript 기반 멀티플레이어 카드 게임 웹 애플리케�
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-28 | 음성 통화 기능 추가 (WebRTC P2P): `pages/Room/common/useVoice.ts` 신규 생성 |
+| 2026-04-28 | `styles/chat/index.ts`: `VoiceToggleButton`, `VoicePanel`, `VoiceParticipantList`, `VoiceConnectButton` 등 음성 스타일 컴포넌트 추가 |
+| 2026-04-28 | `RoomLayout.tsx`: 채팅 버튼 위 마이크 아이콘 버튼 추가, 하단 슬라이드 음성 패널 추가. 음성 패널은 참여자 목록 + 연결하기/연결끊기 버튼으로 구성. `send`, `subscribe`, `playerId` optional props 추가 |
+| 2026-04-28 | `gang/index.tsx`, `spice/index.tsx`, `skulking/index.tsx`: `RoomLayout`에 `send`, `subscribe`, `playerId` prop 전달 |
 | 2026-04-03 | 지뢰찾기 싱글게임 추가: `components/single/minesweeper/`, `pages/Single/Minesweeper/`, `styles/single/minesweeper/` 신규 생성 |
 | 2026-04-03 | `App.tsx`: `/single/minesweeper` 라우트 추가. `Lobby.tsx`: SINGLE_GAMES에 지뢰찾기 추가 |
 | 2026-04-03 | 지뢰찾기 구조: `types.ts`(Difficulty, CellStatus, GamePhase, Cell, BestRecord), `constants.ts`(DIFFICULTIES, NUMBER_COLORS), `utils.ts`(보드 로직·localStorage), `MinesweeperBoard.tsx`, `modal/SetupModal.tsx`, `modal/ResultModal.tsx` |

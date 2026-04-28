@@ -12,6 +12,195 @@ export const ChatToggleButtonWrapper = styled.div`
   }
 `;
 
+export const VoiceToggleButtonWrapper = styled.div`
+  position: absolute;
+  bottom: 4.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  display: none;
+
+  @media (max-width: 1080px) {
+    display: inline-flex;
+  }
+`;
+
+export const VoiceToggleButton = styled.button<{ $active?: boolean }>`
+  padding: 0.75rem;
+  background-color: ${({ $active }) => ($active ? "#22c55e" : "#3a3a3a")};
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  &:hover {
+    background-color: ${({ $active }) => ($active ? "#16a34a" : "#4a4a4a")};
+    border-color: transparent;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+`;
+
+export const VoiceOverlay = styled.div<{ $isOpen?: boolean }>`
+  display: none;
+
+  @media (max-width: 1080px) {
+    display: ${({ $isOpen }) => ($isOpen ? "block" : "none")};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+`;
+
+export const VoicePanel = styled.div<{ $isOpen?: boolean }>`
+  display: none;
+
+  @media (max-width: 1080px) {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50vh;
+    max-height: 360px;
+    background-color: #1a1a1a;
+    transform: translateY(${({ $isOpen }) => ($isOpen ? "0" : "100%")});
+    transition: transform 0.3s ease-in-out;
+    border-radius: 16px 16px 0 0;
+    z-index: 200;
+    overflow: hidden;
+  }
+`;
+
+export const VoicePanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #3a3a3a;
+  font-weight: 600;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+`;
+
+export const VoicePanelCloseButton = styled.button`
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: white;
+    border-color: transparent;
+  }
+`;
+
+export const VoiceParticipantList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const VoiceParticipantItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .name {
+    flex: 1;
+    font-size: 0.95rem;
+  }
+
+  .mic-icon {
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+  }
+`;
+
+export const VoiceEmptyMessage = styled.p`
+  color: #666;
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+`;
+
+export const VoiceConnectButton = styled.button<{ $connected?: boolean }>`
+  margin: 0 1rem 1rem;
+  padding: 0.85rem;
+  background: ${({ $connected }) =>
+    $connected
+      ? "linear-gradient(135deg, #ef4444, #dc2626)"
+      : "linear-gradient(135deg, #22c55e, #16a34a)"};
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+    border-color: transparent;
+  }
+`;
+
 export const ChatNotificationBadge = styled.span`
   position: absolute;
   top: -4px;

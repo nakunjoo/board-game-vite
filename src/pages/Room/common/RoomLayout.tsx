@@ -22,7 +22,18 @@ import {
   ChatInputArea,
   ChatInput,
   ChatSendButton,
+  VoiceToggleButton,
+  VoiceToggleButtonWrapper,
+  VoiceOverlay,
+  VoicePanel,
+  VoicePanelHeader,
+  VoicePanelCloseButton,
+  VoiceParticipantList,
+  VoiceParticipantItem,
+  VoiceEmptyMessage,
+  VoiceConnectButton,
 } from "../../../styles/chat";
+import { useVoice } from "./useVoice";
 
 interface Message {
   message: string;
@@ -55,6 +66,10 @@ interface Props {
   children: ReactNode;
   // 모달 (헬프 모달 등, 게임 영역 바깥에 렌더링)
   modals?: ReactNode;
+  // 음성 통화 (선택)
+  send?: (event: string, data: unknown) => void;
+  subscribe?: (handler: (event: string, data: unknown) => void) => () => void;
+  playerId?: string;
 }
 
 export default function RoomLayout({
@@ -75,7 +90,22 @@ export default function RoomLayout({
   onCloseChat,
   children,
   modals,
+  send,
+  subscribe,
+  playerId,
 }: Props) {
+  const voiceEnabled = !!(send && subscribe && playerId && roomName);
+  const voice = useVoice(
+    voiceEnabled
+      ? { send, subscribe, roomName, playerId: playerId! }
+      : { send: () => {}, subscribe: () => () => {}, roomName: "", playerId: "" },
+  );
+
+  const handleLeave = () => {
+    if (voice.isConnected) voice.disconnect();
+    onLeave();
+  };
+
   return (
     <RoomPage>
       <RoomHeader>
@@ -117,7 +147,7 @@ export default function RoomLayout({
             ?
           </div>
           <MemberCount>{memberCount}명 참여중</MemberCount>
-          <LeaveButton onClick={onLeave} aria-label="나가기">
+          <LeaveButton onClick={handleLeave} aria-label="나가기">
             <span className="leave-text">나가기</span>
             <svg
               className="leave-icon"
@@ -141,6 +171,29 @@ export default function RoomLayout({
       <RoomContent>
         <GameArea>
           {children}
+
+          {voiceEnabled && (
+            <VoiceToggleButtonWrapper>
+              <VoiceToggleButton
+                $active={voice.isConnected}
+                onClick={() => voice.setIsVoicePanelOpen(!voice.isVoicePanelOpen)}
+                aria-label="음성 통화"
+              >
+                {voice.isConnected ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zm-1 3a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V4zm6.5 7.5a5.5 5.5 0 0 1-11 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-1.07A7 7 0 0 0 19 11.5h-1.5z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                )}
+              </VoiceToggleButton>
+            </VoiceToggleButtonWrapper>
+          )}
 
           <ChatToggleButtonWrapper>
             <ChatToggleButton onClick={onToggleChat} aria-label="채팅">
@@ -206,6 +259,83 @@ export default function RoomLayout({
           </ChatInputArea>
         </ChatArea>
       </RoomContent>
+
+      {voiceEnabled && (
+        <>
+          <VoiceOverlay
+            $isOpen={voice.isVoicePanelOpen}
+            onClick={() => voice.setIsVoicePanelOpen(false)}
+          />
+          <VoicePanel $isOpen={voice.isVoicePanelOpen}>
+            <VoicePanelHeader>
+              <span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+                음성 통화
+                {voice.voiceParticipants.length > 0 && (
+                  <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: 400 }}>
+                    ({voice.voiceParticipants.length}명 참여 중)
+                  </span>
+                )}
+              </span>
+              <VoicePanelCloseButton onClick={() => voice.setIsVoicePanelOpen(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </VoicePanelCloseButton>
+            </VoicePanelHeader>
+
+            <VoiceParticipantList>
+              {voice.voiceParticipants.length === 0 ? (
+                <VoiceEmptyMessage>아직 통화 참여자가 없습니다.</VoiceEmptyMessage>
+              ) : (
+                voice.voiceParticipants.map((p) => (
+                  <VoiceParticipantItem key={p.playerId}>
+                    <div className="avatar">{p.nickname.charAt(0).toUpperCase()}</div>
+                    <span className="name">{p.nickname}</span>
+                    <span className="mic-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                  </VoiceParticipantItem>
+                ))
+              )}
+            </VoiceParticipantList>
+
+            <VoiceConnectButton
+              $connected={voice.isConnected}
+              onClick={voice.isConnected ? voice.disconnect : voice.connect}
+            >
+              {voice.isConnected ? (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                    <path d="M16.5 16.5L21 21M9 15H3l3-3m0 0a6 6 0 0 1 12 0m-3 3h6l-3-3" />
+                  </svg>
+                  연결 끊기
+                </>
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                  연결하기
+                </>
+              )}
+            </VoiceConnectButton>
+          </VoicePanel>
+        </>
+      )}
 
       {modals}
     </RoomPage>
