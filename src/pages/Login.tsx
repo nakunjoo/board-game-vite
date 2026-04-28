@@ -56,11 +56,7 @@ const Title = styled.h1`
   letter-spacing: 2px;
 `;
 
-const Subtitle = styled.p`
-  color: #aaa;
-  font-size: 0.95rem;
-  margin: 0 0 16px;
-`;
+
 
 const GoogleButton = styled.button`
   display: flex;
