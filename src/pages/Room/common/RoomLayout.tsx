@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { type ReactNode, type RefObject, useEffect } from "react";
 import {
   RoomPage,
   RoomHeader,
@@ -103,9 +103,23 @@ export default function RoomLayout({
   );
 
   const handleLeave = () => {
+    if (!window.confirm("방에서 나가시겠습니까?")) return;
     if (voice.isConnected) voice.disconnect();
     onLeave();
   };
+
+  useEffect(() => {
+    history.pushState(null, "", location.href);
+    const handlePopState = () => {
+      history.pushState(null, "", location.href);
+      if (window.confirm("방에서 나가시겠습니까?")) {
+        if (voice.isConnected) voice.disconnect();
+        onLeave();
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   return (
     <RoomPage>
