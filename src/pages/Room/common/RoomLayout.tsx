@@ -22,6 +22,7 @@ import {
   ChatInputArea,
   ChatInput,
   ChatSendButton,
+  ToggleButtonStack,
   VoiceToggleButton,
   VoiceToggleButtonWrapper,
   VoiceOverlay,
@@ -172,44 +173,46 @@ export default function RoomLayout({
         <GameArea>
           {children}
 
-          {voiceEnabled && (
-            <VoiceToggleButtonWrapper>
-              <VoiceToggleButton
-                $active={voice.isConnected}
-                onClick={() => voice.setIsVoicePanelOpen(!voice.isVoicePanelOpen)}
-                aria-label="음성 통화"
-              >
-                {voice.isConnected ? (
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zm-1 3a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V4zm6.5 7.5a5.5 5.5 0 0 1-11 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-1.07A7 7 0 0 0 19 11.5h-1.5z" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
-                )}
-              </VoiceToggleButton>
-            </VoiceToggleButtonWrapper>
-          )}
+          <ToggleButtonStack>
+            {voiceEnabled && (
+              <VoiceToggleButtonWrapper>
+                <VoiceToggleButton
+                  $active={voice.isConnected}
+                  onClick={() => voice.setIsVoicePanelOpen(!voice.isVoicePanelOpen)}
+                  aria-label="음성 통화"
+                >
+                  {voice.isConnected ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zm-1 3a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V4zm6.5 7.5a5.5 5.5 0 0 1-11 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-1.07A7 7 0 0 0 19 11.5h-1.5z" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                  )}
+                </VoiceToggleButton>
+              </VoiceToggleButtonWrapper>
+            )}
 
-          <ChatToggleButtonWrapper>
-            <ChatToggleButton onClick={onToggleChat} aria-label="채팅">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </ChatToggleButton>
-            {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
-          </ChatToggleButtonWrapper>
+            <ChatToggleButtonWrapper>
+              <ChatToggleButton onClick={onToggleChat} aria-label="채팅">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </ChatToggleButton>
+              {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
+            </ChatToggleButtonWrapper>
+          </ToggleButtonStack>
         </GameArea>
 
         <ChatOverlay $isOpen={isChatOpen} onClick={onCloseChat} />

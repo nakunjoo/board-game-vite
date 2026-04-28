@@ -1,27 +1,25 @@
 import styled from "styled-components";
 
-export const ChatToggleButtonWrapper = styled.div`
+export const ToggleButtonStack = styled.div`
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
   z-index: 10;
   display: none;
+  flex-direction: column-reverse;
+  gap: 2px;
 
   @media (max-width: 1080px) {
-    display: inline-flex;
+    display: flex;
   }
 `;
 
-export const VoiceToggleButtonWrapper = styled.div`
-  position: absolute;
-  bottom: 4.5rem;
-  right: 0.5rem;
-  z-index: 10;
-  display: none;
+export const ChatToggleButtonWrapper = styled.div`
+  display: inline-flex;
+`;
 
-  @media (max-width: 1080px) {
-    display: inline-flex;
-  }
+export const VoiceToggleButtonWrapper = styled.div`
+  display: inline-flex;
 `;
 
 export const VoiceToggleButton = styled.button<{ $active?: boolean }>`
