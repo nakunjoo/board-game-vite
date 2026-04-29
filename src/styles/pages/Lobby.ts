@@ -148,34 +148,27 @@ export const RadioGroup = styled.div`
   }
 `;
 
-// 라디오 옵션 컨테이너 (3개씩 한 줄)
 export const RadioOptions = styled.div`
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.4rem;
 `;
 
-// 라디오 옵션
-export const RadioOption = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
+export const RadioOption = styled.button<{ $selected: boolean }>`
+  padding: 0.35rem 0.75rem;
   border-radius: 6px;
+  border: 1px solid ${({ $selected }) => ($selected ? "#646cff" : "rgba(255,255,255,0.15)")};
+  background: ${({ $selected }) => ($selected ? "rgba(100,108,255,0.2)" : "rgba(255,255,255,0.05)")};
+  color: ${({ $selected }) => ($selected ? "#a0a8ff" : "#c0c0c0")};
+  font-size: 0.88rem;
+  font-weight: ${({ $selected }) => ($selected ? 600 : 400)};
   cursor: pointer;
-  color: #e0e0e0;
-  font-size: 0.9rem;
-  flex: 1;
+  transition: all 0.15s;
 
   &:hover {
-    background-color: #333;
-  }
-
-  input[type="radio"] {
-    accent-color: #646cff;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+    border-color: rgba(100, 108, 255, 0.5);
+    background: rgba(100, 108, 255, 0.12);
+    color: #c0c4ff;
   }
 `;
 

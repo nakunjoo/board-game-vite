@@ -343,14 +343,12 @@ export default function Lobby() {
                       <label>게임 타입</label>
                       <RadioOptions>
                         {gameTypes.map((type) => (
-                          <RadioOption key={type.value}>
-                            <input
-                              type="radio"
-                              name="gameType"
-                              value={type.value}
-                              checked={gameType === type.value}
-                              onChange={(e) => setGameType(e.target.value)}
-                            />
+                          <RadioOption
+                            key={type.value}
+                            type="button"
+                            $selected={gameType === type.value}
+                            onClick={() => setGameType(type.value)}
+                          >
                             {type.label}
                           </RadioOption>
                         ))}

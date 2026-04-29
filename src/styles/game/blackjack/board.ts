@@ -318,16 +318,16 @@ export const BjSplitDivider = styled.div`
 
 export const BjActionButtons = styled.div`
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 3px;
+  flex-wrap: nowrap;
   justify-content: center;
 `;
 
 export const BjActionBtn = styled.button<{ $variant?: "primary" | "danger" | "warning" | "info" }>`
-  padding: 7px 14px;
+  padding: 6px 10px;
   border-radius: 6px;
   border: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;

@@ -1,11 +1,9 @@
-import type { WebSocketContextType } from "../../../contexts/WebSocketContext";
-
 interface Props {
   roomName: string;
   isHost: boolean;
   gameStarted: boolean;
   memberCount: number;
-  send: WebSocketContextType["send"];
+  send: (event: string, data?: unknown) => void;
 }
 
 export default function BlackjackBotPanel({ roomName, isHost, gameStarted, memberCount, send }: Props) {

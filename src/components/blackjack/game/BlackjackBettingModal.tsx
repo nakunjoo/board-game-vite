@@ -3,17 +3,21 @@ import {
   BjModalOverlay,
   BjModalBox,
   BjModalTitle,
-  BjBetChipsRow,
-  BjBetChipBtn,
   BjBetDisplay,
   BjBetSubText,
   BjConfirmBtn,
-  BjCancelBtn,
   BjWaitingText,
   BjProgressDots,
   BjDot,
+  BjBetStepRow,
+  BjBetStepBtn,
+  BjBetMinMaxRow,
+  BjBetMinMaxBtn,
 } from "../../../styles/game/blackjack/modal";
-import { getBjBetChips, getBjMaxBet } from "../../../utils/games/blackjack";
+import { getBjMaxBet } from "../../../utils/games/blackjack";
+
+const MIN_BET = 10;
+const STEP = 10;
 
 interface Props {
   myChips: number;
@@ -32,16 +36,13 @@ export default function BlackjackBettingModal({
   alreadyBet,
   onPlaceBet,
 }: Props) {
-  const [bet, setBet] = useState(0);
-  const chips = getBjBetChips(initialChips);
   const maxBet = getBjMaxBet(initialChips);
+  const [bet, setBet] = useState(maxBet);
 
-  const addBet = (amount: number) => {
-    setBet((prev) => Math.min(prev + amount, Math.min(maxBet, myChips)));
-  };
+  const clamp = (v: number) => Math.max(MIN_BET, Math.min(maxBet, v));
 
   const handleConfirm = () => {
-    if (bet <= 0) return;
+    if (bet < MIN_BET) return;
     onPlaceBet(bet);
   };
 
@@ -66,26 +67,30 @@ export default function BlackjackBettingModal({
           <>
             <BjBetSubText>보유 칩: {myChips} | 최대 베팅: {maxBet}</BjBetSubText>
 
-            <BjBetDisplay>{bet > 0 ? bet : "—"}</BjBetDisplay>
+            <BjBetDisplay>{bet}</BjBetDisplay>
 
-            <BjBetChipsRow>
-              {chips.map((c) => (
-                <BjBetChipBtn
-                  key={c}
-                  $selected={false}
-                  onClick={() => addBet(c)}
-                  disabled={myChips < c || bet + c > maxBet}
-                >
-                  +{c}
-                </BjBetChipBtn>
-              ))}
-            </BjBetChipsRow>
+            <BjBetStepRow>
+              <BjBetStepBtn onClick={() => setBet(clamp(bet - STEP))} disabled={bet <= MIN_BET}>
+                −
+              </BjBetStepBtn>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", minWidth: 40, textAlign: "center" }}>
+                10 단위
+              </span>
+              <BjBetStepBtn onClick={() => setBet(clamp(bet + STEP))} disabled={bet >= maxBet}>
+                +
+              </BjBetStepBtn>
+            </BjBetStepRow>
 
-            <BjCancelBtn onClick={() => setBet(0)} disabled={bet === 0}>
-              초기화
-            </BjCancelBtn>
+            <BjBetMinMaxRow>
+              <BjBetMinMaxBtn onClick={() => setBet(MIN_BET)} disabled={bet === MIN_BET}>
+                최소 ({MIN_BET})
+              </BjBetMinMaxBtn>
+              <BjBetMinMaxBtn onClick={() => setBet(maxBet)} disabled={bet === maxBet}>
+                최대 ({maxBet})
+              </BjBetMinMaxBtn>
+            </BjBetMinMaxRow>
 
-            <BjConfirmBtn onClick={handleConfirm} disabled={bet <= 0 || bet > myChips}>
+            <BjConfirmBtn onClick={handleConfirm} disabled={bet < MIN_BET}>
               베팅 확정
             </BjConfirmBtn>
 

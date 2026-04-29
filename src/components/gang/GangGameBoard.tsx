@@ -158,7 +158,7 @@ export default function GangGameBoard({
           ))}
           <CardDeck
             cards={deck}
-            cardBack={gameConfig.cardBack}
+            cardBack={gameConfig.cardBack ?? ""}
             onClick={() => setShowHandRankModal(true)}
           />
           <WinLossIndicators style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', marginTop: '30px' }}>
@@ -209,7 +209,7 @@ export default function GangGameBoard({
           )}
           <CardDeck
             cards={deck}
-            cardBack={gameConfig.cardBack}
+            cardBack={gameConfig.cardBack ?? ""}
             onClick={() => setShowHandRankModal(true)}
           />
           <ChipsArea>

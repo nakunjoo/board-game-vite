@@ -142,14 +142,7 @@ export default function BlackjackGameBoard({
 
   const currentHand = myHands[currentHandIndex];
   const isMyTurn = phase === "action" && currentHand?.status === "active";
-  const canDouble = isMyTurn && currentHand?.cards.length === 2 && myChips >= (currentHand?.bet ?? 0);
-  const canSplit =
-    isMyTurn &&
-    currentHand?.cards.length === 2 &&
-    myHands.length < 2 &&
-    (currentHand.cards[0].value >= 10 ? 10 : currentHand.cards[0].value) ===
-      (currentHand.cards[1].value >= 10 ? 10 : currentHand.cards[1].value) &&
-    myChips >= (currentHand?.bet ?? 0);
+  const canDouble = isMyTurn && currentHand?.cards.length === 2;
 
   // ── 게임 시작 전 ─────────────────────────────────────────────
   if (!gameStarted) {
@@ -346,9 +339,6 @@ export default function BlackjackGameBoard({
                 </BjActionBtn>
                 <BjActionBtn $variant="warning" onClick={() => onAction("double", currentHandIndex)} disabled={!canDouble}>
                   더블다운
-                </BjActionBtn>
-                <BjActionBtn $variant="info" onClick={() => onAction("split", currentHandIndex)} disabled={!canSplit}>
-                  스플릿
                 </BjActionBtn>
               </BjActionButtons>
             )}
