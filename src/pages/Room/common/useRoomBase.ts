@@ -209,7 +209,7 @@ export function useRoomBase() {
           break;
         }
         case "roomLeft":
-          navigate("/");
+          navigate("/", { replace: true });
           break;
         case "error": {
           const errorData = data as { message: string };
@@ -218,7 +218,7 @@ export function useRoomBase() {
             if (roomName) {
               sessionStorage.removeItem(`joined:${roomName}`);
             }
-            navigate("/");
+            navigate("/", { replace: true });
           }
           break;
         }
@@ -226,7 +226,7 @@ export function useRoomBase() {
           const kickData = data as { roomName: string; message: string };
           if (kickData.roomName === roomName) {
             alert(kickData.message);
-            navigate("/");
+            navigate("/", { replace: true });
           }
           break;
         }

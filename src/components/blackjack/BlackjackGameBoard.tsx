@@ -322,7 +322,6 @@ export default function BlackjackGameBoard({
                         ? `버스트 (${hVal})`
                         : hVal}
                     </BjHandValue>
-                    {hand.bet > 0 && <BjHandLabel>베팅: {hand.bet}</BjHandLabel>}
                     {hi < myHands.length - 1 && <BjSplitDivider />}
                   </BjHandSection>
                 );

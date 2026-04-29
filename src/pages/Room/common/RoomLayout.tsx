@@ -104,12 +104,7 @@ export default function RoomLayout({
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const showLeaveConfirmRef = useRef(false);
-
-  const openLeaveConfirm = () => {
-    history.pushState(null, "", location.href);
-    showLeaveConfirmRef.current = true;
-    setShowLeaveConfirm(true);
-  };
+  const isLeavingRef = useRef(false);
 
   const closeLeaveConfirm = () => {
     showLeaveConfirmRef.current = false;
@@ -117,19 +112,28 @@ export default function RoomLayout({
   };
 
   const confirmLeave = () => {
+    isLeavingRef.current = true;
     if (voice.isConnected) voice.disconnect();
+    // 뒤로가기 차단용으로 추가했던 pushState 엔트리 소비
+    history.back();
     onLeave();
   };
 
-  const handleLeave = () => openLeaveConfirm();
+  const handleLeave = () => {
+    // 나가기 버튼 클릭 시: pushState로 엔트리 추가 후 다이얼로그 표시
+    history.pushState(null, "", location.href);
+    showLeaveConfirmRef.current = true;
+    setShowLeaveConfirm(true);
+  };
 
   useEffect(() => {
-    history.pushState(null, "", location.href);
     const handlePopState = () => {
+      if (isLeavingRef.current) return;
       if (showLeaveConfirmRef.current) {
-        // 다이얼로그 열려있으면 뒤로가기 = 닫기 (pushState 안 함, 엔트리 소비)
+        // 다이얼로그 열린 상태에서 뒤로가기 = 닫기
         closeLeaveConfirm();
       } else {
+        // 뒤로가기 차단: 현재 URL 다시 push해서 막고 다이얼로그 표시
         history.pushState(null, "", location.href);
         showLeaveConfirmRef.current = true;
         setShowLeaveConfirm(true);

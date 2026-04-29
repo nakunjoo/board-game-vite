@@ -123,6 +123,10 @@ export const BjBetStepRow = styled.div`
 export const BjBetStepBtn = styled.button`
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);

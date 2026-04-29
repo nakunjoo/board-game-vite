@@ -293,7 +293,7 @@ export default function BlackjackRoom() {
   };
 
   const handleGameOverClose = () => {
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   // ── bjPlayers 조립 ────────────────────────────────────────
