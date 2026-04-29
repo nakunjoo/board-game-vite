@@ -10,6 +10,10 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-29 | **Manager 페이지 3탭 구조로 확장**: 관리자 관리 / 게임타입 관리 / 신고 관리 탭 추가 |
+| 2026-04-29 | `pages/Manager/index.tsx`: 게임타입 탭 — `GET/POST /api/manager/game-types` 호출, 타입 추가(id·이름·순서)·활성화 토글·인라인 수정(이름·순서)·삭제 |
+| 2026-04-29 | `pages/Manager/index.tsx`: 신고 탭 — 전체/미처리/처리됨/기각 필터, 신고 상세 펼치기, 신고 상태 변경(처리됨/기각), 피신고자 계정 정지/해제 |
+| 2026-04-29 | `Lobby.tsx`: 하드코딩 `GAME_TYPES` 배열 제거 → `GET /api/game-types` 공개 API 호출로 교체. 실패 시 기본값(gang/spice/skulking) fallback. 방 목록 게임타입 레이블도 API 데이터 기준으로 표시 |
 | 2026-04-29 | **관리자 페이지 추가**: `pages/Manager/index.tsx` 신규 생성 — 닉네임 검색으로 관리자 추가, 관리자 목록 조회/제거 |
 | 2026-04-29 | `components/AdminGuard.tsx` 신규 생성 — `isAdmin` 체크, 비관리자는 `/` 리다이렉트 |
 | 2026-04-29 | `App.tsx`: `/manager` 라우트 추가 (`AdminGuard` 래핑) |
