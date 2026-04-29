@@ -420,27 +420,36 @@ export default function Manager() {
             {gameTypes.length === 0 ? (
               <p style={{ color: "#555", textAlign: "center", padding: "20px 0" }}>등록된 게임 타입이 없습니다</p>
             ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
                 {gameTypes.map((gt) => (
-                  <li key={gt.id} style={{ background: "#12121e", borderRadius: 8, overflow: "hidden" }}>
+                  <li key={gt.id} style={{ background: "#12121e", borderRadius: 10, overflow: "hidden", border: "1px solid #2a2a3e" }}>
                     {/* 일반 행 */}
                     {editingTypeId !== gt.id ? (
-                      <div style={s.item}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ fontWeight: "bold" }}>{gt.label}</span>
-                          <span style={{ color: "#555", fontSize: "0.8rem" }}>({gt.id})</span>
-                          <span style={{ color: "#555", fontSize: "0.8rem" }}>순서 {gt.sortOrder}</span>
-                          <span style={s.tag(gt.isActive)}>{gt.isActive ? "활성" : "비활성"}</span>
+                      <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+                        {/* 상단: 토글 + 이름 + ID */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div
+                            onClick={() => handleToggleGameType(gt)}
+                            title={gt.isActive ? "비활성화" : "활성화"}
+                            style={{
+                              width: 44, height: 24, borderRadius: 12, cursor: "pointer", flexShrink: 0,
+                              background: gt.isActive ? "#2ecc71" : "#333",
+                              position: "relative", transition: "background 0.2s",
+                            }}
+                          >
+                            <div style={{
+                              position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                              left: gt.isActive ? 23 : 3, transition: "left 0.2s",
+                            }} />
+                          </div>
+                          <span style={{ fontWeight: "bold", fontSize: "1.05rem" }}>{gt.label}</span>
+                          <span style={{ color: "#555", fontSize: "0.8rem", background: "#1a1a2e", padding: "2px 8px", borderRadius: 4 }}>{gt.id}</span>
+                          <span style={{ color: "#555", fontSize: "0.8rem", marginLeft: "auto" }}>순서 {gt.sortOrder}</span>
                         </div>
-                        <div style={{ display: "flex", gap: 8 }}>
+                        {/* 하단: 버튼 */}
+                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                           <button onClick={() => startEditGameType(gt)} style={s.outlineBtn("#646cff")}>
                             수정
-                          </button>
-                          <button
-                            onClick={() => handleToggleGameType(gt)}
-                            style={s.outlineBtn(gt.isActive ? "#e67e22" : "#2ecc71")}
-                          >
-                            {gt.isActive ? "비활성화" : "활성화"}
                           </button>
                           <button onClick={() => handleDeleteGameType(gt)} style={s.outlineBtn("#e74c3c")}>
                             삭제
@@ -449,13 +458,13 @@ export default function Manager() {
                       </div>
                     ) : (
                       /* 편집 행 */
-                      <div style={{ padding: "10px 14px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ padding: "18px 20px", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", borderTop: "2px solid #646cff" }}>
                         <span style={{ color: "#555", fontSize: "0.85rem", minWidth: 60 }}>({gt.id})</span>
                         <input
                           value={editLabel}
                           onChange={(e) => setEditLabel(e.target.value)}
                           placeholder="이름"
-                          style={{ ...s.input, flex: "1 1 120px" }}
+                          style={{ ...s.input, flex: "1 1 140px" }}
                           autoFocus
                           onKeyDown={(e) => e.key === "Enter" && handleSaveGameType(gt.id)}
                         />
@@ -464,7 +473,7 @@ export default function Manager() {
                           onChange={(e) => setEditSortOrder(e.target.value)}
                           placeholder="순서"
                           type="number"
-                          style={{ ...s.input, flex: "0 1 72px" }}
+                          style={{ ...s.input, flex: "0 1 80px" }}
                           onKeyDown={(e) => e.key === "Enter" && handleSaveGameType(gt.id)}
                         />
                         <button onClick={() => handleSaveGameType(gt.id)} style={s.btn("#2ecc71")}>저장</button>

@@ -31,8 +31,9 @@ export interface PlayerHand {
 export interface GameConfig {
   gameType: string;
   displayName: string;
-  createDeck: () => Card[];
-  cardBack: string;
-  initialHandSize: number;
+  createDeck?: () => Card[];
+  cardBack?: string;
+  initialHandSize?: number;
+  minPlayers?: number;
   maxPlayers: number;
 }
