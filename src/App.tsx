@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 import AuthGuard from "./components/AuthGuard";
+import AdminGuard from "./components/AdminGuard";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Lobby from "./pages/Lobby";
@@ -9,6 +10,7 @@ import Room from "./pages/Room/index";
 import SlidePuzzle from "./pages/Single/SlidePuzzle/index";
 import Minesweeper from "./pages/Single/Minesweeper/index";
 import MyPage from "./pages/MyPage";
+import Manager from "./pages/Manager/index";
 import "./App.css";
 
 function App() {
@@ -43,6 +45,9 @@ function App() {
 
           {/* 마이페이지 */}
           <Route path="/mypage" element={<AuthGuard><MyPage /></AuthGuard>} />
+
+          {/* 관리자 페이지 */}
+          <Route path="/manager" element={<AdminGuard><Manager /></AdminGuard>} />
 
           {/* 싱글 게임 */}
           <Route path="/single/slide-puzzle" element={<AuthGuard><SlidePuzzle /></AuthGuard>} />

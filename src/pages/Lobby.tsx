@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -21,9 +21,17 @@ import {
   SingleGameItem,
 } from "../styles/pages/Lobby";
 
+const API_URL = import.meta.env.VITE_API_URL as string;
+
 const SINGLE_GAMES = [
   { value: "slide-puzzle", label: "슬라이드 퍼즐", icon: "🧩", desc: "타일을 밀어 순서대로 맞추세요" },
   { value: "minesweeper", label: "지뢰찾기", icon: "💣", desc: "지뢰를 피해 모든 칸을 열어보세요" },
+];
+
+const GAME_TYPE_FALLBACK = [
+  { value: "gang", label: "갱스터" },
+  { value: "spice", label: "향신료" },
+  { value: "skulking", label: "스컬킹" },
 ];
 
 interface Room {
@@ -34,19 +42,19 @@ interface Room {
   gameType?: string;
 }
 
-const GAME_TYPES = [
-  { value: "gang", label: "갱스터" },
-  { value: "spice", label: "향신료" },
-  { value: "skulking", label: "스컬킹" },
-];
+interface GameTypeOption {
+  value: string;
+  label: string;
+}
 
 type ModalMode = "create" | "join";
 type CreateTab = "multi" | "single";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
-  const { user, signOut, nickname } = useAuth();
+  const { user, signOut, nickname, isAdmin } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [gameTypes, setGameTypes] = useState<GameTypeOption[]>(GAME_TYPE_FALLBACK);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -70,6 +78,23 @@ export default function Lobby() {
   const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
   const [createTab, setCreateTab] = useState<CreateTab>("multi");
   const navigate = useNavigate();
+
+  // 활성화된 게임 타입 목록 불러오기
+  const fetchGameTypes = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/game-types`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) setGameTypes(data);
+      }
+    } catch {
+      // 실패 시 fallback 유지
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGameTypes();
+  }, [fetchGameTypes]);
 
   useEffect(() => {
     if (connected) {
@@ -148,7 +173,7 @@ export default function Lobby() {
   const openCreateModal = () => {
     setModalMode("create");
     setNewRoomName("");
-    setGameType("gang");
+    setGameType(gameTypes[0]?.value ?? "gang");
     setIsPrivate(false);
     setPasswordInput("");
     setCreateTab("multi");
@@ -222,6 +247,11 @@ export default function Lobby() {
             </ProfileButton>
             {showProfileMenu && (
               <ProfileDropdown>
+                {isAdmin && (
+                  <button onClick={() => { navigate("/manager"); setShowProfileMenu(false); }}>
+                    🛠 관리자
+                  </button>
+                )}
                 <button onClick={() => { navigate("/mypage"); setShowProfileMenu(false); }}>
                   마이페이지
                 </button>
@@ -267,7 +297,7 @@ export default function Lobby() {
                     borderRadius: '4px',
                     padding: '1px 5px',
                   }}>
-                    {room.gameType === 'spice' ? '향신료' : room.gameType === 'skulking' ? '스컬킹' : '갱스터'}
+                    {gameTypes.find((t) => t.value === room.gameType)?.label ?? room.gameType ?? '갱스터'}
                   </span>
                   {room.gameStarted && <span style={{ marginLeft: '6px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
                 </span>
@@ -312,7 +342,7 @@ export default function Lobby() {
                     <RadioGroup>
                       <label>게임 타입</label>
                       <RadioOptions>
-                        {GAME_TYPES.map((type) => (
+                        {gameTypes.map((type) => (
                           <RadioOption key={type.value}>
                             <input
                               type="radio"

@@ -10,6 +10,11 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-29 | **관리자 페이지 추가**: `pages/Manager/index.tsx` 신규 생성 — 닉네임 검색으로 관리자 추가, 관리자 목록 조회/제거 |
+| 2026-04-29 | `components/AdminGuard.tsx` 신규 생성 — `isAdmin` 체크, 비관리자는 `/` 리다이렉트 |
+| 2026-04-29 | `App.tsx`: `/manager` 라우트 추가 (`AdminGuard` 래핑) |
+| 2026-04-29 | `Lobby.tsx`: 프로필 드롭다운에 `isAdmin`일 때만 🛠 관리자 버튼 표시 |
+| 2026-04-29 | `AuthContext.tsx`: `isAdmin: boolean` 상태 추가 — `GET /api/profile` 응답의 `isAdmin` 필드에서 읽음. 로그아웃 시 `false` 리셋 |
 | 2026-04-28 | **인증 기반 플레이어 식별 전환**: 랜덤 `playerId` 생성(sessionStorage) 제거 → Supabase `user.id`(UUID)를 `playerId`로 사용 |
 | 2026-04-28 | `WebSocketContext.tsx`: 랜덤 id 생성 함수(`generateCardName`, `getPlayerIdForRoom`, `clearNicknameForRoom`) 전체 제거. WS 연결 시 `?token=ACCESS_TOKEN` 쿼리파람 추가 (Supabase `session.access_token`). `loading` / `session.access_token` 변경 시 재연결 |
 | 2026-04-28 | `Lobby.tsx`: `createRoom`/`joinRoom` payload에서 `playerId`/`userId` 필드 제거 — 서버가 토큰 검증 후 직접 userId 결정. `setNicknameForRoom` 호출 제거 |

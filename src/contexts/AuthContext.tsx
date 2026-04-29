@@ -16,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   nickname: string | null;
   nicknameUpdatedAt: string | null;
+  isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updateNickname: (newNickname: string) => Promise<{ error?: string }>;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [nickname, setNickname] = useState<string | null>(null);
   const [nicknameUpdatedAt, setNicknameUpdatedAt] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchProfile = async (accessToken: string) => {
     try {
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       setNickname(data.nickname ?? null);
       setNicknameUpdatedAt(data.nicknameUpdatedAt ?? null);
+      setIsAdmin(data.isAdmin ?? false);
     } catch {
       // 서버 연결 실패 시 무시
     }
@@ -60,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setNickname(null);
         setNicknameUpdatedAt(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -109,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, nickname, nicknameUpdatedAt, signInWithGoogle, signOut, updateNickname }}>
+    <AuthContext.Provider value={{ user, session, loading, nickname, nicknameUpdatedAt, isAdmin, signInWithGoogle, signOut, updateNickname }}>
       {children}
     </AuthContext.Provider>
   );
