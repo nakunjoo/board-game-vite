@@ -34,7 +34,7 @@ export const CellEl = styled.div<{
   touch-action: none;
 
   ${(p) =>
-    p.$status === "hidden"
+    p.$status === "hidden" || p.$status === "flagged"
       ? `
     background: #bdbdbd;
     border-top: ${BORDER_SIZE(p.$cellSize)}px solid #f5f5f5;

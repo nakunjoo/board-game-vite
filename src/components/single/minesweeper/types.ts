@@ -1,5 +1,5 @@
 export type Difficulty = "easy" | "medium" | "hard";
-export type CellStatus = "hidden" | "revealed" | "exploded";
+export type CellStatus = "hidden" | "flagged" | "revealed" | "exploded";
 export type GamePhase = "ready" | "playing" | "won" | "lost";
 
 export interface Cell {

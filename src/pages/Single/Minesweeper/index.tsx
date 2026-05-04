@@ -27,8 +27,8 @@ import {
   DifficultyBadge,
   GameBar,
   CounterBox,
-  GameBarSpacer,
   FaceButton,
+  FlagButton,
   Main,
 } from "../../../styles/single/minesweeper/layout";
 
@@ -44,6 +44,7 @@ export default function Minesweeper() {
   const [seconds, setSeconds] = useState(0);
   const [best, setBest] = useState<BestRecord | null>(() => loadBest("easy"));
 
+  const [flagMode, setFlagMode] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(true);
   const [showResultModal, setShowResultModal] = useState(false);
   const [isWon, setIsWon] = useState(false);
@@ -105,7 +106,19 @@ export default function Minesweeper() {
     setIsWon(false);
     setShowResultModal(false);
     setFaceEmoji("😊");
+    setFlagMode(false);
   }, [config]);
+
+  const handleToggleFlag = useCallback((row: number, col: number) => {
+    if (phase === "won" || phase === "lost") return;
+    setBoard((prev) => {
+      const next = prev.map((r) => r.map((c) => ({ ...c })));
+      const cell = next[row][col];
+      if (cell.status === "hidden") cell.status = "flagged";
+      else if (cell.status === "flagged") cell.status = "hidden";
+      return next;
+    });
+  }, [phase]);
 
   const handleReveal = useCallback(
     (row: number, col: number) => {
@@ -169,7 +182,13 @@ export default function Minesweeper() {
       </Header>
 
       <GameBar>
-        <GameBarSpacer />
+        <FlagButton
+          $active={flagMode}
+          onClick={() => setFlagMode((v) => !v)}
+          title="깃발 모드"
+        >
+          🚩
+        </FlagButton>
         <FaceButton onClick={handleRestart} title="다시하기">
           {faceEmoji}
         </FaceButton>
@@ -183,7 +202,9 @@ export default function Minesweeper() {
           cols={config.cols}
           cellSize={cellSize}
           phase={phase}
+          flagMode={flagMode}
           onReveal={handleReveal}
+          onToggleFlag={handleToggleFlag}
         />
       </Main>
 

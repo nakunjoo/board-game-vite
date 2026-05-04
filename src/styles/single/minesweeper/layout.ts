@@ -80,6 +80,20 @@ export const GameBarSpacer = styled.div`
   min-width: 48px;
 `;
 
+export const FlagButton = styled.button<{ $active: boolean }>`
+  font-size: 18px;
+  background: ${(p) => (p.$active ? "#e53935" : "#c0c0c0")};
+  border: ${(p) => (p.$active ? "2px inset #888" : "2px outset #fff")};
+  cursor: pointer;
+  padding: 1px 8px;
+  border-radius: 3px;
+  line-height: 1;
+  color: ${(p) => (p.$active ? "#fff" : "inherit")};
+  &:active {
+    border: 2px inset #888;
+  }
+`;
+
 export const FaceButton = styled.button`
   font-size: 18px;
   background: #c0c0c0;

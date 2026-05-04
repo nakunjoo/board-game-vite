@@ -8,10 +8,12 @@ interface Props {
   cols: number;
   cellSize: number;
   phase: GamePhase;
+  flagMode: boolean;
   onReveal: (row: number, col: number) => void;
+  onToggleFlag: (row: number, col: number) => void;
 }
 
-export default function MinesweeperBoard({ board, cols, cellSize, phase, onReveal }: Props) {
+export default function MinesweeperBoard({ board, cols, cellSize, phase, flagMode, onReveal, onToggleFlag }: Props) {
   return (
     <BoardWrapper>
       <BoardGrid $cols={cols} $cellSize={cellSize}>
@@ -20,7 +22,9 @@ export default function MinesweeperBoard({ board, cols, cellSize, phase, onRevea
             let content: React.ReactNode = null;
             let numColor = "";
 
-            if (cell.status === "revealed") {
+            if (cell.status === "flagged") {
+              content = "🚩";
+            } else if (cell.status === "revealed") {
               if (cell.isMine) {
                 content = "💣";
               } else if (cell.adjacentMines > 0) {
@@ -39,7 +43,15 @@ export default function MinesweeperBoard({ board, cols, cellSize, phase, onRevea
                 $numColor={numColor}
                 onClick={() => {
                   if (phase === "won" || phase === "lost") return;
-                  if (cell.status === "hidden") onReveal(r, c);
+                  if (flagMode) {
+                    // 깃발 모드: hidden ↔ flagged 토글 (revealed는 무시)
+                    if (cell.status === "hidden" || cell.status === "flagged") {
+                      onToggleFlag(r, c);
+                    }
+                  } else {
+                    // 일반 모드: hidden만 열기 (flagged는 잠금)
+                    if (cell.status === "hidden") onReveal(r, c);
+                  }
                 }}
               >
                 {content}
