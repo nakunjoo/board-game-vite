@@ -52,13 +52,17 @@ type CreateTab = "multi" | "single";
 
 export default function Lobby() {
   const { connected, send, subscribe } = useWebSocket();
-  const { user, signOut, nickname, isAdmin } = useAuth();
+  const { user, signOut, nickname, nicknameUpdatedAt, loading, updateNickname, isAdmin } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [gameTypes, setGameTypes] = useState<GameTypeOption[]>(GAME_TYPE_FALLBACK);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
+  const [nicknameSaving, setNicknameSaving] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -69,6 +73,28 @@ export default function Lobby() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // 닉네임 미설정자 감지: 로딩 완료 후 user 있고 nicknameUpdatedAt이 null이면 모달 표시
+  useEffect(() => {
+    if (!loading && user && nicknameUpdatedAt === null) {
+      setShowNicknameModal(true);
+    }
+  }, [loading, user, nicknameUpdatedAt]);
+
+  const handleNicknameSave = async () => {
+    const trimmed = nicknameInput.trim();
+    if (!trimmed) return;
+    setNicknameSaving(true);
+    setNicknameError(null);
+    const { error } = await updateNickname(trimmed);
+    setNicknameSaving(false);
+    if (error) {
+      setNicknameError(error);
+    } else {
+      setShowNicknameModal(false);
+      setNicknameInput("");
+    }
+  };
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [newRoomName, setNewRoomName] = useState("");
   const [gameType, setGameType] = useState("gang");
@@ -418,6 +444,46 @@ export default function Lobby() {
                 </ModalButton>
               </ModalButtons>
             )}
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {showNicknameModal && (
+        <ModalOverlay>
+          <ModalContent style={{ maxWidth: 360 }}>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#e0e0e0", marginBottom: "0.4rem" }}>
+                닉네임을 설정해주세요
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#666", lineHeight: 1.5 }}>
+                현재 랜덤 닉네임: <strong style={{ color: "#aaa" }}>{nickname}</strong>
+              </div>
+            </div>
+            <ModalInput
+              type="text"
+              value={nicknameInput}
+              onChange={(e) => { setNicknameInput(e.target.value.slice(0, 6)); setNicknameError(null); }}
+              placeholder="새 닉네임 입력 (최대 6자)"
+              maxLength={6}
+              onKeyDown={(e) => e.key === "Enter" && !nicknameSaving && nicknameInput.trim() && handleNicknameSave()}
+              autoFocus
+            />
+            {nicknameError && (
+              <div style={{ fontSize: "0.8rem", color: "#ff6b6b", marginTop: "0.4rem" }}>{nicknameError}</div>
+            )}
+            <div style={{ fontSize: "0.75rem", color: "#555", marginTop: "0.4rem" }}>
+              닉네임은 최대 6자이며, 설정 후 7일간 변경할 수 없습니다.
+            </div>
+            <ModalButtons style={{ marginTop: "1rem" }}>
+              <ModalButton onClick={() => setShowNicknameModal(false)}>나중에</ModalButton>
+              <ModalButton
+                $primary
+                onClick={handleNicknameSave}
+                disabled={nicknameSaving || !nicknameInput.trim()}
+              >
+                {nicknameSaving ? "저장 중..." : "설정하기"}
+              </ModalButton>
+            </ModalButtons>
           </ModalContent>
         </ModalOverlay>
       )}
