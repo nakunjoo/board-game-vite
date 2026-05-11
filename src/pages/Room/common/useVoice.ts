@@ -32,6 +32,7 @@ export function useVoice({
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const sendRef = useRef(send);
@@ -58,7 +59,11 @@ export function useVoice({
       };
 
       pc.ontrack = (e) => {
-        const audio = new Audio();
+        let audio = audioElementsRef.current.get(targetPlayerId);
+        if (!audio) {
+          audio = new Audio();
+          audioElementsRef.current.set(targetPlayerId, audio);
+        }
         audio.srcObject = e.streams[0];
         audio.autoplay = true;
         audio.play().catch(() => {});
@@ -179,7 +184,16 @@ export function useVoice({
 
   const connect = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+        },
+        video: false,
+      });
       localStreamRef.current = stream;
       setupSpeakingDetection(stream);
       sendRef.current("voiceJoin", { roomName, playerId });
@@ -189,7 +203,7 @@ export function useVoice({
     }
   };
 
-  const disconnect = () => {
+  const cleanupAudio = () => {
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     audioContextRef.current?.close();
     audioContextRef.current = null;
@@ -197,19 +211,20 @@ export function useVoice({
     localStreamRef.current = null;
     peerConnectionsRef.current.forEach((pc) => pc.close());
     peerConnectionsRef.current.clear();
+    audioElementsRef.current.forEach((el) => {
+      el.srcObject = null;
+    });
+    audioElementsRef.current.clear();
+  };
+
+  const disconnect = () => {
+    cleanupAudio();
     sendRef.current("voiceLeave", { roomName, playerId });
     setIsConnected(false);
   };
 
   useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      audioContextRef.current?.close();
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((t) => t.stop());
-      }
-      peerConnectionsRef.current.forEach((pc) => pc.close());
-    };
+    return () => cleanupAudio();
   }, []);
 
   return {
