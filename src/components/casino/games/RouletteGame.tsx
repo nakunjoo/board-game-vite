@@ -234,7 +234,7 @@ const BetButton = styled.button<{ $bg: string; $active: boolean }>`
 
 const NumberTable = styled.div`
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(13, 1fr);
   gap: 4px;
   margin-bottom: 8px;
 `;
@@ -245,10 +245,10 @@ const NumberCell = styled.button<{ $bg: string; $active: boolean }>`
   border: 2px solid ${({ $active }) => ($active ? "#f0c040" : "transparent")};
   background: ${({ $bg }) => $bg};
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: bold;
   cursor: pointer;
-  padding: 5px 0;
+  height: 36px;
   line-height: 1;
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   &:hover { border-color: #f0c040; }

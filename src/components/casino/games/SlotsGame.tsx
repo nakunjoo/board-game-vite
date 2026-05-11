@@ -199,35 +199,6 @@ const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean;
       : css`transition: none;`}
 `;
 
-const StopReelBtn = styled.button`
-  width: 100%;
-  padding: 6px 0;
-  border-radius: 6px;
-  border: none;
-  background: rgba(240,192,64,0.85);
-  color: #0d3d22;
-  font-size: 0.75rem;
-  font-weight: 800;
-  cursor: pointer;
-  letter-spacing: 1px;
-  &:hover { background: #f0c040; }
-`;
-
-const StopDoneTag = styled.div`
-  text-align: center;
-  color: #2ecc71;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 6px 0;
-`;
-
-const AutoStopLabel = styled.div`
-  text-align: center;
-  color: rgba(240,192,64,0.6);
-  font-size: 0.72rem;
-  margin-top: 2px;
-`;
-
 const SymbolCell = styled.div`
   width: 100%;
   height: ${CELL_H}px;
@@ -261,13 +232,16 @@ const SectionLabel = styled.div`
   letter-spacing: 1px;
 `;
 
-const SpinButton = styled.button<{ $disabled: boolean }>`
+const SpinButton = styled.button<{ $disabled: boolean; $stop?: boolean }>`
   width: 100%;
   padding: 14px;
   border-radius: 12px;
   border: none;
-  background: ${({ $disabled }) => ($disabled ? "#555" : "linear-gradient(135deg, #f0c040 0%, #e67e22 100%)")};
-  color: ${({ $disabled }) => ($disabled ? "#999" : "#0d5c2e")};
+  background: ${({ $disabled, $stop }) =>
+    $stop ? "linear-gradient(135deg, #e74c3c 0%, #922b21 100%)"
+    : $disabled ? "#555"
+    : "linear-gradient(135deg, #f0c040 0%, #e67e22 100%)"};
+  color: ${({ $disabled }) => ($disabled ? "#999" : "#fff")};
   font-size: 1.2rem;
   font-weight: bold;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
@@ -305,7 +279,6 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
   const [winPayline, setWinPayline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  // 스트립 상태 — 각 릴마다 심볼 배열과 최종 Y값
   const [spinKey, setSpinKey] = useState(0);
   const [strips, setStrips] = useState<SlotSymbol[][]>(() =>
     Array.from({ length: REEL_COUNT }, () => buildStrip(randomSymbol()).strip)
@@ -314,65 +287,49 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
   const [animating, setAnimating] = useState<boolean[]>([false, false, false]);
   const [durations, setDurations] = useState<number[]>(STOP_DURATIONS);
   const [reelStopped, setReelStopped] = useState<boolean[]>([false, false, false]);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  // 다음에 멈출 릴 인덱스 (0→1→2 순서)
+  const [stoppedCount, setStoppedCount] = useState(0);
 
   const resultsRef = useRef<SlotSymbol[]>([]);
   const betRef = useRef(0);
-  const animatingRef = useRef<boolean[]>([false, false, false]);
-
-  // animating 변경 시 ref도 동기화
-  useEffect(() => { animatingRef.current = animating; }, [animating]);
 
   const showResult = () => {
-    const payline = resultsRef.current;
+    const multiplier = calcMultiplier(resultsRef.current);
     const bet = betRef.current;
-    const multiplier = calcMultiplier(payline);
     const win = multiplier > 0;
     setIsWin(win);
     setWinPayline(win);
     if (win) {
-      const profit = (multiplier - 1) * bet;
-      setResultText(`💰 ${multiplier}배! +${profit.toLocaleString()}원`);
+      setResultText(`💰 ${multiplier}배! +${((multiplier - 1) * bet).toLocaleString()}원`);
       onResult(multiplier * bet);
     } else {
       setResultText("😢 꽝");
       onResult(0);
     }
     setSpinning(false);
-    setCountdown(null);
   };
 
-  const stopReel = (ri: number) => {
-    if (!animatingRef.current[ri]) return;
-    setReelStopped((prev) => {
-      if (prev[ri]) return prev;
-      const next = [...prev];
-      next[ri] = true;
-      return next;
-    });
-    setDurations((prev) => {
-      const next = [...prev];
-      next[ri] = 0.3;
-      return next;
-    });
+  // STOP 버튼: 누를 때마다 왼쪽 릴부터 순서대로 정지
+  const handleStop = () => {
+    if (!spinning || stoppedCount >= REEL_COUNT) return;
+    const ri = stoppedCount;
+    setReelStopped((prev) => { const n = [...prev]; n[ri] = true; return n; });
+    setDurations((prev) => { const n = [...prev]; n[ri] = 0.3; return n; });
+    setStoppedCount((c) => c + 1);
   };
 
   const handleSpin = () => {
     if (spinning || balance < chipAmount) return;
-
     const newResults: SlotSymbol[] = Array.from({ length: REEL_COUNT }, () => randomSymbol());
     const newStrips: SlotSymbol[][] = [];
     const newFinalYs: number[] = [];
-
     for (let ri = 0; ri < REEL_COUNT; ri++) {
       const { strip, finalY } = buildStrip(newResults[ri]);
       newStrips.push(strip);
       newFinalYs.push(finalY);
     }
-
     resultsRef.current = newResults;
     betRef.current = chipAmount;
-
     onBet(chipAmount);
     setSpinning(true);
     setResultText("");
@@ -382,7 +339,7 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     setAnimating([false, false, false]);
     setReelStopped([false, false, false]);
     setDurations(STOP_DURATIONS);
-    setCountdown(AUTO_STOP_DELAY / 1000);
+    setStoppedCount(0);
     setSpinKey((k) => k + 1);
   };
 
@@ -401,30 +358,24 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
 
   // 전체 릴 정지 시 결과 계산
   useEffect(() => {
-    if (!spinning) return;
-    if (!reelStopped.every(Boolean)) return;
+    if (!spinning || !reelStopped.every(Boolean)) return;
     const id = setTimeout(showResult, 500);
     return () => clearTimeout(id);
   }, [spinning, reelStopped]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 5초 자동 정지
+  // 5초 자동 정지 (남은 릴 전부)
   useEffect(() => {
     if (!spinning) return;
     const id = setTimeout(() => {
       setReelStopped([true, true, true]);
       setDurations([0.3, 0.3, 0.3]);
+      setStoppedCount(REEL_COUNT);
     }, AUTO_STOP_DELAY);
     return () => clearTimeout(id);
   }, [spinning]);
 
-  // 카운트다운 표시
-  useEffect(() => {
-    if (countdown === null || countdown <= 0) return;
-    const id = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
-    return () => clearTimeout(id);
-  }, [countdown]);
-
   const canSpin = !spinning && balance >= chipAmount;
+  const canStop = spinning && stoppedCount < REEL_COUNT;
 
   return (
     <Overlay>
@@ -462,34 +413,22 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
       <Machine>
         <ReelContainer>
           {Array.from({ length: REEL_COUNT }, (_, ri) => (
-            <div key={ri} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-              <ReelWrapper>
-                <PaylineHighlight $win={winPayline} />
-                <ReelStrip
-                  key={`${ri}-${spinKey}`}
-                  $y={animating[ri] ? finalYs[ri] : 0}
-                  $duration={durations[ri]}
-                  $animate={animating[ri]}
-                  $stopping={reelStopped[ri]}
-                >
-                  {strips[ri].map((sym, si) => (
-                    <SymbolCell key={si}>{sym}</SymbolCell>
-                  ))}
-                </ReelStrip>
-              </ReelWrapper>
-              {spinning && animating[ri] && !reelStopped[ri] && (
-                <StopReelBtn onClick={() => stopReel(ri)}>STOP</StopReelBtn>
-              )}
-              {spinning && reelStopped[ri] && (
-                <StopDoneTag>✓</StopDoneTag>
-              )}
-            </div>
+            <ReelWrapper key={ri}>
+              <PaylineHighlight $win={winPayline} />
+              <ReelStrip
+                key={`${ri}-${spinKey}`}
+                $y={animating[ri] ? finalYs[ri] : 0}
+                $duration={durations[ri]}
+                $animate={animating[ri]}
+                $stopping={reelStopped[ri]}
+              >
+                {strips[ri].map((sym, si) => (
+                  <SymbolCell key={si}>{sym}</SymbolCell>
+                ))}
+              </ReelStrip>
+            </ReelWrapper>
           ))}
         </ReelContainer>
-
-        {spinning && countdown !== null && countdown > 0 && (
-          <AutoStopLabel>{countdown}초 후 자동 정지</AutoStopLabel>
-        )}
 
         <ResultText $win={isWin}>{resultText || " "}</ResultText>
       </Machine>
@@ -505,8 +444,12 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
           disabled={spinning}
         />
 
-        <SpinButton $disabled={!canSpin} onClick={handleSpin}>
-          {spinning ? "스핀 중..." : "SPIN"}
+        <SpinButton
+          $disabled={!canStop && !canSpin}
+          $stop={canStop}
+          onClick={canStop ? handleStop : canSpin ? handleSpin : undefined}
+        >
+          {canStop ? `STOP (${stoppedCount + 1}/3)` : "SPIN"}
         </SpinButton>
 
         <SectionLabel>배당표 (베팅금 × 배수)</SectionLabel>

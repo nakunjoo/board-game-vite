@@ -404,10 +404,6 @@ export default function CasinoHub({
           ) : (
             <TimerDisplay>⏱ 무제한</TimerDisplay>
           )}
-          <VoteSmallBtn onClick={hasVoted ? undefined : onVoteEnd} $voted={hasVoted} title={hasVoted ? "투표 완료" : "종료 투표"}>
-            {hasVoted ? "✓" : "🚪"}
-          </VoteSmallBtn>
-          <VoteCount>{votes.length}/{votesNeeded}</VoteCount>
         </div>
       </HubTopBar>
 
