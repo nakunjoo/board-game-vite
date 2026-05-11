@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import GangRoom from "./gang";
 import SpiceRoom from "./spice";
 import SkulkingRoom from "./skulking";
-import BlackjackRoom from "./blackjack";
+import CasinoRoom from "./casino";
 
 interface LocationState {
   gameType?: string;
@@ -21,8 +21,8 @@ export default function Room() {
     return <SkulkingRoom />;
   }
 
-  if (gameType === "blackjack") {
-    return <BlackjackRoom />;
+  if (gameType === "casino") {
+    return <CasinoRoom />;
   }
 
   return <GangRoom />;

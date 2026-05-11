@@ -8,6 +8,7 @@ import {
   ResultTime,
   BestRecordBox,
   ActionButton,
+  CloseButton,
 } from "../../../../styles/single/minesweeper/modal";
 
 interface Props {
@@ -16,12 +17,14 @@ interface Props {
   best: BestRecord | null;
   onRestart: () => void;
   onNewGame: () => void;
+  onClose: () => void;
 }
 
-export default function ResultModal({ isWon, seconds, best, onRestart, onNewGame }: Props) {
+export default function ResultModal({ isWon, seconds, best, onRestart, onNewGame, onClose }: Props) {
   return (
-    <ModalOverlay>
-      <ModalBox>
+    <ModalOverlay onClick={onClose}>
+      <ModalBox onClick={(e) => e.stopPropagation()}>
+        <CloseButton onClick={onClose} title="닫기">✕</CloseButton>
         <ResultEmoji>{isWon ? "😎" : "😵"}</ResultEmoji>
         <ModalTitle>{isWon ? "성공!" : "실패..."}</ModalTitle>
         <ResultTime>{formatTime(seconds)}</ResultTime>

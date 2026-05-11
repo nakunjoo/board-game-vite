@@ -11,6 +11,7 @@ export const ModalOverlay = styled.div`
 `;
 
 export const ModalBox = styled.div`
+  position: relative;
   background: #16213e;
   border: 2px solid #0f3460;
   border-radius: 14px;
@@ -93,6 +94,24 @@ export const BestRecordBox = styled.div`
   font-size: 13px;
   color: #ffd700;
   margin-bottom: 20px;
+`;
+
+export const CloseButton = styled.button`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #9ab;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
 `;
 
 export const ActionButton = styled.button<{ $secondary?: boolean }>`

@@ -10,6 +10,28 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-05-11 | **카지노 대출 시스템 추가** |
+| 2026-05-11 | `components/casino/CasinoHub.tsx`: 잔액이 초기금의 5% 미만일 때 깜빡이는 대출 배너 표시. 클릭 시 대출 모달 (최소 10 / 최대 초기금의 절반, 이자 10%). 누적 대출금 + 예상 상환액 표시. 대출 시 채팅 시스템 메시지 기록 |
+| 2026-05-11 | `pages/Room/casino/index.tsx`: `totalLoan` 상태 추가. `casinoLoanConfirmed` 이벤트 구독 (누적 대출 갱신 + 채팅 로그). `handleLoan` 핸들러 → `casinoLoan` 이벤트 전송. 게임 시작 시 `totalLoan` 초기화 |
+| 2026-05-11 | **카지노 게임 추가** |
+| 2026-05-11 | `pages/Room/casino/index.tsx` 신규 생성 — 카지노 Room 페이지. `casinoStarted`/`casinoBalanceUpdate`/`casinoPlayerUpdate`/`casinoVoteStatus`/`casinoGameOver` 이벤트 구독. 게임 선택 오버레이(`renderCurrentGameOverlay`) 방식으로 개별 게임 컴포넌트 렌더링 |
+| 2026-05-11 | `components/casino/CasinoHub.tsx` 신규 생성 — 게임 허브 UI. 7개 게임 카드 그리드, 잔액/타이머 상단 표시, 종료 투표 버튼 |
+| 2026-05-11 | `components/casino/CasinoLeaderboard.tsx` 신규 생성 — 실시간 플레이어 잔액 순위표 |
+| 2026-05-11 | `components/casino/CasinoSetupModal.tsx` 신규 생성 — 게임 시작 설정 모달 (초기 잔액, 시간 제한) |
+| 2026-05-11 | `components/casino/CasinoResultModal.tsx` 신규 생성 — 게임 종료 결과 모달 |
+| 2026-05-11 | `components/casino/CasinoHelpModal.tsx` 신규 생성 — 카지노 도움말 모달 |
+| 2026-05-11 | `components/casino/BetControls.tsx` 신규 생성 — 공통 베팅 컨트롤 (텍스트 입력 + MIN/¼/½/MAX 버튼). 입력값 min/max 클램핑 처리 |
+| 2026-05-11 | `components/casino/games/GameHelpModal.tsx` 신규 생성 — 게임별 도움말 공통 모달 (`HelpSection`, `HelpText`, `PayTable`, `PayLabel`, `PayValue` export) |
+| 2026-05-11 | `components/casino/games/RouletteGame.tsx` 신규 생성 — 룰렛 (MIN 1%/MAX 5%, straight 35배, red/black 1배, dozen 2배 등) |
+| 2026-05-11 | `components/casino/games/SlotsGame.tsx` 신규 생성 — 슬롯머신 (MIN 1%/MAX 2%) |
+| 2026-05-11 | `components/casino/games/BaccaratGame.tsx` 신규 생성 — 바카라 (MIN 1%/MAX 10%, Player 1:1, Banker 0.95:1, Tie 8:1) |
+| 2026-05-11 | `components/casino/games/BlackjackGame.tsx` 신규 생성 — 블랙잭 (MIN 1%/MAX 10%, 히트/스탠드/더블 지원) |
+| 2026-05-11 | `components/casino/games/VideoPokerGame.tsx` 신규 생성 — 비디오 포커 잭스오어베터 (MIN 1%/MAX 5%) |
+| 2026-05-11 | `components/casino/games/HorseRacingGame.tsx` 신규 생성 — 경마 (MIN 5%/MAX 30%, 4마리, 1등 적중 시 5:1 배당 × 6 수령) |
+| 2026-05-11 | `components/casino/games/MinesGame.tsx` 신규 생성 — 지뢰찾기 (MIN 1%/MAX 10%, 25칸/지뢰 10개, 고정 배율표: 1칸×0.7 ~ 15칸×1000, 첫 클릭도 지뢰 가능) |
+| 2026-05-11 | `styles/game/casino/` 신규 생성 — 카지노 전용 styled-components |
+| 2026-05-11 | `utils/games/index.ts`: `casino` 게임 설정 등록 |
+| 2026-05-11 | `pages/Room/index.tsx`: casino 라우팅 추가 |
 | 2026-04-29 | **Manager 페이지 3탭 구조로 확장**: 관리자 관리 / 게임타입 관리 / 신고 관리 탭 추가 |
 | 2026-04-29 | `pages/Manager/index.tsx`: 게임타입 탭 — `GET/POST /api/manager/game-types` 호출, 타입 추가(id·이름·순서)·활성화 토글·인라인 수정(이름·순서)·삭제 |
 | 2026-04-29 | `pages/Manager/index.tsx`: 신고 탭 — 전체/미처리/처리됨/기각 필터, 신고 상세 펼치기, 신고 상태 변경(처리됨/기각), 피신고자 계정 정지/해제 |

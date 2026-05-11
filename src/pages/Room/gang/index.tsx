@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
 import type { Card, PlayerHand } from "../../../types/game";
 import { evaluateHand, type HandResult } from "../../../utils/poker";
 import { playChipStolenSound } from "../../../utils/audio";
@@ -39,6 +40,7 @@ export default function GangRoom() {
     handleKickPlayer,
     locationState,
   } = useRoomBase();
+  const { isAdmin } = useAuth();
 
   const ls = locationState as LocationState & {
     deck?: Card[];
@@ -276,7 +278,7 @@ export default function GangRoom() {
     myHand.length > 0 ? evaluateHand(myHand, openCards) : null;
 
   const handleStartGame = () => {
-    if (!roomName || memberCount < 3) return;
+    if (!roomName || (!isAdmin && memberCount < 3)) return;
     send("startGame", { roomName });
   };
   const handleChipClick = (chipNumber: number) => {
@@ -350,6 +352,7 @@ export default function GangRoom() {
         isReady={isReady}
         gameOver={gameOver}
         gameConfig={gameConfig}
+        isAdmin={isAdmin}
         onStartGame={handleStartGame}
         onChipClick={handleChipClick}
         onReady={handleReady}

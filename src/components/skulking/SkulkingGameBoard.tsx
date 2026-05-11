@@ -75,6 +75,7 @@ interface Props {
   onKickPlayer?: (targetPlayerId: string) => void;
   roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
   initialTimerTimeLeft?: number | null;
+  isAdmin?: boolean;
 }
 
 export default function SkulkingGameBoard({
@@ -111,6 +112,7 @@ export default function SkulkingGameBoard({
   onKickPlayer,
   roundHistory,
   initialTimerTimeLeft,
+  isAdmin = false,
 }: Props) {
   const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
   const [tigressPending, setTigressPending] = React.useState<number | null>(null);
@@ -184,14 +186,14 @@ export default function SkulkingGameBoard({
       {/* 게임 시작 전 */}
       {!gameStarted && !gameOver && !isFirstDraw && (
         <StartGameButton
-          $disabled={isHost ? memberCount < 2 : true}
+          $disabled={isHost ? (!isAdmin && memberCount < 2) : true}
           onClick={isHost ? onStartGame : undefined}
-          disabled={isHost ? memberCount < 2 : true}
+          disabled={isHost ? (!isAdmin && memberCount < 2) : true}
         >
           {isHost ? (
             <>
               게임 시작
-              {memberCount < 2 && (
+              {!isAdmin && memberCount < 2 && (
                 <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
                   ({memberCount}/2명)
                 </div>

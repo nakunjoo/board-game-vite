@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
 import type { Card, PlayerHand } from "../../../types/game";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
 import { SkulkingGameOverModal } from "../../../components/skulking/game/SkulkingResultModal";
@@ -43,6 +44,7 @@ export default function SkulkingRoom() {
     handleKickPlayer,
     locationState,
   } = useRoomBase();
+  const { isAdmin } = useAuth();
 
   const addGameLog = (message: string) => {
     setMessages((prev) => [...prev, { message, isSystem: true }]);
@@ -538,6 +540,7 @@ export default function SkulkingRoom() {
         firstDrawCount={firstDrawCount}
         roundHistory={roundHistory}
         initialTimerTimeLeft={initialTimerTimeLeft}
+        isAdmin={isAdmin}
         onStartGame={handleStartGame}
         onBid={handleBid}
         onPlayCard={handlePlayCard}

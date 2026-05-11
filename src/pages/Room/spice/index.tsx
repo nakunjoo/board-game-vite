@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
 import type { Card, PlayerHand } from "../../../types/game";
 import SpiceGameBoard from "../../../components/spice/SpiceGameBoard";
 import SpiceResultModal from "../../../components/spice/SpiceResultModal";
@@ -33,6 +34,7 @@ export default function SpiceRoom() {
     handleKickPlayer,
     locationState,
   } = useRoomBase();
+  const { isAdmin } = useAuth();
 
   const ls = locationState as LocationState & {
     deck?: Card[];
@@ -633,6 +635,7 @@ export default function SpiceRoom() {
           setReconnectTurnTimeLeft(null);
           setReconnectChallengeTimeLeft(null);
         }}
+        isAdmin={isAdmin}
       />
 
       {gameFinished && (

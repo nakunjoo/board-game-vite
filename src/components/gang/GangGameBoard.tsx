@@ -72,6 +72,7 @@ interface GangGameBoardProps {
 
   // 게임 설정
   gameConfig: GameConfig;
+  isAdmin?: boolean;
 
   // 이벤트 핸들러
   onStartGame: () => void;
@@ -101,6 +102,7 @@ export default function GangGameBoard({
   isReady,
   gameOver,
   gameConfig,
+  isAdmin = false,
   onStartGame,
   onChipClick,
   onReady,
@@ -133,12 +135,12 @@ export default function GangGameBoard({
         <>
           {!gameOver && (isHost ? (
             <StartGameButton
-              $disabled={memberCount < 3}
+              $disabled={!isAdmin && memberCount < 3}
               onClick={onStartGame}
-              disabled={memberCount < 3}
+              disabled={!isAdmin && memberCount < 3}
             >
               게임 시작
-              {memberCount < 3 && (
+              {!isAdmin && memberCount < 3 && (
                 <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
                   ({memberCount}/3명)
                 </div>

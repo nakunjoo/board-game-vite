@@ -222,6 +222,7 @@ export default function Minesweeper() {
             setShowResultModal(false);
             setShowSetupModal(true);
           }}
+          onClose={() => setShowResultModal(false)}
         />
       )}
     </PageWrapper>

@@ -85,6 +85,7 @@ interface SpiceGameBoardProps {
   reconnectTurnTimeLeft?: number | null;
   reconnectChallengeTimeLeft?: number | null;
   onReconnectTimeLeftConsumed?: () => void;
+  isAdmin?: boolean;
 }
 
 export default function SpiceGameBoard({
@@ -122,6 +123,7 @@ export default function SpiceGameBoard({
   reconnectTurnTimeLeft = null,
   reconnectChallengeTimeLeft = null,
   onReconnectTimeLeftConsumed,
+  isAdmin = false,
 }: SpiceGameBoardProps) {
   const me = players.find((p) => p.isMe);
   const totalPlayers = players.length;
@@ -478,11 +480,11 @@ export default function SpiceGameBoard({
             !gameOver &&
             (isHost ? (
               <StartGameButton
-                $disabled={memberCount < 2}
-                onClick={memberCount >= 2 ? onStartGame : undefined}
-                disabled={memberCount < 2}
+                $disabled={!isAdmin && memberCount < 2}
+                onClick={isAdmin || memberCount >= 2 ? onStartGame : undefined}
+                disabled={!isAdmin && memberCount < 2}
               >
-                {memberCount < 2 ? (
+                {!isAdmin && memberCount < 2 ? (
                   <>
                     게임 시작 불가
                     <div style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
