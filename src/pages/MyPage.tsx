@@ -104,22 +104,33 @@ interface HistoryEntry {
 // ── SVG 라인 차트 (카지노용) ─────────────────────────────────────────
 function BalanceChart({ history }: { history: { t: number; b: number }[] }) {
   if (history.length < 2) return null;
-  const W = 360, H = 90, PAD = 8;
+  const W = 360, H = 100, PAD = 8, LABEL_H = 18;
+  const chartH = H - LABEL_H;
   const minB = Math.min(...history.map(p => p.b));
   const maxB = Math.max(...history.map(p => p.b));
   const range = maxB - minB || 1;
   const maxT = history[history.length - 1].t || 1;
   const toX = (t: number) => PAD + ((t / maxT) * (W - PAD * 2));
-  const toY = (b: number) => H - PAD - ((b - minB) / range) * (H - PAD * 2);
+  const toY = (b: number) => LABEL_H + chartH - PAD - ((b - minB) / range) * (chartH - PAD * 2);
   const points = history.map(p => `${toX(p.t)},${toY(p.b)}`).join(" ");
+  const first = history[0];
   const last = history[history.length - 1];
-  const positive = last.b >= history[0].b;
+  const positive = last.b >= first.b;
+  const color = positive ? "#22c55e" : "#ef4444";
+  const fmt = (n: number) => n.toLocaleString();
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 90, display: "block" }}>
-      <polyline points={points} fill="none"
-        stroke={positive ? "#22c55e" : "#ef4444"} strokeWidth="2" strokeLinejoin="round" />
-      <line x1={PAD} y1={toY(history[0].b)} x2={W - PAD} y2={toY(history[0].b)}
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H, display: "block" }}>
+      {/* 시작/끝 레이블 */}
+      <text x={PAD} y={12} fontSize="10" fill="#666" textAnchor="start">{fmt(first.b)}</text>
+      <text x={W - PAD} y={12} fontSize="10" fill={color} textAnchor="end" fontWeight="700">{fmt(last.b)}</text>
+      {/* 기준선 */}
+      <line x1={PAD} y1={toY(first.b)} x2={W - PAD} y2={toY(first.b)}
         stroke="#444" strokeWidth="1" strokeDasharray="4,3" />
+      {/* 꺾은선 */}
+      <polyline points={points} fill="none"
+        stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {/* 끝점 강조 */}
+      <circle cx={toX(last.t)} cy={toY(last.b)} r="3" fill={color} />
     </svg>
   );
 }
