@@ -29,8 +29,6 @@ import {
   DetailSectionTitle,
   WinLossDots,
   WinLossDot,
-  RoundScoreRow,
-  RoundScoreBadge,
   GamePlayedTable,
   GamePlayedRow,
   PlayersTableWrap,

@@ -10,6 +10,10 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-05-11 | **게임 기록 상세 모달 + 닉네임 초기 설정 모달** |
+| 2026-05-11 | `pages/MyPage.tsx`: `HistoryEntry`에 `players: HistoryPlayer[]` 추가. `PlayersTable` 컴포넌트 — 순위/닉네임/점수(또는 승패) 표, 내 row 보라색 강조 + `나` 태그. 스컬킹 상세를 뱃지 방식 → `SkulkingRoundTable`(라운드별 비드/트릭/점수 표 + 합계 행)로 교체. `RoundScoreRow`/`RoundScoreBadge` import 제거 |
+| 2026-05-11 | `styles/pages/MyPage.ts`: `SkulkingRoundTable`, `PlayersTableWrap`, `PlayerRow`(`$isMe` prop), `MeTag` styled-components 추가 |
+| 2026-05-11 | `pages/Lobby.tsx`: 첫 로그인 사용자(닉네임 미설정) 감지 — `nicknameUpdatedAt === null`이면 로비 진입 시 닉네임 설정 모달 자동 표시. "설정하기" 저장 후 닫힘, "나중에" 스킵 가능 (다음 로그인 시 재표시) |
 | 2026-05-11 | **카지노 버그 수정 및 UI 개선** |
 | 2026-05-11 | `components/casino/CasinoSetupModal.tsx`: 게임 시간 옵션 5분 / 10분 / 무제한 3가지로 축소 (30분·60분 제거). 기본값 10분 |
 | 2026-05-11 | `components/casino/games/VideoPokerGame.tsx`: 블랙잭 스타일 레이아웃으로 전면 재구성 — 초록 테이블 배경, 족보 테이블 화면에서 제거(? 도움말로만 확인), 카드 존 + 현재 족보 뱃지(알약형), "전부 버리기" 버튼 제거, DRAW 버튼만 유지 |
