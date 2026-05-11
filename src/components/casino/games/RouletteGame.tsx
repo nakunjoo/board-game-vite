@@ -86,6 +86,7 @@ const Overlay = styled.div`
   flex-direction: column;
   align-items: center;
   overflow-y: auto;
+  padding-bottom: 60px;
 `;
 
 const Header = styled.div`
@@ -142,10 +143,11 @@ const CloseButton = styled.button<{ $disabled?: boolean }>`
 `;
 
 const WheelArea = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 4px 0 8px;
+  margin: 4px 0 10px;
 `;
 
 const WheelOuter = styled.div`
@@ -188,13 +190,18 @@ const ResultCircle = styled.div<{ $color: string; $show: boolean }>`
   animation: ${({ $show }) => ($show ? css`${fadeIn} 0.3s ease` : "none")};
 `;
 
-const ResultBanner = styled.div<{ $win: boolean }>`
-  margin-top: 4px;
+const ResultBanner = styled.div<{ $win: boolean; $show: boolean }>`
+  position: absolute;
+  top: 50%;
+  right: -80px;
+  transform: translateY(-50%);
   font-size: 1rem;
   font-weight: bold;
   color: ${({ $win }) => ($win ? "#f0c040" : "#e74c3c")};
-  min-height: 22px;
-  text-align: center;
+  opacity: ${({ $show }) => ($show ? 1 : 0)};
+  animation: ${({ $show }) => ($show ? css`${fadeIn} 0.3s ease` : "none")};
+  white-space: nowrap;
+  pointer-events: none;
 `;
 
 const Section = styled.div`
@@ -232,11 +239,57 @@ const BetButton = styled.button<{ $bg: string; $active: boolean }>`
   &:hover { opacity: 1; }
 `;
 
+const NumberModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+`;
+
+const NumberModalBox = styled.div`
+  background: #0d5c2e;
+  border: 1px solid #f0c040;
+  border-radius: 14px;
+  padding: 14px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const NumberModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const NumberModalTitle = styled.div`
+  color: #f0c040;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+`;
+
+const NumberModalClose = styled.button`
+  background: none;
+  border: 1px solid rgba(240,192,64,0.4);
+  border-radius: 8px;
+  color: #f0c040;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  cursor: pointer;
+  &:hover { background: rgba(240,192,64,0.15); }
+`;
+
 const NumberTable = styled.div`
   display: grid;
-  grid-template-columns: repeat(13, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 `;
 
 const NumberCell = styled.button<{ $bg: string; $active: boolean }>`
@@ -245,17 +298,81 @@ const NumberCell = styled.button<{ $bg: string; $active: boolean }>`
   border: 2px solid ${({ $active }) => ($active ? "#f0c040" : "transparent")};
   background: ${({ $bg }) => $bg};
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: bold;
   cursor: pointer;
-  height: 36px;
+  height: 38px;
   line-height: 1;
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   &:hover { border-color: #f0c040; }
 `;
 
-const ZeroCell = styled(NumberCell)`
-  grid-column: span 1;
+const ZeroCell = styled(NumberCell)``;
+
+const NumberOpenBtn = styled.button`
+  width: 100%;
+  padding: 7px 16px;
+  border-radius: 10px;
+  border: 1px dashed rgba(240,192,64,0.5);
+  background: rgba(240,192,64,0.07);
+  color: #f0c040;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 1px;
+  &:hover { background: rgba(240,192,64,0.14); }
+`;
+
+const NumberBetRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const NumberBetSummary = styled.div`
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  min-height: 42px;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+`;
+
+const NumberBetTag = styled.div<{ $color: string }>`
+  position: relative;
+  flex-shrink: 0;
+  background: ${({ $color }) => $color};
+  border: 1px solid rgba(240,192,64,0.4);
+  border-radius: 5px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  &:hover { border-color: #f0c040; }
+`;
+
+const BetCountBadge = styled.div`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #f0c040;
+  color: #111;
+  font-size: 0.55rem;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 3px;
+  line-height: 1.3;
+  pointer-events: none;
 `;
 
 const ChipBadge = styled.div`
@@ -275,12 +392,12 @@ const ChipBadge = styled.div`
 `;
 
 const SpinButton = styled.button<{ $disabled: boolean }>`
-  width: 100%;
-  max-width: 700px;
-  margin: 0 auto 12px;
-  display: block;
-  padding: 10px;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   border-radius: 12px;
+  padding: 14px;
   border: none;
   background: ${({ $disabled }) => ($disabled ? "#555" : "linear-gradient(135deg, #f0c040 0%, #e67e22 100%)")};
   color: ${({ $disabled }) => ($disabled ? "#999" : "#0d5c2e")};
@@ -288,16 +405,24 @@ const SpinButton = styled.button<{ $disabled: boolean }>`
   font-weight: bold;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   letter-spacing: 2px;
+  z-index: 50;
 `;
 
 const BetSummaryRow = styled.div`
+  position: fixed;
+  bottom: 62px;
+  left: 10px;
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 6px;
   font-size: 0.9rem;
   color: #ccc;
+  background: rgba(13,92,46,0.9);
+  padding: 6px 12px;
+  border-radius: 10px;
+  z-index: 50;
 `;
 
 const ClearBtn = styled.button`
@@ -339,6 +464,7 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
   const [bets, setBets] = useState<Record<string, number>>({});
   const [spinning, setSpinning] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showNumberModal, setShowNumberModal] = useState(false);
   const [resultNumber, setResultNumber] = useState<number | null>(null);
   const [wheelDeg, setWheelDeg] = useState(0);
   const [spinDuration, setSpinDuration] = useState(0);
@@ -352,17 +478,6 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
     if (spinning) return;
     const key = betKey(bt);
     setBets((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + chipAmount }));
-  };
-
-  const removeBet = (bt: BetType, e: React.MouseEvent) => {
-    e.preventDefault();
-    if (spinning) return;
-    const key = betKey(bt);
-    setBets((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
   };
 
   const clearAllBets = () => {
@@ -388,14 +503,19 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
     const result = Math.floor(Math.random() * 37);
     const resultIndex = WHEEL_ORDER.indexOf(result);
     const sectorDeg = 360 / 37;
-    const targetSectorDeg = resultIndex * sectorDeg;
+
+    const targetVisual = 360 - (resultIndex + 0.5) * sectorDeg;
+    const currentVisual = prevDegRef.current % 360;
+    let delta = (targetVisual - currentVisual + 360) % 360;
+    if (delta < 1) delta += 360;
+
     const extraSpins = (5 + Math.floor(Math.random() * 3)) * 360;
-    const targetDeg = prevDegRef.current + extraSpins + (360 - targetSectorDeg - sectorDeg / 2);
+    const targetDeg = prevDegRef.current + extraSpins + delta;
     const duration = 3.5 + Math.random() * 0.5;
 
     setSpinDuration(duration);
     setWheelDeg(targetDeg);
-    prevDegRef.current = targetDeg % 360;
+    prevDegRef.current = targetDeg;
 
     setTimeout(() => {
       setSpinning(false);
@@ -405,14 +525,14 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
       for (const [key, amount] of Object.entries(bets)) {
         const bt = keyToBetType(key);
         const multiplier = calcPayout(result, bt);
-        totalDelta += multiplier * amount;
+        if (multiplier > 0) totalDelta += (multiplier + 1) * amount;
       }
       const win = totalDelta > 0;
       setIsWin(win);
       if (win) {
-        setResultText(`🎉 당첨! +${totalDelta.toLocaleString()}원`);
+        setResultText(`+${totalDelta.toLocaleString()}원`);
       } else {
-        setResultText(`😢 꽝! -${totalBet.toLocaleString()}원`);
+        setResultText("");
       }
       onResult(totalDelta);
     }, (duration + 0.1) * 1000);
@@ -453,6 +573,10 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
 
       {/* Wheel */}
       <WheelArea>
+        <div style={{ width: 0, height: 0,
+          borderLeft: "8px solid transparent", borderRight: "8px solid transparent",
+          borderTop: "18px solid #f0c040",
+          marginBottom: "-6px", zIndex: 10, position: "relative" }} />
         <WheelOuter>
           <WheelSvg
             viewBox="0 0 200 200"
@@ -472,24 +596,18 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
             <circle cx="100" cy="100" r="18" fill="#0d5c2e" stroke="#f0c040" strokeWidth="2" />
           </WheelSvg>
           <WheelCenter>
-            <div style={{ position: "absolute", top: 2, width: 0, height: 0,
-              borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-              borderBottom: "16px solid #f0c040" }} />
-          </WheelCenter>
-          <WheelCenter>
             {resultNumber !== null && (
               <ResultCircle $color={getColorHex(getNumberColor(resultNumber))} $show>
                 {resultNumber}
               </ResultCircle>
             )}
           </WheelCenter>
+          <ResultBanner $win={isWin} $show={!!resultText}>{resultText}</ResultBanner>
         </WheelOuter>
-        <ResultBanner $win={isWin}>{resultText || " "}</ResultBanner>
       </WheelArea>
 
       {/* 칩 금액 설정 */}
       <Section>
-        <SectionLabel>칩 금액 (클릭 시 해당 금액만큼 베팅 추가)</SectionLabel>
         <BetControls
           value={chipAmount}
           onChange={setChipAmount}
@@ -524,7 +642,6 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
                 $bg={bg}
                 $active={isActive(bt)}
                 onClick={() => placeBet(bt)}
-                onContextMenu={(e) => removeBet(bt, e)}
               >
                 {label}
                 {amt > 0 && <ChipBadge>{fmtChip(amt)}</ChipBadge>}
@@ -537,25 +654,60 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
       {/* 단일 숫자 */}
       <Section>
         <SectionLabel>단일 숫자 (35:1)</SectionLabel>
-        <NumberTable>
-          {[0, ...Array.from({ length: 36 }, (_, i) => i + 1)].map((n) => {
-            const bt: BetType = { number: n };
-            const amt = getBetAmount(bt);
-            return (
-              <ZeroCell
-                key={n}
-                $bg={getColorHex(getNumberColor(n))}
-                $active={isActive(bt)}
-                onClick={() => placeBet(bt)}
-                onContextMenu={(e) => removeBet(bt, e)}
-              >
-                {n}
-                {amt > 0 && <ChipBadge>{fmtChip(amt)}</ChipBadge>}
-              </ZeroCell>
-            );
-          })}
-        </NumberTable>
+        <NumberBetRow>
+          <NumberOpenBtn onClick={() => !spinning && setShowNumberModal(true)}>
+            🎯 숫자 선택하기
+          </NumberOpenBtn>
+          <NumberBetSummary>
+            {Object.entries(bets).filter(([k]) => k.startsWith("n:")).map(([key, amt]) => {
+              const n = parseInt(key.slice(2));
+              const color = getNumberColor(n);
+              return (
+                <NumberBetTag
+                  key={key}
+                  $color={getColorHex(color)}
+                  onClick={() => !spinning && setShowNumberModal(true)}
+                >
+                  {n}
+                  <BetCountBadge>x{Math.round(amt / chipAmount)}</BetCountBadge>
+                </NumberBetTag>
+              );
+            })}
+          </NumberBetSummary>
+        </NumberBetRow>
       </Section>
+
+      {/* 숫자 선택 모달 */}
+      {showNumberModal && (
+        <NumberModalOverlay onClick={() => setShowNumberModal(false)}>
+          <NumberModalBox onClick={(e) => e.stopPropagation()}>
+            <NumberModalHeader>
+              <NumberModalTitle>🎯 숫자 베팅 (35:1)</NumberModalTitle>
+              <NumberModalClose onClick={() => setShowNumberModal(false)}>완료</NumberModalClose>
+            </NumberModalHeader>
+            <div style={{ fontSize: "0.75rem", color: "#aaa" }}>
+              탭할 때마다 칩 추가 · 취소는 아래 태그의 ✕ 버튼
+            </div>
+            <NumberTable>
+              {[0, ...Array.from({ length: 36 }, (_, i) => i + 1)].map((n) => {
+                const bt: BetType = { number: n };
+                const amt = getBetAmount(bt);
+                return (
+                  <ZeroCell
+                    key={n}
+                    $bg={getColorHex(getNumberColor(n))}
+                    $active={isActive(bt)}
+                    onClick={() => placeBet(bt)}
+                  >
+                    {n}
+                    {amt > 0 && <ChipBadge>{fmtChip(amt)}</ChipBadge>}
+                  </ZeroCell>
+                );
+              })}
+            </NumberTable>
+          </NumberModalBox>
+        </NumberModalOverlay>
+      )}
 
       {/* 총 베팅 요약 */}
       <BetSummaryRow>

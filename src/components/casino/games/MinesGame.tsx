@@ -1,7 +1,13 @@
 import { useState, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import BetControls from "../BetControls";
-import GameHelpModal, { HelpSection, HelpText, PayTable as HelpPayTable, PayLabel, PayValue } from "./GameHelpModal";
+import GameHelpModal, {
+  HelpSection,
+  HelpText,
+  PayTable as HelpPayTable,
+  PayLabel,
+  PayValue,
+} from "./GameHelpModal";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -20,16 +26,19 @@ type Phase = "idle" | "playing" | "won" | "lost";
 
 const r100 = (v: number) => Math.max(100, Math.round(v / 100) * 100);
 const MINES_MIN_RATIO = 0.01;
-const MINES_MAX_RATIO = 0.10;
+const MINES_MAX_RATIO = 0.1;
 
 const GRID_SIZE = 25; // 5×5
 const MINE_COUNT = 10;
 
-const MULTIPLIER_TABLE: number[] = [1, 0.7, 1.2, 2, 3.3, 5, 7, 10, 15, 25, 50, 90, 150, 250, 500, 1000];
+const MULTIPLIER_TABLE: number[] = [
+  1, 1, 1.5, 2.5, 5, 8, 12, 17, 25, 35, 50, 90, 150, 250, 500, 1000,
+];
 
 function calcMultiplier(revealed: number): number {
   if (revealed <= 0) return 1;
-  if (revealed >= MULTIPLIER_TABLE.length) return MULTIPLIER_TABLE[MULTIPLIER_TABLE.length - 1];
+  if (revealed >= MULTIPLIER_TABLE.length)
+    return MULTIPLIER_TABLE[MULTIPLIER_TABLE.length - 1];
   return MULTIPLIER_TABLE[revealed];
 }
 
@@ -68,7 +77,25 @@ const Overlay = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: scroll;
+  overflow: hidden;
+`;
+
+const ScrollBody = styled.div`
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+`;
+
+const BottomBar = styled.div`
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 500px;
+  padding: 10px 20px 16px;
+  box-sizing: border-box;
 `;
 
 const Header = styled.div`
@@ -110,7 +137,9 @@ const HelpBtn = styled.button`
   height: 30px;
   cursor: pointer;
   flex-shrink: 0;
-  &:hover { background: rgba(240, 192, 64, 0.28); }
+  &:hover {
+    background: rgba(240, 192, 64, 0.28);
+  }
 `;
 
 const CloseButton = styled.button<{ $disabled?: boolean }>`
@@ -127,8 +156,8 @@ const CloseButton = styled.button<{ $disabled?: boolean }>`
 const MultiplierBar = styled.div`
   width: 100%;
   max-width: 480px;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(240,192,64,0.3);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(240, 192, 64, 0.3);
   border-radius: 12px;
   padding: 12px 16px;
   box-sizing: border-box;
@@ -185,7 +214,11 @@ const Grid = styled.div`
   width: 100%;
 `;
 
-const Tile = styled.button<{ $state: TileState; $revealed: boolean; $isLoss?: boolean }>`
+const Tile = styled.button<{
+  $state: TileState;
+  $revealed: boolean;
+  $isLoss?: boolean;
+}>`
   height: ${TILE_PX}px;
   min-width: 0;
   width: 100%;
@@ -196,26 +229,37 @@ const Tile = styled.button<{ $state: TileState; $revealed: boolean; $isLoss?: bo
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, transform 0.1s;
+  transition:
+    background 0.15s,
+    transform 0.1s;
 
   ${({ $state, $revealed }) => {
     if ($state === "hidden")
       return css`
-        background: rgba(255,255,255,0.12);
-        border: 1.5px solid rgba(255,255,255,0.2);
-        &:hover { background: rgba(255,255,255,0.22); transform: scale(1.05); }
+        background: rgba(255, 255, 255, 0.12);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        &:hover {
+          background: rgba(255, 255, 255, 0.22);
+          transform: scale(1.05);
+        }
       `;
     if ($state === "safe")
       return css`
-        background: rgba(46,204,113,0.2);
-        border: 1.5px solid rgba(46,204,113,0.6);
-        ${$revealed && css`animation: ${popIn} 0.3s ease forwards;`}
+        background: rgba(46, 204, 113, 0.2);
+        border: 1.5px solid rgba(46, 204, 113, 0.6);
+        ${$revealed &&
+        css`
+          animation: ${popIn} 0.3s ease forwards;
+        `}
       `;
     if ($state === "mine")
       return css`
-        background: rgba(231,76,60,0.25);
-        border: 1.5px solid rgba(231,76,60,0.7);
-        ${$revealed && css`animation: ${shake} 0.4s ease;`}
+        background: rgba(231, 76, 60, 0.25);
+        border: 1.5px solid rgba(231, 76, 60, 0.7);
+        ${$revealed &&
+        css`
+          animation: ${shake} 0.4s ease;
+        `}
       `;
   }}
 `;
@@ -234,13 +278,6 @@ const SectionLabel = styled.div`
   letter-spacing: 1px;
 `;
 
-
-const ActionRow = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-`;
-
 const ActionBtn = styled.button<{ $variant: "primary" | "cashout" | "danger" }>`
   flex: 1;
   padding: 13px;
@@ -255,50 +292,52 @@ const ActionBtn = styled.button<{ $variant: "primary" | "cashout" | "danger" }>`
       return css`
         background: linear-gradient(135deg, #f0c040 0%, #e67e22 100%);
         color: #0d1a2e;
-        &:disabled { background: #555; color: #999; cursor: not-allowed; }
+        &:disabled {
+          background: #555;
+          color: #999;
+          cursor: not-allowed;
+        }
       `;
     if ($variant === "cashout")
       return css`
         background: linear-gradient(135deg, #2ecc71 0%, #1a8a4a 100%);
         color: #fff;
-        &:disabled { background: #555; color: #999; cursor: not-allowed; }
+        &:disabled {
+          background: #555;
+          color: #999;
+          cursor: not-allowed;
+        }
       `;
     return css`
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: #ccc;
     `;
   }}
 `;
 
-const ResultBanner = styled.div<{ $win: boolean }>`
-  width: 100%;
-  max-width: 480px;
-  text-align: center;
-  padding: 12px;
-  border-radius: 10px;
-  background: ${({ $win }) => ($win ? "rgba(46,204,113,0.15)" : "rgba(231,76,60,0.15)")};
-  border: 1px solid ${({ $win }) => ($win ? "rgba(46,204,113,0.5)" : "rgba(231,76,60,0.5)")};
-  color: ${({ $win }) => ($win ? "#2ecc71" : "#e74c3c")};
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-`;
-
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export default function MinesGame({ balance, initialBalance, onBet, onResult, onClose }: CasinoGameProps) {
+export default function MinesGame({
+  balance,
+  initialBalance,
+  onBet,
+  onResult,
+  onClose,
+}: CasinoGameProps) {
   const minBet = r100(initialBalance * MINES_MIN_RATIO);
   const maxBet = r100(initialBalance * MINES_MAX_RATIO);
 
   const [phase, setPhase] = useState<Phase>("idle");
-  const [betAmount, setBetAmount] = useState(() => r100(initialBalance * MINES_MIN_RATIO));
-  const [tiles, setTiles] = useState<TileState[]>(new Array(GRID_SIZE).fill("hidden"));
+  const [betAmount, setBetAmount] = useState(() =>
+    r100(initialBalance * MINES_MIN_RATIO),
+  );
+  const [tiles, setTiles] = useState<TileState[]>(
+    new Array(GRID_SIZE).fill("hidden"),
+  );
   const [mines, setMines] = useState<Set<number>>(new Set());
   const [revealed, setRevealed] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
-  const [resultText, setResultText] = useState("");
-  const [isWin, setIsWin] = useState(false);
   const [newlyRevealed, setNewlyRevealed] = useState<number | null>(null);
 
   const currentMultiplier = calcMultiplier(revealed);
@@ -310,54 +349,50 @@ export default function MinesGame({ balance, initialBalance, onBet, onResult, on
     setTiles(new Array(GRID_SIZE).fill("hidden"));
     setMines(placeMines(GRID_SIZE, MINE_COUNT));
     setRevealed(0);
-    setResultText("");
     setNewlyRevealed(null);
     setPhase("playing");
   }, [balance, betAmount, onBet]);
 
-  const handleTileClick = useCallback((idx: number) => {
-    if (phase !== "playing" || tiles[idx] !== "hidden") return;
+  const handleTileClick = useCallback(
+    (idx: number) => {
+      if (phase !== "playing" || tiles[idx] !== "hidden") return;
 
-    if (mines.has(idx)) {
-      // Hit a mine — reveal all mines
-      const newTiles = tiles.map((t, i) => {
-        if (i === idx) return "mine";
-        if (mines.has(i)) return "mine";
-        return t;
-      }) as TileState[];
-      setTiles(newTiles);
-      setNewlyRevealed(idx);
-      setPhase("lost");
-      setIsWin(false);
-      setResultText(`💣 지뢰! 베팅금 ${betAmount.toLocaleString()}원 손실`);
-      onResult(0);
-    } else {
-      const nextRevealed = revealed + 1;
-      const newTiles = [...tiles] as TileState[];
-      newTiles[idx] = "safe";
-      setTiles(newTiles);
-      setRevealed(nextRevealed);
-      setNewlyRevealed(idx);
+      if (mines.has(idx)) {
+        // Hit a mine — reveal all mines
+        const newTiles = tiles.map((t, i) => {
+          if (i === idx) return "mine";
+          if (mines.has(i)) return "mine";
+          return t;
+        }) as TileState[];
+        setTiles(newTiles);
+        setNewlyRevealed(idx);
+        setPhase("lost");
+        onResult(0);
+      } else {
+        const nextRevealed = revealed + 1;
+        const newTiles = [...tiles] as TileState[];
+        newTiles[idx] = "safe";
+        setTiles(newTiles);
+        setRevealed(nextRevealed);
+        setNewlyRevealed(idx);
 
-      // Auto cash out if all safe tiles revealed
-      if (nextRevealed >= safeTiles) {
-        const mult = calcMultiplier(nextRevealed);
-        const delta = Math.round(betAmount * mult);
-        setPhase("won");
-        setIsWin(true);
-        setResultText(`🎉 전부 클리어! +${(delta - betAmount).toLocaleString()}원 (${mult}배)`);
-        onResult(delta);
+        // Auto cash out if all safe tiles revealed
+        if (nextRevealed >= safeTiles) {
+          const mult = calcMultiplier(nextRevealed);
+          const delta = Math.round(betAmount * mult);
+          setPhase("won");
+          onResult(delta);
+        }
       }
-    }
-  }, [phase, tiles, mines, revealed, safeTiles, betAmount, onResult]);
+    },
+    [phase, tiles, mines, revealed, safeTiles, betAmount, onResult],
+  );
 
   const handleCashOut = useCallback(() => {
     if (phase !== "playing" || revealed === 0) return;
     const mult = currentMultiplier;
     const delta = Math.round(betAmount * mult);
     setPhase("won");
-    setIsWin(true);
-    setResultText(`💰 캐시아웃! +${(delta - betAmount).toLocaleString()}원 (${mult}배)`);
     onResult(delta);
   }, [phase, revealed, currentMultiplier, betAmount, onResult]);
 
@@ -366,19 +401,27 @@ export default function MinesGame({ balance, initialBalance, onBet, onResult, on
     setTiles(new Array(GRID_SIZE).fill("hidden"));
     setMines(new Set());
     setRevealed(0);
-    setResultText("");
     setNewlyRevealed(null);
   };
 
-  const previewMults = [1, 2, 3, 5, 8, 10, 15, 20].map(
-    (k) => ({ safe: k, mult: calcMultiplier(k) })
-  );
+  const previewMults = [1, 2, 3, 5, 8, 10, 15, 20].map((k) => ({
+    safe: k,
+    mult: calcMultiplier(k),
+  }));
 
   return (
     <Overlay>
-      <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="💣 지뢰찾기 도움말">
+      <GameHelpModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="💣지뢰찾기 도움말"
+      >
         <HelpSection title="게임 방법">
-          <HelpText>{"베팅금을 설정하고 START를 누르세요.\n25칸 중 5개의 지뢰가 숨어 있습니다.\n타일을 클릭해 지뢰를 피할수록 배수가 올라갑니다.\n언제든지 캐시아웃으로 현재 금액을 수령할 수 있습니다."}</HelpText>
+          <HelpText>
+            {
+              "베팅금을 설정하고 START를 누르세요.\n25칸 중 5개의 지뢰가 숨어 있습니다.\n타일을 클릭해 지뢰를 피할수록 배수가 올라갑니다.\n언제든지 캐시아웃으로 현재 금액을 수령할 수 있습니다."
+            }
+          </HelpText>
         </HelpSection>
         <HelpSection title="배당표 (지뢰 5개 / 25칸)">
           <HelpPayTable>
@@ -391,69 +434,76 @@ export default function MinesGame({ balance, initialBalance, onBet, onResult, on
           </HelpPayTable>
         </HelpSection>
         <HelpSection title="팁">
-          <HelpText>{"지뢰를 밟으면 베팅금 전액 손실입니다.\n적절한 타이밍에 캐시아웃하는 것이 핵심입니다!"}</HelpText>
+          <HelpText>
+            {
+              "지뢰를 밟으면 베팅금 전액 손실입니다.\n적절한 타이밍에 캐시아웃하는 것이 핵심입니다!"
+            }
+          </HelpText>
         </HelpSection>
       </GameHelpModal>
 
       <Header>
-        <Title>💣 지뢰찾기</Title>
+        <Title>💣지뢰찾기</Title>
         <BalanceTag>💰 {balance.toLocaleString()}원</BalanceTag>
         <HelpBtn onClick={() => setShowHelp(true)}>?</HelpBtn>
-        <CloseButton $disabled={phase === "playing"} onClick={phase === "playing" ? undefined : onClose}>
+        <CloseButton
+          $disabled={phase === "playing"}
+          onClick={phase === "playing" ? undefined : onClose}
+        >
           닫기
         </CloseButton>
       </Header>
 
-      {/* 배수 / 수령금 / 안전 개수 표시 */}
-      <MultiplierBar>
-        <div>
-          <MultiplierLabel>현재 배수</MultiplierLabel>
-          <MultiplierValue>×{currentMultiplier.toFixed(2)}</MultiplierValue>
-        </div>
-        <div>
-          <MultiplierLabel>수령 금액</MultiplierLabel>
-          <ReceivableValue>
-            {phase === "playing" && revealed > 0
-              ? Math.round(betAmount * currentMultiplier).toLocaleString()
-              : phase === "idle"
-              ? "-"
-              : Math.round(betAmount * currentMultiplier).toLocaleString()}원
-          </ReceivableValue>
-        </div>
-        <div>
-          <MultiplierLabel>안전 클릭</MultiplierLabel>
-          <SafeCount>✅ {revealed} / {safeTiles}</SafeCount>
-        </div>
-      </MultiplierBar>
+      <ScrollBody>
+        {/* 배수 / 수령금 / 안전 개수 표시 */}
+        <MultiplierBar>
+          <div>
+            <MultiplierLabel>현재 배수</MultiplierLabel>
+            <MultiplierValue>×{currentMultiplier.toFixed(2)}</MultiplierValue>
+          </div>
+          <div>
+            <MultiplierLabel>수령 금액</MultiplierLabel>
+            <ReceivableValue>
+              {phase === "playing" && revealed > 0
+                ? Math.round(betAmount * currentMultiplier).toLocaleString()
+                : phase === "idle"
+                  ? "-"
+                  : Math.round(betAmount * currentMultiplier).toLocaleString()}
+              원
+            </ReceivableValue>
+          </div>
+          <div>
+            <MultiplierLabel>안전 클릭</MultiplierLabel>
+            <SafeCount>
+              ✅ {revealed} / {safeTiles}
+            </SafeCount>
+          </div>
+        </MultiplierBar>
 
-      {/* 결과 배너 */}
-      {(phase === "won" || phase === "lost") && (
-        <ResultBanner $win={isWin}>{resultText}</ResultBanner>
-      )}
+        {/* 그리드 */}
+        <GridWrapper>
+          <Grid>
+            {tiles.map((tileState, idx) => {
+              const isMineRevealed = phase === "won" && tileState === "hidden" && mines.has(idx);
+              return (
+                <Tile
+                  key={idx}
+                  $state={isMineRevealed ? "mine" : tileState}
+                  $revealed={idx === newlyRevealed}
+                  $isLoss={phase === "lost"}
+                  onClick={() => handleTileClick(idx)}
+                  disabled={phase !== "playing" || tileState !== "hidden"}
+                >
+                  {tileState === "safe" && "✅"}
+                  {(tileState === "mine" || isMineRevealed) && "💣"}
+                </Tile>
+              );
+            })}
+          </Grid>
+        </GridWrapper>
 
-      {/* 그리드 */}
-      <GridWrapper>
-        <Grid>
-          {tiles.map((tileState, idx) => (
-            <Tile
-              key={idx}
-              $state={tileState}
-              $revealed={idx === newlyRevealed}
-              $isLoss={phase === "lost"}
-              onClick={() => handleTileClick(idx)}
-              disabled={phase !== "playing" || tileState !== "hidden"}
-            >
-              {tileState === "safe" && "✅"}
-              {tileState === "mine" && "💣"}
-            </Tile>
-          ))}
-        </Grid>
-      </GridWrapper>
-
-      {/* 하단 컨트롤 */}
-      <Section>
         {phase === "idle" && (
-          <>
+          <Section>
             <SectionLabel>베팅금 설정</SectionLabel>
             <BetControls
               value={betAmount}
@@ -462,39 +512,44 @@ export default function MinesGame({ balance, initialBalance, onBet, onResult, on
               maxBet={maxBet}
               balance={balance}
             />
-
-            <ActionRow>
-              <ActionBtn
-                $variant="primary"
-                onClick={handleStart}
-                disabled={balance < betAmount}
-              >
-                START
-              </ActionBtn>
-            </ActionRow>
-          </>
+          </Section>
         )}
+      </ScrollBody>
 
+      <BottomBar>
+        {phase === "idle" && (
+          <ActionBtn
+            $variant="primary"
+            onClick={handleStart}
+            disabled={balance < betAmount}
+            style={{ width: "100%" }}
+          >
+            START
+          </ActionBtn>
+        )}
         {phase === "playing" && (
-          <ActionRow>
-            <ActionBtn
-              $variant="cashout"
-              onClick={handleCashOut}
-              disabled={revealed === 0}
-            >
-              💰 캐시아웃 {revealed > 0 ? `— ${Math.round(betAmount * currentMultiplier).toLocaleString()}원 수령` : "(타일을 먼저 클릭하세요)"}
-            </ActionBtn>
-          </ActionRow>
+          <ActionBtn
+            $variant="cashout"
+            onClick={handleCashOut}
+            disabled={revealed === 0}
+            style={{ width: "100%" }}
+          >
+            STOP{" "}
+            {revealed > 0
+              ? `— ${Math.round(betAmount * currentMultiplier).toLocaleString()}원 수령`
+              : ""}
+          </ActionBtn>
         )}
-
         {(phase === "won" || phase === "lost") && (
-          <ActionRow>
-            <ActionBtn $variant="primary" onClick={handleReset}>
-              다시 하기
-            </ActionBtn>
-          </ActionRow>
+          <ActionBtn
+            $variant="primary"
+            onClick={handleReset}
+            style={{ width: "100%" }}
+          >
+            다시 하기
+          </ActionBtn>
         )}
-      </Section>
+      </BottomBar>
     </Overlay>
   );
 }

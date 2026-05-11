@@ -29,6 +29,7 @@ export const HubTopBar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 0.75rem 1rem;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 8px;

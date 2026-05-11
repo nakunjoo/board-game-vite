@@ -22,18 +22,25 @@ export default function SetupModal({ initialDifficulty, onStart }: Props) {
   return (
     <ModalOverlay>
       <ModalBox>
-        <ModalTitle>💣 지뢰찾기</ModalTitle>
+        <ModalTitle>💣지뢰찾기</ModalTitle>
         <DifficultyList>
-          {(Object.entries(DIFFICULTIES) as [Difficulty, (typeof DIFFICULTIES)[string]][]).map(
-            ([key, cfg]) => (
-              <DifficultyBtn key={key} $active={selected === key} onClick={() => setSelected(key)}>
-                <span>{cfg.label}</span>
-                <DifficultyDesc>
-                  {cfg.rows}×{cfg.cols} · 지뢰 {cfg.mines}개
-                </DifficultyDesc>
-              </DifficultyBtn>
-            )
-          )}
+          {(
+            Object.entries(DIFFICULTIES) as [
+              Difficulty,
+              (typeof DIFFICULTIES)[string],
+            ][]
+          ).map(([key, cfg]) => (
+            <DifficultyBtn
+              key={key}
+              $active={selected === key}
+              onClick={() => setSelected(key)}
+            >
+              <span>{cfg.label}</span>
+              <DifficultyDesc>
+                {cfg.rows}×{cfg.cols} · 지뢰 {cfg.mines}개
+              </DifficultyDesc>
+            </DifficultyBtn>
+          ))}
         </DifficultyList>
         <StartButton onClick={() => onStart(selected)}>시작</StartButton>
       </ModalBox>

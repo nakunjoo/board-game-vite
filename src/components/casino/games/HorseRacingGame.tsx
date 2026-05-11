@@ -53,7 +53,27 @@ const Overlay = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
+  padding-bottom: 0;
+  box-sizing: border-box;
+`;
+
+const ScrollBody = styled.div`
+  flex: 1;
+  width: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+`;
+
+const BottomBar = styled.div`
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 500px;
+  padding: 10px 20px 16px;
+  box-sizing: border-box;
 `;
 
 const Header = styled.div`
@@ -142,7 +162,7 @@ const TrackBar = styled.div`
   height: 28px;
   background: rgba(0,0,0,0.3);
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 `;
 
@@ -170,27 +190,48 @@ const FinishFlag = styled.div`
 `;
 
 const RankBadge = styled.div<{ $rank: number }>`
-  min-width: 28px;
-  height: 22px;
-  border-radius: 11px;
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  min-width: 26px;
+  height: 20px;
+  border-radius: 10px;
   background: ${({ $rank }) =>
     $rank === 1 ? "#f0c040" : $rank === 2 ? "#aaa" : $rank === 3 ? "#cd7f32" : "#555"};
-  color: ${({ $rank }) => ($rank <= 3 ? "#111" : "#aaa")};
-  font-size: 0.7rem;
+  color: ${({ $rank }) => ($rank <= 3 ? "#111" : "#eee")};
+  font-size: 0.65rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: ${fadeIn} 0.3s ease;
 `;
 
-const ResultBanner = styled.div<{ $win: boolean }>`
+const StatusBox = styled.div<{ $type: "idle" | "racing" | "win" | "lose" }>`
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: ${({ $win }) => ($win ? "#f0c040" : "#e74c3c")};
-  min-height: 24px;
-  animation: ${({ $win: _ }) => css`${fadeIn} 0.3s ease`};
-  margin-top: 8px;
+  margin-bottom: 10px;
+  background: ${({ $type }) =>
+    $type === "win" ? "rgba(240,192,64,0.15)" :
+    $type === "lose" ? "rgba(231,76,60,0.12)" :
+    $type === "racing" ? "rgba(255,255,255,0.06)" :
+    "rgba(255,255,255,0.04)"};
+  border: 1px solid ${({ $type }) =>
+    $type === "win" ? "rgba(240,192,64,0.4)" :
+    $type === "lose" ? "rgba(231,76,60,0.3)" :
+    "rgba(255,255,255,0.1)"};
+  color: ${({ $type }) =>
+    $type === "win" ? "#f0c040" :
+    $type === "lose" ? "#e74c3c" :
+    $type === "racing" ? "#aaa" :
+    "rgba(255,255,255,0.35)"};
+  animation: ${({ $type }) => $type === "racing" ? css`${pulse} 0.8s ease infinite` : "none"};
 `;
 
 const Section = styled.div`
@@ -243,15 +284,6 @@ const StartButton = styled.button<{ $disabled: boolean }>`
   letter-spacing: 2px;
   margin-bottom: 16px;
   ${({ $disabled }) => !$disabled && css`&:hover { filter: brightness(1.08); }`}
-`;
-
-const RacingLabel = styled.div`
-  text-align: center;
-  color: #f0c040;
-  font-size: 0.9rem;
-  font-weight: 700;
-  animation: ${pulse} 0.8s ease infinite;
-  margin-bottom: 8px;
 `;
 
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
@@ -308,6 +340,7 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
   const tickRef = useRef(0);
   const simRef = useRef<number[][]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resultCalledRef = useRef(false);
 
   const handleStart = () => {
     if (selectedHorse === null || phase !== "idle" || balance < betAmount) return;
@@ -317,6 +350,7 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
     setRankOrder([]);
     setResultText("");
     setProgress([0, 0, 0, 0]);
+    resultCalledRef.current = false;
 
     simRef.current = simulateRace(winner);
     tickRef.current = 0;
@@ -348,11 +382,13 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
 
   useEffect(() => {
     if (phase !== "result" || winnerId === null || selectedHorse === null) return;
+    if (resultCalledRef.current) return;
+    resultCalledRef.current = true;
 
     const win = winnerId === selectedHorse;
     setIsWin(win);
     if (win) {
-      const profit = betAmount * 4; // 3:1 순이익 → delta = bet*4 (원금 반환 포함)
+      const profit = betAmount * 4;
       setResultText(`🏆 ${HORSES[winnerId].name} 1등! +${(profit - betAmount).toLocaleString()}원 획득!`);
       onResult(profit);
     } else {
@@ -389,63 +425,68 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
         </CloseButton>
       </Header>
 
-      <TrackArea>
-        {HORSES.map((horse) => {
-          const pct = progress[horse.id];
-          const rank = phase === "result" ? getRank(horse.id) : 0;
-          return (
-            <TrackRow key={horse.id}>
-              <HorseName
+      <ScrollBody>
+        <TrackArea>
+          {HORSES.map((horse) => {
+            const pct = progress[horse.id];
+            const rank = phase === "result" ? getRank(horse.id) : 0;
+            return (
+              <TrackRow key={horse.id}>
+                <HorseName
+                  $color={horse.color}
+                  $selected={selectedHorse === horse.id}
+                  onClick={() => phase === "idle" && setSelectedHorse(horse.id)}
+                >
+                  {horse.name}
+                </HorseName>
+                <TrackBar>
+                  {phase === "result" && <RankBadge $rank={rank}>{rank}위</RankBadge>}
+                  <ProgressFill $color={horse.color} $pct={pct} $racing={phase === "racing"}>
+                    {pct > 8 && <HorseEmoji>🐎</HorseEmoji>}
+                  </ProgressFill>
+                </TrackBar>
+                <FinishFlag>🏁</FinishFlag>
+              </TrackRow>
+            );
+          })}
+
+        </TrackArea>
+
+        <Section>
+          <StatusBox $type={phase === "racing" ? "racing" : phase === "result" ? (isWin ? "win" : "lose") : "idle"}>
+            {phase === "idle" && "말을 선택하고 START를 눌러주세요"}
+            {phase === "racing" && "🏇 경주 중..."}
+            {phase === "result" && resultText}
+          </StatusBox>
+          <SectionLabel>말 선택</SectionLabel>
+          <HorseSelectRow>
+            {HORSES.map((horse) => (
+              <HorseSelectBtn
+                key={horse.id}
                 $color={horse.color}
                 $selected={selectedHorse === horse.id}
                 onClick={() => phase === "idle" && setSelectedHorse(horse.id)}
+                disabled={phase !== "idle"}
               >
-                {horse.name}
-              </HorseName>
-              <TrackBar>
-                <ProgressFill $color={horse.color} $pct={pct} $racing={phase === "racing"}>
-                  {pct > 8 && <HorseEmoji>🐎</HorseEmoji>}
-                </ProgressFill>
-              </TrackBar>
-              <FinishFlag>🏁</FinishFlag>
-              {phase === "result" && <RankBadge $rank={rank}>{rank}위</RankBadge>}
-            </TrackRow>
-          );
-        })}
+                <span style={{ fontSize: "1.3rem" }}>🐎</span>
+                <span>{horse.name}</span>
+              </HorseSelectBtn>
+            ))}
+          </HorseSelectRow>
 
-        {phase === "racing" && <RacingLabel>🏇 경주 중...</RacingLabel>}
-        {phase === "result" && (
-          <ResultBanner $win={isWin}>{resultText}</ResultBanner>
-        )}
-      </TrackArea>
+          <SectionLabel>베팅금 설정</SectionLabel>
+          <BetControls
+            value={betAmount}
+            onChange={setBetAmount}
+            minBet={minBet}
+            maxBet={maxBet}
+            balance={balance}
+            disabled={phase !== "idle"}
+          />
+        </Section>
+      </ScrollBody>
 
-      <Section>
-        <SectionLabel>말 선택</SectionLabel>
-        <HorseSelectRow>
-          {HORSES.map((horse) => (
-            <HorseSelectBtn
-              key={horse.id}
-              $color={horse.color}
-              $selected={selectedHorse === horse.id}
-              onClick={() => phase === "idle" && setSelectedHorse(horse.id)}
-              disabled={phase !== "idle"}
-            >
-              <span style={{ fontSize: "1.3rem" }}>🐎</span>
-              <span>{horse.name}</span>
-            </HorseSelectBtn>
-          ))}
-        </HorseSelectRow>
-
-        <SectionLabel>베팅금 설정</SectionLabel>
-        <BetControls
-          value={betAmount}
-          onChange={setBetAmount}
-          minBet={minBet}
-          maxBet={maxBet}
-          balance={balance}
-          disabled={phase !== "idle"}
-        />
-
+      <BottomBar>
         {phase === "idle" && (
           <StartButton
             $disabled={selectedHorse === null || balance < betAmount}
@@ -468,7 +509,10 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
             다시 하기
           </StartButton>
         )}
-      </Section>
+        {phase === "racing" && (
+          <StartButton $disabled={true}>경주 중...</StartButton>
+        )}
+      </BottomBar>
     </Overlay>
   );
 }

@@ -16,7 +16,6 @@ import {
 const CASINO_GAMES = [
   { id: "roulette", name: "룰렛", icon: "🎡" },
   { id: "slots", name: "슬롯머신", icon: "🎰" },
-  { id: "baccarat", name: "바카라", icon: "🃏" },
   { id: "blackjack", name: "블랙잭", icon: "♠" },
   { id: "videopoker", name: "비디오 포커", icon: "🎲" },
   { id: "horseracing", name: "경마", icon: "🏇" },
@@ -305,6 +304,7 @@ export default function CasinoHub({
   const [showRankModal, setShowRankModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [loanInput, setLoanInput] = useState("");
+  const [rankIdx, setRankIdx] = useState(0);
 
   useEffect(() => {
     if (remainingSeconds === null) { setDisplaySeconds(null); return; }
@@ -324,6 +324,14 @@ export default function CasinoHub({
 
   const sorted = [...players].sort((a, b) => b.balance - a.balance);
   const top3 = sorted.slice(0, 3);
+
+  useEffect(() => {
+    if (top3.length <= 1) return;
+    const id = setInterval(() => {
+      setRankIdx((prev) => (prev + 1) % top3.length);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [top3.length]);
 
   const handleLoanConfirm = () => {
     const amount = parseInt(loanInput, 10);
@@ -401,15 +409,21 @@ export default function CasinoHub({
       <HubTopBar>
         {/* 1~3위 인라인 + 전체 순위 모달 버튼 */}
         <TopRankBar onClick={() => setShowRankModal(true)}>
-          {top3.map((p, i) => (
-            <RankChip key={p.playerId} $rank={i + 1}>
-              <RankLeft>
-                <RankNum>{i + 1}위</RankNum>
-                <RankAmount>{p.balance.toLocaleString()}</RankAmount>
-              </RankLeft>
-              <RankNick>{p.nickname}</RankNick>
-            </RankChip>
-          ))}
+          {top3.length === 0 ? (
+            <RankChip $rank={1} style={{ opacity: 0.35 }}>순위 집계 중...</RankChip>
+          ) : (() => {
+            const i = rankIdx % top3.length;
+            const p = top3[i];
+            return (
+              <RankChip key={p.playerId} $rank={i + 1}>
+                <RankLeft>
+                  <RankNum>{i + 1}위</RankNum>
+                  <RankAmount>{p.balance.toLocaleString()}</RankAmount>
+                </RankLeft>
+                <RankNick>{p.nickname}</RankNick>
+              </RankChip>
+            );
+          })()}
         </TopRankBar>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>

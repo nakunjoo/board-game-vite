@@ -15,7 +15,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   nickname: string | null;
-  nicknameUpdatedAt: string | null;
+  nicknameUpdatedAt: string | null | undefined;
   isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [nickname, setNickname] = useState<string | null>(null);
-  const [nicknameUpdatedAt, setNicknameUpdatedAt] = useState<string | null>(null);
+  const [nicknameUpdatedAt, setNicknameUpdatedAt] = useState<string | null | undefined>(undefined);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchProfile = async (accessToken: string) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -38,7 +38,7 @@ import {
 } from "../styles/pages/MyPage";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
-const COOLDOWN_DAYS = 7;
+const COOLDOWN_DAYS = 1;
 const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
 const GAME_TYPE_LABELS: Record<string, string> = {
@@ -101,37 +101,115 @@ interface HistoryEntry {
   players: HistoryPlayer[];
 }
 
-// ── SVG 라인 차트 (카지노용) ─────────────────────────────────────────
-function BalanceChart({ history }: { history: { t: number; b: number }[] }) {
-  if (history.length < 2) return null;
-  const W = 360, H = 220, PAD = 8, LABEL_H = 18;
-  const chartH = H - LABEL_H;
-  const minB = Math.min(...history.map(p => p.b));
-  const maxB = Math.max(...history.map(p => p.b));
-  const range = maxB - minB || 1;
-  const maxT = history[history.length - 1].t || 1;
-  const toX = (t: number) => PAD + ((t / maxT) * (W - PAD * 2));
-  const toY = (b: number) => LABEL_H + chartH - PAD - ((b - minB) / range) * (chartH - PAD * 2);
-  const points = history.map(p => `${toX(p.t)},${toY(p.b)}`).join(" ");
-  const first = history[0];
-  const last = history[history.length - 1];
-  const positive = last.b >= first.b;
-  const color = positive ? "#22c55e" : "#ef4444";
-  const fmt = (n: number) => n.toLocaleString();
+const CHART_COLORS = ["#f0c040", "#2ecc71", "#3498db", "#e74c3c", "#9b59b6", "#1abc9c"];
+
+interface ChartPlayer {
+  playerId: string;
+  nickname: string;
+  history: { t: number; b: number }[];
+  rank: number;
+}
+
+function BalanceChart({ players, myPlayerId }: { players: ChartPlayer[]; myPlayerId: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const validPlayers = players.filter(p => p.history.length >= 2);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || validPlayers.length === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const PAD = { top: 24, right: 24, bottom: 16, left: 56 };
+    const chartW = W - PAD.left - PAD.right;
+    const chartH = H - PAD.top - PAD.bottom;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const allPoints = validPlayers.flatMap(p => p.history);
+    const allT = allPoints.map(p => p.t);
+    const allB = allPoints.map(p => p.b);
+    const minT = Math.min(...allT);
+    const maxT = Math.max(...allT);
+    const minB = Math.min(...allB);
+    const maxB = Math.max(...allB);
+    const rangeT = maxT - minT || 1;
+    const rangeB = maxB - minB || 1;
+
+    const toX = (t: number) => PAD.left + ((t - minT) / rangeT) * chartW;
+    const toY = (b: number) => PAD.top + chartH - ((b - minB) / rangeB) * chartH;
+
+    // 그리드
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = PAD.top + (chartH / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(PAD.left, y);
+      ctx.lineTo(PAD.left + chartW, y);
+      ctx.stroke();
+    }
+
+    // Y축 레이블
+    ctx.fillStyle = "#aaa";
+    ctx.font = "16px sans-serif";
+    ctx.textAlign = "right";
+    for (let i = 0; i <= 4; i++) {
+      const val = Math.round(minB + (rangeB / 4) * (4 - i));
+      const y = PAD.top + (chartH / 4) * i;
+      ctx.fillText(val.toLocaleString(), PAD.left - 6, y + 5);
+    }
+
+    // 순위 기준 정렬 (내 라인이 위에 그려지도록 마지막)
+    const sorted = [...validPlayers].sort((a, b) => {
+      if (a.playerId === myPlayerId) return 1;
+      if (b.playerId === myPlayerId) return -1;
+      return a.rank - b.rank;
+    });
+
+    sorted.forEach((player) => {
+      const idx = players.indexOf(player);
+      const color = CHART_COLORS[idx % CHART_COLORS.length];
+      const isMe = player.playerId === myPlayerId;
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isMe ? 3 : 1.5;
+      ctx.globalAlpha = isMe ? 1 : 0.6;
+      ctx.beginPath();
+      player.history.forEach((pt, i) => {
+        const x = toX(pt.t);
+        const y = toY(pt.b);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+  }, [validPlayers, myPlayerId, players]);
+
+  if (validPlayers.length === 0) return null;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H, display: "block" }}>
-      {/* 시작/끝 레이블 */}
-      <text x={PAD} y={14} fontSize="13" fill="#666" textAnchor="start">{fmt(first.b)}</text>
-      <text x={W - PAD} y={14} fontSize="13" fill={color} textAnchor="end" fontWeight="700">{fmt(last.b)}</text>
-      {/* 기준선 */}
-      <line x1={PAD} y1={toY(first.b)} x2={W - PAD} y2={toY(first.b)}
-        stroke="#444" strokeWidth="1" strokeDasharray="4,3" />
-      {/* 꺾은선 */}
-      <polyline points={points} fill="none"
-        stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      {/* 끝점 강조 */}
-      <circle cx={toX(last.t)} cy={toY(last.b)} r="3" fill={color} />
-    </svg>
+    <>
+      <canvas
+        ref={canvasRef}
+        width={540}
+        height={280}
+        style={{ width: "100%", height: "auto", display: "block", background: "rgba(0,0,0,0.3)", borderRadius: 8 }}
+      />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", padding: "8px 4px" }}>
+        {players.map((player, idx) => (
+          <div key={player.playerId} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 24, height: 4, borderRadius: 2, background: CHART_COLORS[idx % CHART_COLORS.length], flexShrink: 0 }} />
+            <span style={{ fontSize: "0.9rem", color: player.playerId === myPlayerId ? "#f0c040" : "#ccc", fontWeight: player.playerId === myPlayerId ? 700 : 400 }}>
+              {player.nickname}{player.playerId === myPlayerId ? " (나)" : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -187,7 +265,24 @@ function DetailContent({ entry }: { entry: HistoryEntry }) {
     const profit = (ex?.profit as number) ?? 0;
     const final = init + profit;
     const gamesPlayed = (ex?.gamesPlayed as Record<string, number>) ?? {};
+    const myPlayerId = (ex?.myPlayerId as string) ?? "";
+    const rawPlayersHistory = (ex?.playersHistory as ChartPlayer[]) ?? [];
     const history = (ex?.history as { t: number; b: number }[]) ?? [];
+
+    // 히스토리 마지막 포인트가 실제 최종 잔액과 다르면 끝점 추가 (구버전 기록 보정)
+    const patchHistory = (hist: { t: number; b: number }[], finalScore: number | null) => {
+      if (finalScore === null || hist.length === 0) return hist;
+      const last = hist[hist.length - 1];
+      if (last.b === finalScore) return hist;
+      return [...hist, { t: last.t + 1, b: finalScore }];
+    };
+
+    // 구버전 기록 폴백: playersHistory 없으면 본인 history로 단일 라인
+    const playersHistory: ChartPlayer[] = rawPlayersHistory.length > 0
+      ? rawPlayersHistory
+      : history.length >= 2
+        ? [{ playerId: myPlayerId || "me", nickname: "나", history: patchHistory(history, final), rank: entry.rank ?? 1 }]
+        : [];
     const totalGames = Object.values(gamesPlayed).reduce((a, b) => a + b, 0);
     return (
       <>
@@ -214,10 +309,10 @@ function DetailContent({ entry }: { entry: HistoryEntry }) {
             </GamePlayedTable>
           </>
         )}
-        {history.length >= 2 && (
+        {playersHistory.length > 0 && (
           <>
             <DetailSectionTitle>잔액 변동</DetailSectionTitle>
-            <BalanceChart history={history} />
+            <BalanceChart players={playersHistory} myPlayerId={myPlayerId} />
           </>
         )}
         <PlayersTable entry={entry} />
@@ -328,7 +423,7 @@ export default function MyPage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
 
-  const { canChange, nextChangeDate, daysLeft } = getCooldownInfo(nicknameUpdatedAt);
+  const { canChange, nextChangeDate, daysLeft } = getCooldownInfo(nicknameUpdatedAt ?? null);
 
   useEffect(() => {
     if (!session?.access_token) return;

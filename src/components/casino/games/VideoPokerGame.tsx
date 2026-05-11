@@ -132,8 +132,29 @@ const Overlay = styled.div`
   flex-direction: column;
   align-items: center;
   padding: 12px 16px 16px;
-  overflow-y: auto;
+  box-sizing: border-box;
+  overflow: hidden;
   gap: 10px;
+`;
+
+const MiddleArea = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardCenterArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
 `;
 
 const Header = styled.div`
@@ -232,6 +253,7 @@ const CardFace = styled.div<{ $held: boolean; $win?: boolean }>`
   img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 5px; }
 `;
 
+
 const HoldBadge = styled.div<{ $held: boolean }>`
   font-size: 0.62rem;
   font-weight: 700;
@@ -287,7 +309,6 @@ const BottomArea = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: auto;
 `;
 
 const BalanceRow = styled.div`
@@ -303,15 +324,15 @@ const BalanceValue = styled.span`
 `;
 
 const ActionRow = styled.div`
+  width: 100%;
+  max-width: 440px;
   display: flex;
   gap: 8px;
-  justify-content: center;
 `;
 
 const ActionBtn = styled.button<{ $variant?: "primary" | "draw" }>`
   flex: 1;
-  max-width: 180px;
-  padding: 10px 0;
+  padding: 12px 0;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -403,9 +424,8 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
     const result = evaluateHand(newHand);
     setHandResult(result);
     const payout = result.multiplier * betAmount;
-    const netDelta = payout - betAmount;
-    setLastDelta(netDelta);
-    onResult(netDelta);
+    setLastDelta(payout - betAmount);
+    onResult(payout);
     setPhase("result");
   }, [phase, hand, held, deck, betAmount, onResult]);
 
@@ -415,7 +435,6 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
   };
 
   const currentRank = phase === "dealt" ? evaluateHand(hand) : handResult;
-  const hasCards = phase === "dealt" || phase === "result";
 
   return (
     <Overlay>
@@ -448,92 +467,92 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
         <CloseBtn onClick={onClose}>닫기</CloseBtn>
       </Header>
 
-      {/* 결과 배너 */}
-      {phase === "result" && handResult && (
-        <ResultBanner $win={handResult.multiplier > 0}>
-          <ResultLabel>{handResult.label}</ResultLabel>
-          <ResultDelta $win={(lastDelta ?? 0) >= 0}>
-            {(lastDelta ?? 0) >= 0
-              ? `+${(lastDelta ?? 0).toLocaleString()} 획득!`
-              : `${(lastDelta ?? 0).toLocaleString()} 손실`}
-          </ResultDelta>
-        </ResultBanner>
-      )}
-
-      {/* 카드 존 */}
-      {hasCards && (
-        <CardZone>
-          <ZoneLabel>
-            {phase === "dealt" ? "카드를 클릭해 보관할 패를 선택하세요" : "최종 패"}
-          </ZoneLabel>
-          <CardsRow>
-            {hand.map((card, i) => (
-              <CardWrapper
-                key={i}
-                $held={held[i]}
-                $flipping={flipping[i]}
-                onClick={() => toggleHold(i)}
-              >
-                <HoldBadge $held={held[i]}>
-                  {held[i] ? "HOLD" : phase === "dealt" ? "hold?" : ""}
-                </HoldBadge>
-                <CardFace
-                  $held={held[i]}
-                  $win={phase === "result" && (handResult?.multiplier ?? 0) > 0}
-                >
-                  <img src={cardImageUrl(card)} alt={`${card.value}${card.suit}`} />
-                </CardFace>
-              </CardWrapper>
-            ))}
-          </CardsRow>
-          {/* 현재 족보 뱃지 */}
-          {currentRank && (
-            <HandBadge $win={currentRank.multiplier > 0}>
-              {currentRank.multiplier > 0 ? "✓" : "·"} {currentRank.label}
-              {currentRank.multiplier > 0 && ` (${currentRank.multiplier}배)`}
+      {/* 카드 + 베팅 — 가운데 */}
+      <MiddleArea>
+        <CardCenterArea>
+          <ResultBanner
+            $win={handResult ? handResult.multiplier > 0 : false}
+            style={{ visibility: phase === "result" && handResult ? "visible" : "hidden" }}
+          >
+            <ResultLabel>{handResult?.label ?? " "}</ResultLabel>
+            <ResultDelta $win={(lastDelta ?? 0) >= 0}>
+              {(lastDelta ?? 0) >= 0
+                ? `+${(lastDelta ?? 0).toLocaleString()} 획득!`
+                : `${(lastDelta ?? 0).toLocaleString()} 손실`}
+            </ResultDelta>
+          </ResultBanner>
+          <CardZone>
+            <ZoneLabel>
+              {phase === "idle" ? "DEAL을 눌러 시작하세요" : phase === "dealt" ? "카드를 클릭해 보관할 패를 선택하세요" : "최종 패"}
+            </ZoneLabel>
+            <CardsRow>
+              {phase === "idle"
+                ? Array(5).fill(null).map((_, i) => (
+                    <CardWrapper key={i} $held={false} $flipping={false}>
+                      <HoldBadge $held={false}>&nbsp;</HoldBadge>
+                      <CardFace $held={false} style={{ opacity: 0.15 }} />
+                    </CardWrapper>
+                  ))
+                : hand.map((card, i) => (
+                    <CardWrapper
+                      key={i}
+                      $held={held[i]}
+                      $flipping={flipping[i]}
+                      onClick={() => toggleHold(i)}
+                    >
+                      <HoldBadge $held={held[i]}>
+                        {held[i] ? "HOLD" : phase === "dealt" ? "hold?" : ""}
+                      </HoldBadge>
+                      <CardFace
+                        $held={held[i]}
+                        $win={phase === "result" && (handResult?.multiplier ?? 0) > 0}
+                      >
+                        <img src={cardImageUrl(card)} alt={`${card.value}${card.suit}`} />
+                      </CardFace>
+                    </CardWrapper>
+                  ))
+              }
+            </CardsRow>
+            <HandBadge
+              $win={(currentRank?.multiplier ?? 0) > 0}
+              style={{ visibility: currentRank && phase !== "idle" ? "visible" : "hidden" }}
+            >
+              {(currentRank?.multiplier ?? 0) > 0 ? "✓" : "·"} {currentRank?.label ?? ""}
+              {(currentRank?.multiplier ?? 0) > 0 && ` (${currentRank!.multiplier}배)`}
             </HandBadge>
-          )}
-        </CardZone>
-      )}
+          </CardZone>
+        </CardCenterArea>
 
-      {/* 하단 영역 */}
-      <BottomArea>
-        <BalanceRow>
-          <span>잔액 <BalanceValue>{balance.toLocaleString()}</BalanceValue></span>
-          {phase !== "idle" && (
-            <span>베팅 <BalanceValue>{betAmount.toLocaleString()}</BalanceValue></span>
-          )}
-        </BalanceRow>
+        <BottomArea>
+          <BalanceRow>
+            <span>잔액 <BalanceValue>{balance.toLocaleString()}</BalanceValue></span>
+            {phase !== "idle" && (
+              <span>베팅 <BalanceValue>{betAmount.toLocaleString()}</BalanceValue></span>
+            )}
+          </BalanceRow>
+          <BetControls
+            value={betAmount}
+            onChange={setBetAmount}
+            minBet={minBet}
+            maxBet={maxBet}
+            balance={balance}
+            disabled={phase === "dealt"}
+          />
+          <HoldHint style={{ visibility: phase === "dealt" ? "visible" : "hidden" }}>
+            보관할 카드를 선택한 뒤 DRAW를 누르세요
+          </HoldHint>
+        </BottomArea>
+      </MiddleArea>
 
-        {(phase === "idle" || phase === "result") && (
-          <>
-            <BetControls
-              value={betAmount}
-              onChange={setBetAmount}
-              minBet={minBet}
-              maxBet={maxBet}
-              balance={balance}
-              disabled={false}
-            />
-            <ActionRow>
-              <ActionBtn $variant="primary" onClick={deal} disabled={balance < betAmount}>
-                {phase === "result" ? "다시 딜 (DEAL)" : "딜 (DEAL)"}
-              </ActionBtn>
-            </ActionRow>
-          </>
-        )}
-
-        {phase === "dealt" && (
-          <>
-            <HoldHint>보관할 카드를 선택한 뒤 DRAW를 누르세요</HoldHint>
-            <ActionRow>
-              <ActionBtn $variant="draw" onClick={draw}>
-                드로우 (DRAW)
-              </ActionBtn>
-            </ActionRow>
-          </>
-        )}
-      </BottomArea>
+      {/* 버튼 — 하단 고정 */}
+      <ActionRow>
+        {phase === "dealt"
+          ? <ActionBtn $variant="draw" onClick={draw}>드로우 (DRAW)</ActionBtn>
+          : <ActionBtn $variant="primary" onClick={deal} disabled={balance < betAmount}>
+              {phase === "result" ? "다시 딜 (DEAL)" : "딜 (DEAL)"}
+            </ActionBtn>
+        }
+      </ActionRow>
     </Overlay>
   );
 }

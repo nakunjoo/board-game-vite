@@ -10,6 +10,12 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-05-11 | **카지노 게임 기록 잔액 차트 개선** |
+| 2026-05-11 | `pages/MyPage.tsx`: `BalanceChart` SVG → Canvas로 전면 재작성. 단일 플레이어 히스토리 → 멀티플레이어(`ChartPlayer[]`) 지원으로 확장. 플레이어별 고정 색상(`CHART_COLORS`), 내 라인 굵게(3px)/타인 라인 얇게(1.5px/0.6 alpha). 캔버스 아래 HTML 범례(색상 바 + 닉네임, 내 플레이어 금색 굵게). 구버전 기록 폴백: `playersHistory` 없으면 `ex.history` + `patchHistory(history, final)`로 단일 라인 표시 |
+| 2026-05-11 | `pages/MyPage.tsx`: `patchHistory` 함수 추가 — 히스토리 마지막 포인트 잔액이 실제 최종 잔액(`init + profit`)과 다를 경우 끝점 추가. 대출 상환으로 음수가 된 최종 잔액도 차트에 반영 (`entry.score` 대신 `final = init + profit` 사용)
+
+| 날짜 | 내용 |
+|------|------|
 | 2026-05-11 | **게임 기록 상세 모달 + 닉네임 초기 설정 모달** |
 | 2026-05-11 | `pages/MyPage.tsx`: `HistoryEntry`에 `players: HistoryPlayer[]` 추가. `PlayersTable` 컴포넌트 — 순위/닉네임/점수(또는 승패) 표, 내 row 보라색 강조 + `나` 태그. 스컬킹 상세를 뱃지 방식 → `SkulkingRoundTable`(라운드별 비드/트릭/점수 표 + 합계 행)로 교체. `RoundScoreRow`/`RoundScoreBadge` import 제거 |
 | 2026-05-11 | `styles/pages/MyPage.ts`: `SkulkingRoundTable`, `PlayersTableWrap`, `PlayerRow`(`$isMe` prop), `MeTag` styled-components 추가 |

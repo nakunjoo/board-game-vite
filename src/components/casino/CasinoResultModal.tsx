@@ -4,7 +4,6 @@ import {
   ResultModalOverlay,
   ResultModalBox,
   ResultTitle,
-  ResultReason,
   ResultTable,
   ResultProfitCell,
   ChartWrapper,
@@ -42,7 +41,7 @@ export default function CasinoResultModal({
 
     const W = canvas.width;
     const H = canvas.height;
-    const PAD = { top: 24, right: 24, bottom: 32, left: 56 };
+    const PAD = { top: 24, right: 24, bottom: 16, left: 56 };
     const chartW = W - PAD.left - PAD.right;
     const chartH = H - PAD.top - PAD.bottom;
 
@@ -76,13 +75,13 @@ export default function CasinoResultModal({
     }
 
     // Y축 레이블
-    ctx.fillStyle = "#888";
-    ctx.font = "10px sans-serif";
+    ctx.fillStyle = "#aaa";
+    ctx.font = "16px sans-serif";
     ctx.textAlign = "right";
     for (let i = 0; i <= 4; i++) {
       const val = Math.round(minB + (rangeB / 4) * (4 - i));
       const y = PAD.top + (chartH / 4) * i;
-      ctx.fillText(val.toLocaleString(), PAD.left - 4, y + 4);
+      ctx.fillText(val.toLocaleString(), PAD.left - 6, y + 5);
     }
 
     // 각 플레이어 라인 그리기
@@ -105,18 +104,6 @@ export default function CasinoResultModal({
       ctx.globalAlpha = 1;
     });
 
-    // 범례
-    ctx.font = "11px sans-serif";
-    ctx.textAlign = "left";
-    result.players.forEach((player, idx) => {
-      const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
-      const x = PAD.left + (idx % 3) * (chartW / 3);
-      const y = H - 10;
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y - 8, 12, 2);
-      ctx.fillStyle = "#ccc";
-      ctx.fillText(player.nickname, x + 16, y);
-    });
   }, [result, myPlayerId]);
 
   const sorted = [...result.players].sort((a, b) => a.rank - b.rank);
@@ -125,9 +112,6 @@ export default function CasinoResultModal({
     <ResultModalOverlay onClick={onClose}>
       <ResultModalBox onClick={(e) => e.stopPropagation()}>
         <ResultTitle>🎰 게임 종료</ResultTitle>
-        <ResultReason>
-          {result.reason === "timer" ? "⏱ 시간 초과로 게임이 종료되었습니다." : "🗳 투표로 게임이 종료되었습니다."}
-        </ResultReason>
 
         <ResultTable>
           <thead>
@@ -159,10 +143,21 @@ export default function CasinoResultModal({
           <canvas
             ref={canvasRef}
             width={540}
-            height={200}
+            height={320}
             style={{ width: "100%", height: "auto", display: "block" }}
           />
         </ChartWrapper>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px", padding: "4px 4px" }}>
+          {result.players.map((player, idx) => (
+            <div key={player.playerId} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 24, height: 4, borderRadius: 2, background: PLAYER_COLORS[idx % PLAYER_COLORS.length], flexShrink: 0 }} />
+              <span style={{ fontSize: "0.9rem", color: player.playerId === myPlayerId ? "#f0c040" : "#ccc", fontWeight: player.playerId === myPlayerId ? 700 : 400 }}>
+                {player.nickname}
+              </span>
+            </div>
+          ))}
+        </div>
 
         <CloseButton onClick={onClose}>닫기</CloseButton>
       </ResultModalBox>

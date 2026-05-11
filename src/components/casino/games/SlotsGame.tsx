@@ -21,15 +21,15 @@ const SLOTS_MAX_RATIO = 0.02;
 
 const CELL_H = 80;
 const REEL_COUNT = 3;
-const SPIN_ROWS = 80;
-const SPIN_DURATION = 5; // 스핀 선형 이동 시간(초)
+const SPIN_ROWS = 250;
+const SPIN_DURATION = 10; // 스핀 선형 이동 시간(초)
 const AUTO_STOP_DELAY = 5000; // 5초 후 자동 정지
 
 const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
 type SlotSymbol = typeof SYMBOLS[number];
 
 const SYMBOL_POOL: SlotSymbol[] = [
-  "🍒", "🍒", "🍒", "🍒",
+  "🍒", "🍒",
   "🍋", "🍋", "🍋",
   "🍊", "🍊", "🍊",
   "🍇", "🍇",
@@ -51,8 +51,7 @@ function calcMultiplier(payline: SlotSymbol[]): number {
   if (a === "🍊" && b === "🍊" && c === "🍊") return 10;
   if (a === "🍋" && b === "🍋" && c === "🍋") return 8;
   if (a === "🍒" && b === "🍒" && c === "🍒") return 5;
-  if (a === "🍒" && b === "🍒") return 2;
-  if (a === "🍒") return 2;
+  if (a === "🍒" || b === "🍒" || c === "🍒") return 2;
   return 0;
 }
 
@@ -153,7 +152,7 @@ const Machine = styled.div`
   width: 100%;
   max-width: 380px;
   box-sizing: border-box;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 `;
 
 const ReelContainer = styled.div`
@@ -239,6 +238,7 @@ const SpinButton = styled.button<{ $disabled: boolean; $stop?: boolean }>`
   font-weight: bold;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   letter-spacing: 3px;
+  margin-top: 14px;
   margin-bottom: 20px;
 `;
 
@@ -300,7 +300,7 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     setIsWin(win);
     setWinPayline(win);
     if (win) {
-      setResultText(`💰 ${multiplier}배! +${((multiplier - 1) * bet).toLocaleString()}원`);
+      setResultText(`💰 ${multiplier}배! +${(multiplier * bet).toLocaleString()}원`);
       onResult(multiplier * bet);
     } else {
       setResultText("😢 꽝");
@@ -440,7 +440,6 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
       </Machine>
 
       <Section>
-        <SectionLabel>베팅금 설정</SectionLabel>
         <BetControls
           value={chipAmount}
           onChange={setChipAmount}

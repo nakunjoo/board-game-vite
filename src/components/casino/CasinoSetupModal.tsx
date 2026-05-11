@@ -11,13 +11,12 @@ import {
   NonHostMessage,
 } from "../../styles/game/casino";
 
-const TIME_OPTIONS: { label: string; value: number | null }[] = [
+const TIME_OPTIONS = [
   { label: "5분", value: 5 * 60 },
   { label: "10분", value: 10 * 60 },
-  { label: "무제한", value: null },
 ];
 
-const BALANCE_OPTIONS = [1_000, 5_000, 10_000, 50_000, 100_000];
+const BALANCE_OPTIONS = [1_000, 5_000, 10_000];
 
 interface CasinoSetupModalProps {
   isHost: boolean;
@@ -30,7 +29,7 @@ export default function CasinoSetupModal({
   memberCount,
   onStart,
 }: CasinoSetupModalProps) {
-  const [selectedTime, setSelectedTime] = useState<number | null>(10 * 60);
+  const [selectedTime, setSelectedTime] = useState(5 * 60);
   const [selectedBalance, setSelectedBalance] = useState(10_000);
 
   const handleStart = () => {

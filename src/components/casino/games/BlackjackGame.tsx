@@ -361,10 +361,10 @@ export default function BlackjackGame({ balance, initialBalance, onBet, onResult
     if (isBlackjack(pCards)) {
       setDealerHoleRevealed(true);
       if (isBlackjack(dCards)) {
-        setHandResult("push"); setLastDelta(0); onResult(0);
+        setHandResult("push"); setLastDelta(0); onResult(betAmount);
       } else {
-        const delta = Math.floor(betAmount * 1.5);
-        setHandResult("blackjack"); setLastDelta(delta); onResult(delta);
+        const profit = Math.floor(betAmount * 1.5);
+        setHandResult("blackjack"); setLastDelta(profit); onResult(betAmount + profit);
       }
       setPhase("result");
       return;
@@ -392,16 +392,15 @@ export default function BlackjackGame({ balance, initialBalance, onBet, onResult
         let result: HandResult;
         let delta: number;
         if (pScore > 21) {
-          result = "lose"; delta = -effectiveBet;
+          result = "lose"; delta = 0; setLastDelta(-effectiveBet);
         } else if (dealerScore > 21 || pScore > dealerScore) {
-          result = "win"; delta = effectiveBet;
+          result = "win"; delta = effectiveBet * 2; setLastDelta(effectiveBet);
         } else if (pScore === dealerScore) {
-          result = "push"; delta = 0;
+          result = "push"; delta = effectiveBet; setLastDelta(0);
         } else {
-          result = "lose"; delta = -effectiveBet;
+          result = "lose"; delta = 0; setLastDelta(-effectiveBet);
         }
         setHandResult(result);
-        setLastDelta(delta);
         onResult(delta);
         setPhase("result");
       }

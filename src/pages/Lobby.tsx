@@ -472,7 +472,7 @@ export default function Lobby() {
               <div style={{ fontSize: "0.8rem", color: "#ff6b6b", marginTop: "0.4rem" }}>{nicknameError}</div>
             )}
             <div style={{ fontSize: "0.75rem", color: "#555", marginTop: "0.4rem" }}>
-              닉네임은 최대 6자이며, 설정 후 7일간 변경할 수 없습니다.
+              닉네임은 최대 6자이며, 설정 후 하루간 변경할 수 없습니다.
             </div>
             <ModalButtons style={{ marginTop: "1rem" }}>
               <ModalButton onClick={() => setShowNicknameModal(false)}>나중에</ModalButton>

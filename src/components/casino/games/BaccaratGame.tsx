@@ -413,16 +413,16 @@ export default function BaccaratGame({ balance, initialBalance, onBet, onResult,
     let win = false;
     if (target === w) {
       win = true;
-      if (w === "player") delta = chipAmount; // 1:1
-      else if (w === "banker") delta = Math.floor(chipAmount * 0.95); // 0.95:1
-      else delta = chipAmount * 8; // tie 8:1
+      if (w === "player") delta = chipAmount * 2;
+      else if (w === "banker") delta = chipAmount + Math.floor(chipAmount * 0.95);
+      else delta = chipAmount * 9; // tie 8:1 + 원금
     }
 
     setIsWin(win);
     if (win) {
       setResultText(`🎉 ${w === "player" ? "플레이어" : w === "banker" ? "뱅커" : "타이"} 승! +${delta.toLocaleString()}원`);
     } else {
-      setResultText(`😢 패배! -${chipAmount.toLocaleString()}원`);
+      setResultText("");
     }
     onResult(delta);
   };
