@@ -104,7 +104,7 @@ interface HistoryEntry {
 // ── SVG 라인 차트 (카지노용) ─────────────────────────────────────────
 function BalanceChart({ history }: { history: { t: number; b: number }[] }) {
   if (history.length < 2) return null;
-  const W = 360, H = 100, PAD = 8, LABEL_H = 18;
+  const W = 360, H = 220, PAD = 8, LABEL_H = 18;
   const chartH = H - LABEL_H;
   const minB = Math.min(...history.map(p => p.b));
   const maxB = Math.max(...history.map(p => p.b));
@@ -121,8 +121,8 @@ function BalanceChart({ history }: { history: { t: number; b: number }[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H, display: "block" }}>
       {/* 시작/끝 레이블 */}
-      <text x={PAD} y={12} fontSize="10" fill="#666" textAnchor="start">{fmt(first.b)}</text>
-      <text x={W - PAD} y={12} fontSize="10" fill={color} textAnchor="end" fontWeight="700">{fmt(last.b)}</text>
+      <text x={PAD} y={14} fontSize="13" fill="#666" textAnchor="start">{fmt(first.b)}</text>
+      <text x={W - PAD} y={14} fontSize="13" fill={color} textAnchor="end" fontWeight="700">{fmt(last.b)}</text>
       {/* 기준선 */}
       <line x1={PAD} y1={toY(first.b)} x2={W - PAD} y2={toY(first.b)}
         stroke="#444" strokeWidth="1" strokeDasharray="4,3" />
