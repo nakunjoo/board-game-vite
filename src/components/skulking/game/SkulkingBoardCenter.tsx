@@ -29,6 +29,7 @@ interface Props {
   players: SkulkingPlayer[];
   currentTrick: TrickEntry[];
   initialTimerTimeLeft?: number | null;
+  trickKey?: number;
 }
 
 export default function SkulkingBoardCenter({
@@ -42,6 +43,7 @@ export default function SkulkingBoardCenter({
   players,
   currentTrick,
   initialTimerTimeLeft,
+  trickKey,
 }: Props) {
   const leadCard = currentTrick.find((e) => !isSpecialCard(e.card.type))?.card ?? null;
   const [timeLeft, setTimeLeft] = React.useState(TURN_TIME);
@@ -63,7 +65,7 @@ export default function SkulkingBoardCenter({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentPlayerId, phase]);
+  }, [currentPlayerId, phase, trickKey]);
 
   return (
     <BoardCenterBadge>

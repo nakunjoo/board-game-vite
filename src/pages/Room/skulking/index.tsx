@@ -130,6 +130,7 @@ export default function SkulkingRoom() {
     null,
   );
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
+  const [trickKey, setTrickKey] = useState(0);
   const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<
     number | null
   >(null);
@@ -338,6 +339,7 @@ export default function SkulkingRoom() {
             setTrickWinnerId(null);
             setTrickLeadPlayerId(d.currentPlayerId);
             if (d.trickOrder) setTrickOrder(d.trickOrder);
+            setTrickKey((k) => k + 1);
           }
           setCurrentPlayerId(d.currentPlayerId);
           break;
@@ -540,6 +542,7 @@ export default function SkulkingRoom() {
         firstDrawCount={firstDrawCount}
         roundHistory={roundHistory}
         initialTimerTimeLeft={initialTimerTimeLeft}
+        trickKey={trickKey}
         isAdmin={isAdmin}
         onStartGame={handleStartGame}
         onBid={handleBid}

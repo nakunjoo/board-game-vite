@@ -561,7 +561,7 @@ export const NotificationToast = styled.div<{ $show: boolean }>`
 
 export const HandRankContainer = styled.div`
   position: absolute;
-  bottom: 140px;
+  bottom: 170px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -572,7 +572,7 @@ export const HandRankContainer = styled.div`
   white-space: nowrap;
 
   @media (max-width: 768px) {
-    bottom: 110px;
+    bottom: 140px;
     gap: 8px;
   }
 `;

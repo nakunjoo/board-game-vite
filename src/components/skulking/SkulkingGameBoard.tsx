@@ -75,6 +75,7 @@ interface Props {
   onKickPlayer?: (targetPlayerId: string) => void;
   roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
   initialTimerTimeLeft?: number | null;
+  trickKey?: number;
   isAdmin?: boolean;
 }
 
@@ -112,6 +113,7 @@ export default function SkulkingGameBoard({
   onKickPlayer,
   roundHistory,
   initialTimerTimeLeft,
+  trickKey,
   isAdmin = false,
 }: Props) {
   const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
@@ -180,6 +182,7 @@ export default function SkulkingGameBoard({
           players={players}
           currentTrick={currentTrick}
           initialTimerTimeLeft={initialTimerTimeLeft}
+          trickKey={trickKey}
         />
       )}
 
