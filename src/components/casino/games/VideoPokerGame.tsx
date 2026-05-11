@@ -221,7 +221,6 @@ const CardFace = styled.div<{ $held: boolean; $win?: boolean }>`
   width: 58px;
   height: 84px;
   border-radius: 7px;
-  overflow: hidden;
   user-select: none;
   border: 2px solid ${({ $held, $win }) =>
     $win ? "#f0c040" : $held ? "#f0c040" : "rgba(255,255,255,0.12)"};
@@ -230,7 +229,7 @@ const CardFace = styled.div<{ $held: boolean; $win?: boolean }>`
     : $held ? "0 0 8px rgba(240,192,64,0.35)"
     : "0 2px 6px rgba(0,0,0,0.5)"};
   transition: border 0.15s, box-shadow 0.15s;
-  img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 5px; }
 `;
 
 const HoldBadge = styled.div<{ $held: boolean }>`

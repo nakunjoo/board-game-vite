@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import styled, { keyframes } from "styled-components";
+import { useAuth } from "../../../contexts/AuthContext";
 import { useRoomBase } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
 import CasinoHub from "../../../components/casino/CasinoHub";
@@ -14,7 +16,29 @@ import HorseRacingGame from "../../../components/casino/games/HorseRacingGame";
 import MinesGame from "../../../components/casino/games/MinesGame";
 import type { CasinoPlayer, CasinoGameOverData } from "../../../components/casino/types";
 
+const floatUp = keyframes`
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  60%  { opacity: 1; transform: translateY(-48px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0.9); }
+`;
+
+const DeltaFlash = styled.div<{ $positive: boolean }>`
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: ${({ $positive }) => ($positive ? "#2ecc71" : "#e74c3c")};
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 9999;
+  animation: ${floatUp} 1.4s ease forwards;
+  white-space: nowrap;
+`;
+
 export default function CasinoRoom() {
+  const { isAdmin } = useAuth();
   const {
     roomName,
     playerId,
@@ -39,6 +63,7 @@ export default function CasinoRoom() {
   } = useRoomBase();
 
   // ── 게임 진행 상태 ──────────────────────────────────────────────────
+  const [roomJoinedReceived, setRoomJoinedReceived] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [initialBalance, setInitialBalance] = useState(10_000);
   const [myBalance, setMyBalance] = useState(10_000);
@@ -48,6 +73,8 @@ export default function CasinoRoom() {
   const [currentGame, setCurrentGame] = useState<string | null>(null);
   const [totalLoan, setTotalLoan] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [deltaFlashes, setDeltaFlashes] = useState<{ id: number; value: number }[]>([]);
+  const deltaIdRef = useRef(0);
   const [gameOverData, setGameOverData] = useState<CasinoGameOverData | null>(null);
 
   // 타이머 참조 (게임 시작 시각 기반 로컬 카운트다운)
@@ -101,6 +128,7 @@ export default function CasinoRoom() {
             casinoAllHistories?: Record<string, { t: number; b: number }[]>;
             casinoVotes?: string[];
           };
+          setRoomJoinedReceived(true);
           if (d.name === roomName && d.casinoStarted) {
             setGameStarted(true);
             if (d.casinoInitialBalance !== undefined) {
@@ -170,6 +198,11 @@ export default function CasinoRoom() {
           };
           if (d.playerId === playerId) {
             setMyBalance(d.balance);
+            if (d.delta !== 0) {
+              const id = ++deltaIdRef.current;
+              setDeltaFlashes((prev) => [...prev, { id, value: d.delta }]);
+              setTimeout(() => setDeltaFlashes((prev) => prev.filter((f) => f.id !== id)), 1400);
+            }
           }
           setPlayers((prev) =>
             prev.map((p) =>
@@ -268,6 +301,11 @@ export default function CasinoRoom() {
   const handleLoan = (amount: number) => {
     if (!roomName) return;
     send("casinoLoan", { roomName, amount });
+  };
+
+  const handleForceEnd = () => {
+    if (!roomName) return;
+    send("casinoForceEnd", { roomName });
   };
 
   // ── 게임 컴포넌트 오버레이 ───────────────────────────────────────────
@@ -379,8 +417,8 @@ export default function CasinoRoom() {
         <CasinoHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
       }
     >
-      {/* 게임 시작 전: 설정 모달 */}
-      {!gameStarted && !gameOver && (
+      {/* 게임 시작 전: 설정 모달 (roomJoined 받기 전까지 숨김) */}
+      {roomJoinedReceived && !gameStarted && !gameOver && (
         <CasinoSetupModal
           isHost={isHost}
           memberCount={memberCount}
@@ -400,8 +438,10 @@ export default function CasinoRoom() {
             handleSwitchGame(game);
           }}
           onLoan={handleLoan}
+          onForceEnd={handleForceEnd}
           memberCount={memberCount}
           totalLoan={totalLoan}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -420,7 +460,11 @@ export default function CasinoRoom() {
         />
       )}
 
-      {/* handleBet, handleResult는 향후 개별 게임 컴포넌트에 onBet/onResult prop으로 전달 */}
+      {deltaFlashes.map((f) => (
+        <DeltaFlash key={f.id} $positive={f.value > 0}>
+          {f.value > 0 ? `+${f.value.toLocaleString()}` : f.value.toLocaleString()}
+        </DeltaFlash>
+      ))}
     </RoomLayout>
   );
 }

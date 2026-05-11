@@ -167,11 +167,10 @@ const CardFace = styled.div<{ $new?: boolean }>`
   width: 56px;
   height: 80px;
   border-radius: 7px;
-  overflow: hidden;
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
   flex-shrink: 0;
   ${({ $new }) => $new && css`animation: ${flipIn} 0.3s ease forwards;`}
-  img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 7px; }
 `;
 
 const CardBack = styled.div`

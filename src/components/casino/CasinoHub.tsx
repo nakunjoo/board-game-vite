@@ -49,9 +49,18 @@ const TopRankBar = styled.button`
 const RankChip = styled.div<{ $rank: number }>`
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 6px;
   font-size: 0.72rem;
   color: ${({ $rank }) => $rank === 1 ? "#f0c040" : $rank === 2 ? "#aaa" : "#cd7f32"};
+  flex: 1;
+  min-width: 0;
+`;
+
+const RankLeft = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -66,9 +75,11 @@ const RankAmount = styled.span`
 
 const RankNick = styled.span`
   opacity: 0.75;
-  max-width: 50px;
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 `;
 
 
@@ -150,6 +161,20 @@ const ModalCloseBtn = styled.button`
   padding: 8px;
   cursor: pointer;
   width: 100%;
+`;
+
+const ForceEndBtn = styled.button`
+  margin-top: 4px;
+  background: rgba(231,76,60,0.15);
+  border: 1px solid rgba(231,76,60,0.5);
+  border-radius: 8px;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px;
+  cursor: pointer;
+  width: 100%;
+  &:hover { background: rgba(231,76,60,0.3); }
 `;
 
 // ─── 대출 스타일 ──────────────────────────────────────────────────────────────
@@ -256,8 +281,10 @@ interface CasinoHubProps {
   myPlayerId: string;
   onSelectGame: (game: string) => void;
   onLoan: (amount: number) => void;
+  onForceEnd?: () => void;
   memberCount: number;
   totalLoan: number;
+  isAdmin?: boolean;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -270,7 +297,9 @@ export default function CasinoHub({
   myPlayerId,
   onSelectGame,
   onLoan,
+  onForceEnd,
   totalLoan,
+  isAdmin,
 }: CasinoHubProps) {
   const [displaySeconds, setDisplaySeconds] = useState(remainingSeconds);
   const [showRankModal, setShowRankModal] = useState(false);
@@ -325,6 +354,16 @@ export default function CasinoHub({
                 </ModalRow>
               );
             })}
+            {isAdmin && onForceEnd && (
+              <ForceEndBtn onClick={() => {
+                if (window.confirm("게임을 강제 종료하시겠습니까? 현재 기록이 모두 저장됩니다.")) {
+                  onForceEnd();
+                  setShowRankModal(false);
+                }
+              }}>
+                🛠 게임 강제 종료
+              </ForceEndBtn>
+            )}
             <ModalCloseBtn onClick={() => setShowRankModal(false)}>닫기</ModalCloseBtn>
           </ModalBox>
         </ModalOverlay>
@@ -364,8 +403,10 @@ export default function CasinoHub({
         <TopRankBar onClick={() => setShowRankModal(true)}>
           {top3.map((p, i) => (
             <RankChip key={p.playerId} $rank={i + 1}>
-              <RankNum>{i + 1}위</RankNum>
-              <RankAmount>{p.balance.toLocaleString()}</RankAmount>
+              <RankLeft>
+                <RankNum>{i + 1}위</RankNum>
+                <RankAmount>{p.balance.toLocaleString()}</RankAmount>
+              </RankLeft>
               <RankNick>{p.nickname}</RankNick>
             </RankChip>
           ))}

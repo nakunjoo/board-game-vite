@@ -352,7 +352,7 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
     const win = winnerId === selectedHorse;
     setIsWin(win);
     if (win) {
-      const profit = betAmount * 6; // 5:1 순이익 → delta = bet*6 (원금 반환 포함)
+      const profit = betAmount * 4; // 3:1 순이익 → delta = bet*4 (원금 반환 포함)
       setResultText(`🏆 ${HORSES[winnerId].name} 1등! +${(profit - betAmount).toLocaleString()}원 획득!`);
       onResult(profit);
     } else {
@@ -376,7 +376,7 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
           </HelpPayTable>
         </HelpSection>
         <HelpSection title="확률">
-          <HelpText>{"4마리 말의 기본 확률은 각 25%입니다.\n1등 적중 시 5:1 배당 (베팅금 × 6 수령)입니다."}</HelpText>
+          <HelpText>{"4마리 말의 기본 확률은 각 25%입니다.\n1등 적중 시 3:1 배당 (베팅금 × 4 수령)입니다."}</HelpText>
         </HelpSection>
       </GameHelpModal>
 
