@@ -178,6 +178,218 @@ export const HistoryItem = styled.div<{ $status: string }>`
       : $status === "abandoned_disconnected"
         ? "#555"
         : "transparent"};
+  cursor: pointer;
+  &:hover { background: #2e2e2e; }
+`;
+
+export const DetailOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+export const DetailBox = styled.div`
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+export const DetailHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #2a2a2a;
+`;
+
+export const DetailTitle = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+`;
+
+export const DetailClose = styled.button`
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  &:hover { color: #aaa; }
+`;
+
+export const DetailMeta = styled.div`
+  font-size: 0.78rem;
+  color: #666;
+  margin-top: 0.1rem;
+`;
+
+export const DetailRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #252525;
+  font-size: 0.88rem;
+  color: #aaa;
+  span:last-child { color: #e0e0e0; font-weight: 600; }
+`;
+
+export const DetailSectionTitle = styled.div`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.25rem;
+`;
+
+export const WinLossDots = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const WinLossDot = styled.span<{ $win: boolean }>`
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: ${({ $win }) => ($win ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)")};
+  color: ${({ $win }) => ($win ? "#22c55e" : "#ef4444")};
+`;
+
+export const RoundScoreRow = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const RoundScoreBadge = styled.span<{ $positive: boolean }>`
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: ${({ $positive }) => ($positive ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)")};
+  color: ${({ $positive }) => ($positive ? "#22c55e" : "#ef4444")};
+`;
+
+export const GamePlayedTable = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+export const GamePlayedRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #888;
+  span:last-child { color: #ccc; }
+`;
+
+export const SkulkingRoundTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    color: #555;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #2a2a2a;
+    text-align: center;
+  }
+
+  td {
+    padding: 0.32rem 0.5rem;
+    color: #aaa;
+    text-align: center;
+    border-bottom: 1px solid #1e1e1e;
+    white-space: nowrap;
+  }
+
+  tr.total-row td {
+    border-top: 1px solid #333;
+    border-bottom: none;
+    color: #ccc;
+    font-weight: 700;
+    padding-top: 0.5rem;
+  }
+`;
+
+export const PlayersTableWrap = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    color: #555;
+    font-weight: 600;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #2a2a2a;
+    text-align: center;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  td {
+    padding: 0.35rem 0.5rem;
+    color: #aaa;
+    text-align: center;
+    border-bottom: 1px solid #1e1e1e;
+    white-space: nowrap;
+  }
+
+  td[style*="text-align: left"],
+  td[style*="text-align:left"] {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+export const PlayerRow = styled.tr<{ $isMe: boolean }>`
+  background: ${({ $isMe }) => ($isMe ? "rgba(100,108,255,0.08)" : "transparent")};
+
+  td {
+    color: ${({ $isMe }) => ($isMe ? "#c8cbff" : "#aaa")};
+    font-weight: ${({ $isMe }) => ($isMe ? "600" : "400")};
+  }
+`;
+
+export const MeTag = styled.span`
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(100,108,255,0.25);
+  color: #9fa6ff;
+  font-weight: 700;
+  vertical-align: middle;
 `;
 
 export const HistoryBadge = styled.span<{ $gameType: string; $abandoned?: boolean }>`
