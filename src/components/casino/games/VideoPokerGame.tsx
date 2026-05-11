@@ -101,7 +101,14 @@ function pay(rank: HandRank): HandResult {
   return { rank, label: entry.label, multiplier: entry.multiplier };
 }
 
-function isRed(card: VPCard) { return card.suit === "♥" || card.suit === "♦"; }
+const CARD_BASE = "https://storage.googleapis.com/teak-banner-431004-n3.appspot.com/images/cards";
+const SUIT_NAME: Record<Suit, string> = { "♠": "spades", "♥": "hearts", "♦": "diamonds", "♣": "clubs" };
+const VALUE_NAME: Record<string, string> = { A: "ace", J: "jack", Q: "queen", K: "king" };
+function cardImageUrl(card: VPCard) {
+  const suit = SUIT_NAME[card.suit];
+  const val = VALUE_NAME[card.value] ?? card.value;
+  return `${CARD_BASE}/${suit}_${val}.svg`;
+}
 
 // ── 스타일 ───────────────────────────────────────────────────────────────────
 
@@ -210,16 +217,11 @@ const CardWrapper = styled.div<{ $held: boolean; $flipping: boolean }>`
   ${({ $flipping }) => $flipping && css`animation: ${flipIn} 0.35s ease forwards;`}
 `;
 
-const CardFace = styled.div<{ $red: boolean; $held: boolean; $win?: boolean }>`
+const CardFace = styled.div<{ $held: boolean; $win?: boolean }>`
   width: 58px;
   height: 84px;
-  background: #fff;
   border-radius: 7px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+  overflow: hidden;
   user-select: none;
   border: 2px solid ${({ $held, $win }) =>
     $win ? "#f0c040" : $held ? "#f0c040" : "rgba(255,255,255,0.12)"};
@@ -228,25 +230,7 @@ const CardFace = styled.div<{ $red: boolean; $held: boolean; $win?: boolean }>`
     : $held ? "0 0 8px rgba(240,192,64,0.35)"
     : "0 2px 6px rgba(0,0,0,0.5)"};
   transition: border 0.15s, box-shadow 0.15s;
-`;
-
-const CardCorner = styled.div<{ $red: boolean; $flip?: boolean }>`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
-  font-size: 0.62rem;
-  line-height: 1.15;
-  ${({ $flip }) =>
-    $flip
-      ? css`bottom: 3px; right: 4px; transform: rotate(180deg);`
-      : css`top: 3px; left: 4px;`}
-`;
-
-const CardSuitBig = styled.div<{ $red: boolean }>`
-  font-size: 1.4rem;
-  color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
+  img { width: 100%; height: 100%; object-fit: contain; display: block; }
 `;
 
 const HoldBadge = styled.div<{ $held: boolean }>`
@@ -495,19 +479,10 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
                   {held[i] ? "HOLD" : phase === "dealt" ? "hold?" : ""}
                 </HoldBadge>
                 <CardFace
-                  $red={isRed(card)}
                   $held={held[i]}
                   $win={phase === "result" && (handResult?.multiplier ?? 0) > 0}
                 >
-                  <CardCorner $red={isRed(card)}>
-                    <span>{card.value}</span>
-                    <span>{card.suit}</span>
-                  </CardCorner>
-                  <CardSuitBig $red={isRed(card)}>{card.suit}</CardSuitBig>
-                  <CardCorner $red={isRed(card)} $flip>
-                    <span>{card.value}</span>
-                    <span>{card.suit}</span>
-                  </CardCorner>
+                  <img src={cardImageUrl(card)} alt={`${card.value}${card.suit}`} />
                 </CardFace>
               </CardWrapper>
             ))}

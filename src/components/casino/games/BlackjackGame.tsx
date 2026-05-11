@@ -65,7 +65,6 @@ function dealerShouldHit(cards: BJCard[]): boolean {
   return false;
 }
 
-function isRed(suit: Suit) { return suit === "♥" || suit === "♦"; }
 
 // ── 스타일 ───────────────────────────────────────────────────────────────────
 
@@ -164,20 +163,15 @@ const CardsRow = styled.div`
   flex-wrap: wrap;
 `;
 
-const CardFace = styled.div<{ $red: boolean; $new?: boolean }>`
+const CardFace = styled.div<{ $new?: boolean }>`
   width: 56px;
   height: 80px;
-  background: #fff;
   border-radius: 7px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
-  user-select: none;
+  overflow: hidden;
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  flex-shrink: 0;
   ${({ $new }) => $new && css`animation: ${flipIn} 0.3s ease forwards;`}
+  img { width: 100%; height: 100%; object-fit: contain; display: block; }
 `;
 
 const CardBack = styled.div`
@@ -193,23 +187,7 @@ const CardBack = styled.div`
   border-radius: 7px;
   border: 2px solid rgba(255,255,255,0.15);
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-`;
-
-const CardCorner = styled.div<{ $flip?: boolean }>`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  font-size: 0.62rem;
-  line-height: 1.15;
-  ${({ $flip }) =>
-    $flip
-      ? css`bottom: 3px; right: 4px; transform: rotate(180deg);`
-      : css`top: 3px; left: 4px;`}
-`;
-
-const CardSuitBig = styled.div`
-  font-size: 1.3rem;
+  flex-shrink: 0;
 `;
 
 const DealerZone = styled.div`
@@ -598,19 +576,19 @@ export default function BlackjackGame({ balance, initialBalance, onBet, onResult
   );
 }
 
+const CARD_BASE = "https://storage.googleapis.com/teak-banner-431004-n3.appspot.com/images/cards";
+const SUIT_NAME: Record<Suit, string> = { "♠": "spades", "♥": "hearts", "♦": "diamonds", "♣": "clubs" };
+const VALUE_NAME: Record<string, string> = { A: "ace", J: "jack", Q: "queen", K: "king" };
+function cardImageUrl(card: BJCard) {
+  const suit = SUIT_NAME[card.suit];
+  const val = VALUE_NAME[card.value] ?? card.value;
+  return `${CARD_BASE}/${suit}_${val}.svg`;
+}
+
 function CardComp({ card, isNew }: { card: BJCard; isNew: boolean }) {
-  const red = isRed(card.suit);
   return (
-    <CardFace $red={red} $new={isNew}>
-      <CardCorner>
-        <span>{card.value}</span>
-        <span>{card.suit}</span>
-      </CardCorner>
-      <CardSuitBig>{card.suit}</CardSuitBig>
-      <CardCorner $flip>
-        <span>{card.value}</span>
-        <span>{card.suit}</span>
-      </CardCorner>
+    <CardFace $new={isNew}>
+      <img src={cardImageUrl(card)} alt={`${card.value}${card.suit}`} />
     </CardFace>
   );
 }

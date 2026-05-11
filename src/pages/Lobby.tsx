@@ -132,6 +132,7 @@ export default function Lobby() {
             hostPlayerId?: string;
             hostNickname?: string;
           };
+          sessionStorage.setItem(`gameType-${joinData.name}`, joinData.gameType ?? "gang");
           navigate(`/room/${joinData.name}`, {
             state: joinData,
           });

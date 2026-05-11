@@ -97,6 +97,8 @@ export default function CasinoRoom() {
             casinoTimeLimit?: number | null;
             casinoRemainingSeconds?: number | null;
             casinoPlayers?: CasinoPlayer[];
+            casinoMyHistory?: { t: number; b: number }[];
+            casinoAllHistories?: Record<string, { t: number; b: number }[]>;
             casinoVotes?: string[];
           };
           if (d.name === roomName && d.casinoStarted) {
@@ -112,11 +114,19 @@ export default function CasinoRoom() {
             }
             if (d.casinoRemainingSeconds !== undefined && d.casinoRemainingSeconds !== null) {
               setRemainingSeconds(d.casinoRemainingSeconds);
-              // 남은 시간 기반으로 timerStartRef 역산
               timerStartRef.current =
                 Date.now() - ((d.casinoTimeLimit ?? 0) - d.casinoRemainingSeconds) * 1000;
             }
-            if (d.casinoPlayers) setPlayers(d.casinoPlayers);
+            if (d.casinoPlayers) {
+              const allHist = d.casinoAllHistories ?? {};
+              setPlayers(d.casinoPlayers.map((p) => ({
+                ...p,
+                currentGame: p.currentGame ?? null,
+                history: allHist[p.playerId]?.length
+                  ? allHist[p.playerId]
+                  : [{ t: 0, b: p.balance }],
+              })));
+            }
           }
           break;
         }

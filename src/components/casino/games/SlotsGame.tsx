@@ -22,7 +22,7 @@ const SLOTS_MAX_RATIO = 0.02;
 const CELL_H = 80;
 const REEL_COUNT = 3;
 const SPIN_ROWS = 80;
-const STOP_DURATIONS = [5.0, 5.0, 5.0];
+const SPIN_DURATION = 5; // 스핀 선형 이동 시간(초)
 const AUTO_STOP_DELAY = 5000; // 5초 후 자동 정지
 
 const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
@@ -186,17 +186,10 @@ const PaylineHighlight = styled.div<{ $win: boolean }>`
   ${({ $win }) => $win && css`animation: ${winPulse} 0.8s ease infinite;`}
 `;
 
-const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean; $stopping: boolean }>`
+const ReelStrip = styled.div`
   display: flex;
   flex-direction: column;
   will-change: transform;
-  transform: translateY(${({ $y }) => $y}px);
-  ${({ $animate, $duration, $stopping }) =>
-    $animate
-      ? $stopping
-        ? css`transition: transform ${$duration}s ease-out;`
-        : css`transition: transform ${$duration}s linear;`
-      : css`transition: none;`}
 `;
 
 const SymbolCell = styled.div`
@@ -274,24 +267,31 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
 
   const [chipAmount, setChipAmount] = useState(() => r100(initialBalance * SLOTS_MIN_RATIO));
   const [spinning, setSpinning] = useState(false);
+  const [stopped, setStopped] = useState(false);
   const [resultText, setResultText] = useState("");
   const [isWin, setIsWin] = useState(false);
   const [winPayline, setWinPayline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-
   const [spinKey, setSpinKey] = useState(0);
   const [strips, setStrips] = useState<SlotSymbol[][]>(() =>
     Array.from({ length: REEL_COUNT }, () => buildStrip(randomSymbol()).strip)
   );
-  const [finalYs, setFinalYs] = useState<number[]>([0, 0, 0]);
-  const [animating, setAnimating] = useState<boolean[]>([false, false, false]);
-  const [durations, setDurations] = useState<number[]>(STOP_DURATIONS);
-  const [reelStopped, setReelStopped] = useState<boolean[]>([false, false, false]);
-  // 다음에 멈출 릴 인덱스 (0→1→2 순서)
-  const [stoppedCount, setStoppedCount] = useState(0);
 
+  const reelStripRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
+  const finalYsRef = useRef<number[]>([0, 0, 0]);
   const resultsRef = useRef<SlotSymbol[]>([]);
   const betRef = useRef(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearAllTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+
+  const addTimer = (fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+  };
 
   const showResult = () => {
     const multiplier = calcMultiplier(resultsRef.current);
@@ -307,25 +307,44 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
       onResult(0);
     }
     setSpinning(false);
+    setStopped(false);
   };
 
-  // STOP 버튼: 한 번 누르면 1→2→3 순서대로 자동 연속 정지
+  // 릴 하나를 현재 위치에서 읽어 finalY로 ease-out
+  const stopReelImperative = (ri: number) => {
+    const el = reelStripRefs.current[ri];
+    if (!el) return;
+    const matrix = new DOMMatrix(window.getComputedStyle(el).transform);
+    const currentY = matrix.m42;
+    el.style.transition = "none";
+    el.style.transform = `translateY(${currentY}px)`;
+    void el.getBoundingClientRect(); // force reflow
+    el.style.transition = "transform 0.5s ease-out";
+    el.style.transform = `translateY(${finalYsRef.current[ri]}px)`;
+  };
+
+  // STOP 한 번 → 0→300ms→600ms 간격으로 순서대로 정지, 마지막 후 700ms에 결과
+  const startStopSequence = () => {
+    setStopped(true);
+    clearAllTimers();
+    addTimer(() => stopReelImperative(0), 0);
+    addTimer(() => stopReelImperative(1), 300);
+    addTimer(() => {
+      stopReelImperative(2);
+      addTimer(showResult, 700);
+    }, 600);
+  };
+
   const handleStop = () => {
-    if (!spinning || stoppedCount >= REEL_COUNT) return;
-    setStoppedCount(REEL_COUNT);
-    [0, 1, 2].forEach((ri) => {
-      setTimeout(() => {
-        setReelStopped((prev) => { const n = [...prev]; n[ri] = true; return n; });
-        setDurations((prev) => { const n = [...prev]; n[ri] = 0.3; return n; });
-      }, ri * 300);
-    });
+    if (!spinning || stopped) return;
+    startStopSequence();
   };
 
   const handleSpin = () => {
     if (spinning || balance < chipAmount) return;
     const newResults: SlotSymbol[] = Array.from({ length: REEL_COUNT }, () => randomSymbol());
-    const newStrips: SlotSymbol[][] = [];
     const newFinalYs: number[] = [];
+    const newStrips: SlotSymbol[][] = [];
     for (let ri = 0; ri < REEL_COUNT; ri++) {
       const { strip, finalY } = buildStrip(newResults[ri]);
       newStrips.push(strip);
@@ -333,52 +352,39 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     }
     resultsRef.current = newResults;
     betRef.current = chipAmount;
+    finalYsRef.current = newFinalYs;
+
+    clearAllTimers();
     onBet(chipAmount);
     setSpinning(true);
+    setStopped(false);
     setResultText("");
     setWinPayline(false);
     setStrips(newStrips);
-    setFinalYs(newFinalYs);
-    setAnimating([false, false, false]);
-    setReelStopped([false, false, false]);
-    setDurations(STOP_DURATIONS);
-    setStoppedCount(0);
     setSpinKey((k) => k + 1);
+
+    // 5초 후 자동 정지
+    addTimer(startStopSequence, AUTO_STOP_DELAY);
   };
 
-  // double rAF: 리마운트 후 애니메이션 적용
+  // spinKey 변경 시 strips 리마운트 완료 후 linear 트랜지션 시작
   useEffect(() => {
     if (spinKey === 0) return;
     const id1 = requestAnimationFrame(() => {
       const id2 = requestAnimationFrame(() => {
-        setAnimating([true, true, true]);
-        setDurations(STOP_DURATIONS);
+        reelStripRefs.current.forEach((el, ri) => {
+          if (!el) return;
+          el.style.transition = `transform ${SPIN_DURATION}s linear`;
+          el.style.transform = `translateY(${finalYsRef.current[ri]}px)`;
+        });
       });
       return () => cancelAnimationFrame(id2);
     });
     return () => cancelAnimationFrame(id1);
   }, [spinKey]);
 
-  // 전체 릴 정지 시 결과 계산
-  useEffect(() => {
-    if (!spinning || !reelStopped.every(Boolean)) return;
-    const id = setTimeout(showResult, 500);
-    return () => clearTimeout(id);
-  }, [spinning, reelStopped]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 5초 자동 정지 (남은 릴 전부)
-  useEffect(() => {
-    if (!spinning) return;
-    const id = setTimeout(() => {
-      setReelStopped([true, true, true]);
-      setDurations([0.3, 0.3, 0.3]);
-      setStoppedCount(REEL_COUNT);
-    }, AUTO_STOP_DELAY);
-    return () => clearTimeout(id);
-  }, [spinning]);
-
   const canSpin = !spinning && balance >= chipAmount;
-  const canStop = spinning && stoppedCount < REEL_COUNT;
+  const canStop = spinning && !stopped;
 
   return (
     <Overlay>
@@ -420,10 +426,7 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
               <PaylineHighlight $win={winPayline} />
               <ReelStrip
                 key={`${ri}-${spinKey}`}
-                $y={animating[ri] ? finalYs[ri] : 0}
-                $duration={durations[ri]}
-                $animate={animating[ri]}
-                $stopping={reelStopped[ri]}
+                ref={(el) => { reelStripRefs.current[ri] = el; }}
               >
                 {strips[ri].map((sym, si) => (
                   <SymbolCell key={si}>{sym}</SymbolCell>
@@ -452,7 +455,7 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
           $stop={canStop}
           onClick={canStop ? handleStop : canSpin ? handleSpin : undefined}
         >
-          {canStop ? `STOP (${stoppedCount + 1}/3)` : "SPIN"}
+          {canStop ? "STOP" : "SPIN"}
         </SpinButton>
 
         <SectionLabel>배당표 (베팅금 × 배수)</SectionLabel>

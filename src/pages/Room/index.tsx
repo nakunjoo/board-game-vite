@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import GangRoom from "./gang";
 import SpiceRoom from "./spice";
 import SkulkingRoom from "./skulking";
@@ -10,8 +10,10 @@ interface LocationState {
 
 export default function Room() {
   const location = useLocation();
+  const { roomName } = useParams<{ roomName: string }>();
   const state = location.state as LocationState | null;
-  const gameType = state?.gameType ?? "gang";
+  const stored = roomName ? sessionStorage.getItem(`gameType-${roomName}`) : null;
+  const gameType = state?.gameType ?? stored ?? "gang";
 
   if (gameType === "spice") {
     return <SpiceRoom />;
