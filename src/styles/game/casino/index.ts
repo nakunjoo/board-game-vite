@@ -77,12 +77,12 @@ export const GameGrid = styled.div`
 export const GameCard = styled.button`
   background: linear-gradient(135deg, #0d5c2e 0%, #0a3d1e 100%);
   border: 2px solid rgba(240, 192, 64, 0.25);
-  border-radius: 10px;
-  padding: 1rem 0.75rem;
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
   cursor: pointer;
   transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 
@@ -98,22 +98,22 @@ export const GameCard = styled.button`
 `;
 
 export const GameCardIcon = styled.div`
-  font-size: 2rem;
+  font-size: 1.5rem;
   line-height: 1;
 `;
 
 export const GameCardName = styled.div`
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #e0d0a0;
 `;
 
 export const GamePlayButton = styled.div`
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: #f0c040;
   background: rgba(240, 192, 64, 0.15);
   border-radius: 4px;
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.5rem;
 `;
 
 export const VoteSection = styled.div`

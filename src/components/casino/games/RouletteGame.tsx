@@ -18,15 +18,8 @@ const ROULETTE_MIN_RATIO = 0.01;
 const ROULETTE_MAX_RATIO = 0.05;
 
 type BetType =
-  | "red"
-  | "black"
-  | "odd"
-  | "even"
-  | "low"
-  | "high"
-  | "dozen1"
-  | "dozen2"
-  | "dozen3"
+  | "red" | "black" | "odd" | "even" | "low" | "high"
+  | "dozen1" | "dozen2" | "dozen3"
   | { number: number };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -48,9 +41,7 @@ function getColorHex(color: "red" | "black" | "green"): string {
 }
 
 function calcPayout(result: number, betType: BetType): number {
-  if (typeof betType === "object") {
-    return betType.number === result ? 35 : 0;
-  }
+  if (typeof betType === "object") return betType.number === result ? 35 : 0;
   const color = getNumberColor(result);
   if (betType === "red") return color === "red" ? 1 : 0;
   if (betType === "black") return color === "black" ? 1 : 0;
@@ -62,6 +53,14 @@ function calcPayout(result: number, betType: BetType): number {
   if (betType === "dozen2") return result >= 13 && result <= 24 ? 2 : 0;
   if (betType === "dozen3") return result >= 25 && result <= 36 ? 2 : 0;
   return 0;
+}
+
+function betKey(bt: BetType): string {
+  return typeof bt === "object" ? `n:${bt.number}` : bt;
+}
+
+function keyToBetType(key: string): BetType {
+  return key.startsWith("n:") ? { number: parseInt(key.slice(2)) } : (key as BetType);
 }
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -95,13 +94,13 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 10px 16px;
   box-sizing: border-box;
 `;
 
 const Title = styled.h2`
   color: #f0c040;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   margin: 0;
   letter-spacing: 2px;
 `;
@@ -113,6 +112,11 @@ const BalanceTag = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -141,28 +145,23 @@ const WheelArea = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0 16px;
+  margin: 4px 0 8px;
 `;
 
 const WheelOuter = styled.div`
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 160px;
+  height: 160px;
 `;
 
 const WheelSvg = styled.svg<{ $spinning: boolean; $deg: number; $duration: number }>`
-  width: 200px;
-  height: 200px;
+  width: 160px;
+  height: 160px;
   transform-origin: center;
   ${({ $spinning, $deg, $duration }) =>
     $spinning
-      ? css`
-          animation: ${spin} ${$duration}s linear infinite;
-        `
-      : css`
-          transform: rotate(${$deg}deg);
-          transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);
-        `}
+      ? css`animation: ${spin} ${$duration}s linear infinite;`
+      : css`transform: rotate(${$deg}deg); transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`}
 `;
 
 const WheelCenter = styled.div`
@@ -175,26 +174,26 @@ const WheelCenter = styled.div`
 `;
 
 const ResultCircle = styled.div<{ $color: string; $show: boolean }>`
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: ${({ $color }) => $color};
   border: 3px solid #f0c040;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: bold;
   color: #fff;
   animation: ${({ $show }) => ($show ? css`${fadeIn} 0.3s ease` : "none")};
 `;
 
 const ResultBanner = styled.div<{ $win: boolean }>`
-  margin-top: 8px;
-  font-size: 1.1rem;
+  margin-top: 4px;
+  font-size: 1rem;
   font-weight: bold;
   color: ${({ $win }) => ($win ? "#f0c040" : "#e74c3c")};
-  min-height: 24px;
+  min-height: 22px;
   text-align: center;
 `;
 
@@ -208,19 +207,20 @@ const Section = styled.div`
 const SectionLabel = styled.div`
   color: #f0c040;
   font-size: 0.8rem;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   letter-spacing: 1px;
 `;
 
 const BetGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 5px;
+  margin-bottom: 8px;
 `;
 
 const BetButton = styled.button<{ $bg: string; $active: boolean }>`
-  padding: 10px 4px;
+  position: relative;
+  padding: 7px 4px;
   border-radius: 8px;
   border: 2px solid ${({ $active }) => ($active ? "#f0c040" : "transparent")};
   background: ${({ $bg }) => $bg};
@@ -236,10 +236,11 @@ const NumberTable = styled.div`
   display: grid;
   grid-template-columns: repeat(13, 1fr);
   gap: 3px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 `;
 
 const NumberCell = styled.button<{ $bg: string; $active: boolean }>`
+  position: relative;
   aspect-ratio: 1;
   border-radius: 4px;
   border: 2px solid ${({ $active }) => ($active ? "#f0c040" : "transparent")};
@@ -256,12 +257,28 @@ const ZeroCell = styled(NumberCell)`
   grid-column: span 1;
 `;
 
+const ChipBadge = styled.div`
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  background: #f0c040;
+  color: #111;
+  font-size: 0.58rem;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 1px 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+`;
+
 const SpinButton = styled.button<{ $disabled: boolean }>`
   width: 100%;
   max-width: 700px;
-  margin: 0 auto 24px;
+  margin: 0 auto 12px;
   display: block;
-  padding: 14px;
+  padding: 10px;
   border-radius: 12px;
   border: none;
   background: ${({ $disabled }) => ($disabled ? "#555" : "linear-gradient(135deg, #f0c040 0%, #e67e22 100%)")};
@@ -272,11 +289,25 @@ const SpinButton = styled.button<{ $disabled: boolean }>`
   letter-spacing: 2px;
 `;
 
-const CurrentBetInfo = styled.div`
-  text-align: center;
-  color: #ccc;
+const BetSummaryRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
   font-size: 0.9rem;
-  margin-bottom: 12px;
+  color: #ccc;
+`;
+
+const ClearBtn = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.18); color: #fff; }
 `;
 
 // ─── Wheel SVG Builder ────────────────────────────────────────────────────────
@@ -292,7 +323,6 @@ function buildWheelPath(index: number, total: number, r: number, cx: number, cy:
   return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
 }
 
-// European roulette order
 const WHEEL_ORDER = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
   5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
@@ -303,8 +333,9 @@ const WHEEL_ORDER = [
 export default function RouletteGame({ balance, initialBalance, onBet, onResult, onClose }: CasinoGameProps) {
   const minBet = r100(initialBalance * ROULETTE_MIN_RATIO);
   const maxBet = r100(initialBalance * ROULETTE_MAX_RATIO);
+
   const [chipAmount, setChipAmount] = useState(() => r100(initialBalance * ROULETTE_MIN_RATIO));
-  const [betType, setBetType] = useState<BetType | null>(null);
+  const [bets, setBets] = useState<Record<string, number>>({});
   const [spinning, setSpinning] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [resultNumber, setResultNumber] = useState<number | null>(null);
@@ -314,25 +345,41 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
   const [isWin, setIsWin] = useState(false);
   const prevDegRef = useRef(0);
 
-  const betLabel = (bt: BetType | null): string => {
-    if (!bt) return "없음";
-    if (typeof bt === "object") return `${bt.number}번`;
-    const map: Record<string, string> = {
-      red: "레드", black: "블랙", odd: "홀수", even: "짝수",
-      low: "1~18", high: "19~36", dozen1: "1~12", dozen2: "13~24", dozen3: "25~36",
-    };
-    return map[bt] ?? bt;
+  const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
+
+  const placeBet = (bt: BetType) => {
+    if (spinning) return;
+    const key = betKey(bt);
+    setBets((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + chipAmount }));
   };
 
-  const isActive = (bt: BetType): boolean => {
-    if (!betType) return false;
-    if (typeof bt === "object" && typeof betType === "object") return bt.number === betType.number;
-    return bt === betType;
+  const removeBet = (bt: BetType, e: React.MouseEvent) => {
+    e.preventDefault();
+    if (spinning) return;
+    const key = betKey(bt);
+    setBets((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const clearAllBets = () => {
+    if (!spinning) setBets({});
+  };
+
+  const getBetAmount = (bt: BetType): number => bets[betKey(bt)] ?? 0;
+  const isActive = (bt: BetType): boolean => getBetAmount(bt) > 0;
+
+  const fmtChip = (n: number): string => {
+    if (n >= 10000) return `${Math.floor(n / 1000)}k`;
+    if (n >= 1000) return `${n / 1000}k`;
+    return String(n);
   };
 
   const handleSpin = () => {
-    if (!betType || spinning || balance < chipAmount) return;
-    onBet(chipAmount);
+    if (totalBet === 0 || spinning || balance < totalBet) return;
+    onBet(totalBet);
     setSpinning(true);
     setResultNumber(null);
     setResultText("");
@@ -340,7 +387,6 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
     const result = Math.floor(Math.random() * 37);
     const resultIndex = WHEEL_ORDER.indexOf(result);
     const sectorDeg = 360 / 37;
-    // We want the sector to land at the top (pointer at 12 o'clock)
     const targetSectorDeg = resultIndex * sectorDeg;
     const extraSpins = (5 + Math.floor(Math.random() * 3)) * 360;
     const targetDeg = prevDegRef.current + extraSpins + (360 - targetSectorDeg - sectorDeg / 2);
@@ -353,26 +399,31 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
     setTimeout(() => {
       setSpinning(false);
       setResultNumber(result);
-      const multiplier = calcPayout(result, betType);
-      const delta = multiplier * chipAmount;
-      const win = multiplier > 0;
+
+      let totalDelta = 0;
+      for (const [key, amount] of Object.entries(bets)) {
+        const bt = keyToBetType(key);
+        const multiplier = calcPayout(result, bt);
+        totalDelta += multiplier * amount;
+      }
+      const win = totalDelta > 0;
       setIsWin(win);
       if (win) {
-        setResultText(`🎉 당첨! +${delta.toLocaleString()}원 (${multiplier + 1}배)`);
+        setResultText(`🎉 당첨! +${totalDelta.toLocaleString()}원`);
       } else {
-        setResultText(`😢 꽝! -${chipAmount.toLocaleString()}원`);
+        setResultText(`😢 꽝! -${totalBet.toLocaleString()}원`);
       }
-      onResult(delta);
+      onResult(totalDelta);
     }, (duration + 0.1) * 1000);
   };
 
-  const canSpin = !!betType && !spinning && balance >= chipAmount;
+  const canSpin = totalBet > 0 && !spinning && balance >= totalBet;
 
   return (
     <Overlay>
       <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="🎡 룰렛 도움말">
         <HelpSection title="게임 방법">
-          <HelpText>{"베팅 유형을 선택하고 베팅금을 설정한 뒤 SPIN을 누르세요.\n공이 멈춘 숫자와 색상에 따라 배당이 결정됩니다.\n0은 그린으로, 모든 외부 베팅 패배입니다."}</HelpText>
+          <HelpText>{"칩 금액을 설정하고 원하는 베팅 칸을 클릭해 칩을 올리세요.\n여러 칸에 동시에 베팅할 수 있습니다.\n우클릭하면 해당 칸의 베팅을 취소합니다.\n공이 멈춘 숫자와 색상에 따라 배당이 계산됩니다."}</HelpText>
         </HelpSection>
         <HelpSection title="배당표">
           <PayTable>
@@ -386,7 +437,7 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
           </PayTable>
         </HelpSection>
         <HelpSection title="팁">
-          <HelpText>{"단일 숫자는 고배당(35배)이지만 확률이 낮습니다.\n레드/블랙, 홀/짝은 거의 50% 확률이지만 배당이 낮습니다."}</HelpText>
+          <HelpText>{"단일 숫자는 고배당(35배)이지만 확률이 낮습니다.\n여러 칸에 나눠 베팅해 위험을 분산시키세요."}</HelpText>
         </HelpSection>
       </GameHelpModal>
 
@@ -408,21 +459,17 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
             $deg={wheelDeg}
             $duration={spinning ? spinDuration : spinDuration}
           >
-            {WHEEL_ORDER.map((num, i) => {
-              const color = getNumberColor(num);
-              return (
-                <path
-                  key={i}
-                  d={buildWheelPath(i, 37, 98, 100, 100)}
-                  fill={getColorHex(color)}
-                  stroke="#f0c040"
-                  strokeWidth="0.5"
-                />
-              );
-            })}
+            {WHEEL_ORDER.map((num, i) => (
+              <path
+                key={i}
+                d={buildWheelPath(i, 37, 98, 100, 100)}
+                fill={getColorHex(getNumberColor(num))}
+                stroke="#f0c040"
+                strokeWidth="0.5"
+              />
+            ))}
             <circle cx="100" cy="100" r="18" fill="#0d5c2e" stroke="#f0c040" strokeWidth="2" />
           </WheelSvg>
-          {/* pointer */}
           <WheelCenter>
             <div style={{ position: "absolute", top: 2, width: 0, height: 0,
               borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
@@ -439,9 +486,9 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
         <ResultBanner $win={isWin}>{resultText || " "}</ResultBanner>
       </WheelArea>
 
-      {/* Bet amount */}
+      {/* 칩 금액 설정 */}
       <Section>
-        <SectionLabel>베팅금 설정</SectionLabel>
+        <SectionLabel>칩 금액 (클릭 시 해당 금액만큼 베팅 추가)</SectionLabel>
         <BetControls
           value={chipAmount}
           onChange={setChipAmount}
@@ -452,46 +499,70 @@ export default function RouletteGame({ balance, initialBalance, onBet, onResult,
         />
       </Section>
 
-      {/* Bet type buttons */}
+      {/* 외부 베팅 */}
       <Section>
-        <SectionLabel>베팅 선택</SectionLabel>
+        <SectionLabel>외부 베팅</SectionLabel>
         <BetGrid>
-          <BetButton $bg="#c0392b" $active={isActive("red")} onClick={() => setBetType("red")}>🔴 레드 (1:1)</BetButton>
-          <BetButton $bg="#1a1a1a" $active={isActive("black")} onClick={() => setBetType("black")}>⚫ 블랙 (1:1)</BetButton>
-          <BetButton $bg="#2c3e50" $active={isActive("odd")} onClick={() => setBetType("odd")}>홀수 (1:1)</BetButton>
-          <BetButton $bg="#2c3e50" $active={isActive("even")} onClick={() => setBetType("even")}>짝수 (1:1)</BetButton>
-          <BetButton $bg="#2c3e50" $active={isActive("low")} onClick={() => setBetType("low")}>1~18 (1:1)</BetButton>
-          <BetButton $bg="#2c3e50" $active={isActive("high")} onClick={() => setBetType("high")}>19~36 (1:1)</BetButton>
-          <BetButton $bg="#6c3483" $active={isActive("dozen1")} onClick={() => setBetType("dozen1")}>1st 12 (2:1)</BetButton>
-          <BetButton $bg="#6c3483" $active={isActive("dozen2")} onClick={() => setBetType("dozen2")}>2nd 12 (2:1)</BetButton>
-          <BetButton $bg="#6c3483" $active={isActive("dozen3")} onClick={() => setBetType("dozen3")}>3rd 12 (2:1)</BetButton>
+          {(
+            [
+              { bt: "red" as BetType, label: "🔴 레드 (1:1)", bg: "#c0392b" },
+              { bt: "black" as BetType, label: "⚫ 블랙 (1:1)", bg: "#1a1a1a" },
+              { bt: "odd" as BetType, label: "홀수 (1:1)", bg: "#2c3e50" },
+              { bt: "even" as BetType, label: "짝수 (1:1)", bg: "#2c3e50" },
+              { bt: "low" as BetType, label: "1~18 (1:1)", bg: "#2c3e50" },
+              { bt: "high" as BetType, label: "19~36 (1:1)", bg: "#2c3e50" },
+              { bt: "dozen1" as BetType, label: "1st 12 (2:1)", bg: "#6c3483" },
+              { bt: "dozen2" as BetType, label: "2nd 12 (2:1)", bg: "#6c3483" },
+              { bt: "dozen3" as BetType, label: "3rd 12 (2:1)", bg: "#6c3483" },
+            ] as { bt: BetType; label: string; bg: string }[]
+          ).map(({ bt, label, bg }) => {
+            const amt = getBetAmount(bt);
+            return (
+              <BetButton
+                key={String(bt)}
+                $bg={bg}
+                $active={isActive(bt)}
+                onClick={() => placeBet(bt)}
+                onContextMenu={(e) => removeBet(bt, e)}
+              >
+                {label}
+                {amt > 0 && <ChipBadge>{fmtChip(amt)}</ChipBadge>}
+              </BetButton>
+            );
+          })}
         </BetGrid>
       </Section>
 
-      {/* Number table */}
+      {/* 단일 숫자 */}
       <Section>
         <SectionLabel>단일 숫자 (35:1)</SectionLabel>
         <NumberTable>
-          <ZeroCell
-            key={0}
-            $bg={getColorHex("green")}
-            $active={isActive({ number: 0 })}
-            onClick={() => setBetType({ number: 0 })}
-          >0</ZeroCell>
-          {Array.from({ length: 36 }, (_, i) => i + 1).map((n) => (
-            <NumberCell
-              key={n}
-              $bg={getColorHex(getNumberColor(n))}
-              $active={isActive({ number: n })}
-              onClick={() => setBetType({ number: n })}
-            >{n}</NumberCell>
-          ))}
+          {[0, ...Array.from({ length: 36 }, (_, i) => i + 1)].map((n) => {
+            const bt: BetType = { number: n };
+            const amt = getBetAmount(bt);
+            return (
+              <ZeroCell
+                key={n}
+                $bg={getColorHex(getNumberColor(n))}
+                $active={isActive(bt)}
+                onClick={() => placeBet(bt)}
+                onContextMenu={(e) => removeBet(bt, e)}
+              >
+                {n}
+                {amt > 0 && <ChipBadge>{fmtChip(amt)}</ChipBadge>}
+              </ZeroCell>
+            );
+          })}
         </NumberTable>
       </Section>
 
-      <CurrentBetInfo>
-        현재 베팅: {betLabel(betType)} | 베팅금: {chipAmount.toLocaleString()}원
-      </CurrentBetInfo>
+      {/* 총 베팅 요약 */}
+      <BetSummaryRow>
+        <span>총 베팅: <strong style={{ color: totalBet > 0 ? "#f0c040" : "#666" }}>{totalBet.toLocaleString()}원</strong></span>
+        {totalBet > 0 && !spinning && (
+          <ClearBtn onClick={clearAllBets}>전체 초기화</ClearBtn>
+        )}
+      </BetSummaryRow>
 
       <Section>
         <SpinButton $disabled={!canSpin} onClick={handleSpin}>

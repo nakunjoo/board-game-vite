@@ -80,6 +80,11 @@ const BalanceTag = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -252,29 +257,35 @@ const RacingLabel = styled.div`
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
 function simulateRace(winnerId: number): number[][] {
-  // Returns array of [progress at each tick] for each horse
   const ticks = Math.ceil(RACE_DURATION_MS / TICK_MS);
   const positions: number[][] = HORSES.map(() => new Array(ticks + 1).fill(0));
 
-  // Each horse gets a random speed profile
-  // Winner reaches ~100% at the end, others might not
+  // 비우승 말의 최종 도달 거리를 70~97% 사이로 사전 확정
+  // → 절대로 100%에 도달하지 않으므로 시각적 우승자 = 실제 우승자
+  const loserFinals = [0, 1, 2, 3]
+    .filter((h) => h !== winnerId)
+    .map(() => 70 + Math.random() * 27);
+
+  let loserIdx = 0;
+  const finalPos = HORSES.map((_, h) =>
+    h === winnerId ? 100 : loserFinals[loserIdx++]
+  );
+
   for (let h = 0; h < 4; h++) {
-    const isWinner = h === winnerId;
-    // Speeds vary per "segment" (simulate natural acceleration/deceleration)
-    let pos = 0;
-    const baseSpeed = isWinner ? 105 : 70 + Math.random() * 28;
+    const target = finalPos[h];
     const segments = 8;
     const segLen = ticks / segments;
-    const speedVariations = Array.from({ length: segments }, () => 0.7 + Math.random() * 0.6);
+    const rawVar = Array.from({ length: segments }, () => 0.7 + Math.random() * 0.6);
+    const avgVar = rawVar.reduce((a, b) => a + b, 0) / segments;
 
+    let pos = 0;
     for (let t = 0; t < ticks; t++) {
-      const seg = Math.floor(t / segLen);
-      const speed = (baseSpeed / ticks) * speedVariations[Math.min(seg, segments - 1)];
-      pos = Math.min(100, pos + speed);
+      const seg = Math.min(Math.floor(t / segLen), segments - 1);
+      const speed = (target / ticks) * (rawVar[seg] / avgVar);
+      pos = Math.min(target, pos + speed);
       positions[h][t + 1] = pos;
     }
-    // Ensure winner hits 100
-    if (isWinner) positions[h][ticks] = 100;
+    positions[h][ticks] = target;
   }
 
   return positions;
@@ -435,12 +446,12 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
           disabled={phase !== "idle"}
         />
 
-        {phase !== "racing" && (
+        {phase === "idle" && (
           <StartButton
-            $disabled={selectedHorse === null || phase !== "idle" || balance < betAmount}
+            $disabled={selectedHorse === null || balance < betAmount}
             onClick={handleStart}
           >
-            {phase === "result" ? "다시 하기" : "START"}
+            START
           </StartButton>
         )}
         {phase === "result" && (

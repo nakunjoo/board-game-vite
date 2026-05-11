@@ -11,25 +11,18 @@ type FaceValue = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J
 interface VPCard {
   suit: Suit;
   value: FaceValue;
-  numericValue: number; // A=14 for high, 1 for low-straight check
+  numericValue: number;
 }
 
 type HandRank =
-  | "royal-flush"
-  | "straight-flush"
-  | "four-of-a-kind"
-  | "full-house"
-  | "flush"
-  | "straight"
-  | "three-of-a-kind"
-  | "two-pair"
-  | "jacks-or-better"
-  | "nothing";
+  | "royal-flush" | "straight-flush" | "four-of-a-kind" | "full-house"
+  | "flush" | "straight" | "three-of-a-kind" | "two-pair"
+  | "jacks-or-better" | "nothing";
 
 interface HandResult {
   rank: HandRank;
   label: string;
-  multiplier: number; // 베팅 기준 배수
+  multiplier: number;
 }
 
 type Phase = "idle" | "dealt" | "result";
@@ -44,27 +37,25 @@ const NUMERIC: Record<FaceValue, number> = {
 };
 
 const PAY_TABLE: { rank: HandRank; label: string; multiplier: number }[] = [
-  { rank: "royal-flush",      label: "로얄 플러시",        multiplier: 250 },
-  { rank: "straight-flush",   label: "스트레이트 플러시",   multiplier: 50 },
-  { rank: "four-of-a-kind",   label: "포카드",              multiplier: 25 },
-  { rank: "full-house",       label: "풀하우스",            multiplier: 9 },
-  { rank: "flush",            label: "플러시",              multiplier: 6 },
-  { rank: "straight",         label: "스트레이트",          multiplier: 4 },
-  { rank: "three-of-a-kind",  label: "트리플",              multiplier: 3 },
-  { rank: "two-pair",         label: "투페어",              multiplier: 2 },
-  { rank: "jacks-or-better",  label: "잭스오어베터",        multiplier: 2 },
-  { rank: "nothing",          label: "꽝",                  multiplier: 0 },
+  { rank: "royal-flush",     label: "로얄 플러시",       multiplier: 250 },
+  { rank: "straight-flush",  label: "스트레이트 플러시",  multiplier: 50  },
+  { rank: "four-of-a-kind",  label: "포카드",             multiplier: 25  },
+  { rank: "full-house",      label: "풀하우스",           multiplier: 9   },
+  { rank: "flush",           label: "플러시",             multiplier: 6   },
+  { rank: "straight",        label: "스트레이트",         multiplier: 4   },
+  { rank: "three-of-a-kind", label: "트리플",             multiplier: 3   },
+  { rank: "two-pair",        label: "투페어",             multiplier: 2   },
+  { rank: "jacks-or-better", label: "잭스오어베터",       multiplier: 2   },
+  { rank: "nothing",         label: "꽝",                 multiplier: 0   },
 ];
 
 // ── 덱 / 족보 유틸 ───────────────────────────────────────────────────────────
 
 function buildDeck(): VPCard[] {
   const deck: VPCard[] = [];
-  for (const suit of SUITS) {
-    for (const value of FACE_VALUES) {
+  for (const suit of SUITS)
+    for (const value of FACE_VALUES)
       deck.push({ suit, value, numericValue: NUMERIC[value] });
-    }
-  }
   return deck;
 }
 
@@ -84,42 +75,22 @@ function evaluateHand(cards: VPCard[]): HandResult {
   for (const v of vals) valueCounts[v] = (valueCounts[v] ?? 0) + 1;
   const counts = Object.values(valueCounts).sort((a, b) => b - a);
   const isFlush = suits.every((s) => s === suits[0]);
-
-  // 스트레이트 체크 (A-2-3-4-5 포함)
   const uniqueVals = [...new Set(vals)].sort((a, b) => a - b);
   let isStraight = false;
   if (uniqueVals.length === 5) {
-    if (uniqueVals[4] - uniqueVals[0] === 4) {
-      isStraight = true;
-    } else if (uniqueVals.join(",") === "2,3,4,5,14") {
-      // A-2-3-4-5 (wheel)
-      isStraight = true;
-    }
+    if (uniqueVals[4] - uniqueVals[0] === 4) isStraight = true;
+    else if (uniqueVals.join(",") === "2,3,4,5,14") isStraight = true;
   }
-
-  // 로얄 플러시
-  if (isFlush && isStraight && vals.join(",") === "10,11,12,13,14") {
-    return pay("royal-flush");
-  }
-  // 스트레이트 플러시
+  if (isFlush && isStraight && vals.join(",") === "10,11,12,13,14") return pay("royal-flush");
   if (isFlush && isStraight) return pay("straight-flush");
-  // 포카드
   if (counts[0] === 4) return pay("four-of-a-kind");
-  // 풀하우스
   if (counts[0] === 3 && counts[1] === 2) return pay("full-house");
-  // 플러시
   if (isFlush) return pay("flush");
-  // 스트레이트
   if (isStraight) return pay("straight");
-  // 트리플
   if (counts[0] === 3) return pay("three-of-a-kind");
-  // 투페어
   if (counts[0] === 2 && counts[1] === 2) return pay("two-pair");
-  // 잭스오어베터 (J·Q·K·A 원페어)
   if (counts[0] === 2) {
-    const pairVal = Number(
-      Object.entries(valueCounts).find(([, c]) => c === 2)?.[0]
-    );
+    const pairVal = Number(Object.entries(valueCounts).find(([, c]) => c === 2)?.[0]);
     if (pairVal >= 11 || pairVal === 14) return pay("jacks-or-better");
   }
   return pay("nothing");
@@ -130,6 +101,8 @@ function pay(rank: HandRank): HandResult {
   return { rank, label: entry.label, multiplier: entry.multiplier };
 }
 
+function isRed(card: VPCard) { return card.suit === "♥" || card.suit === "♦"; }
+
 // ── 스타일 ───────────────────────────────────────────────────────────────────
 
 const flipIn = keyframes`
@@ -137,10 +110,15 @@ const flipIn = keyframes`
   100% { transform: rotateY(0deg);  opacity: 1; }
 `;
 
+const slideUp = keyframes`
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+`;
+
 const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  background: rgba(10, 5, 20, 0.97);
+  background: radial-gradient(ellipse at center top, #1a5c35 0%, #0d3d22 50%, #060f0a 100%);
   border-radius: 8px;
   z-index: 30;
   display: flex;
@@ -166,6 +144,11 @@ const Title = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -190,78 +173,61 @@ const CloseBtn = styled.button`
   &:hover { background: rgba(255,255,255,0.14); color: #fff; }
 `;
 
-// 패이 테이블
-const PayTable = styled.div`
-  width: 100%;
-  max-width: 480px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  background: rgba(0,0,0,0.45);
-  border-radius: 8px;
-  padding: 8px 14px;
-  border: 1px solid rgba(255,220,80,0.15);
-`;
-
-const PayRow = styled.div<{ $active?: boolean; $dim?: boolean }>`
-  display: contents;
-  > span {
-    font-size: 0.72rem;
-    padding: 2px 0;
-    color: ${({ $active, $dim }) =>
-      $active ? "#f0c040" : $dim ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)"};
-    font-weight: ${({ $active }) => ($active ? 700 : 400)};
-    background: ${({ $active }) => ($active ? "rgba(240,192,64,0.12)" : "transparent")};
-    border-radius: 3px;
-    padding-left: ${({ $active }) => ($active ? "4px" : "0")};
-  }
-`;
-
 // 카드 영역
-const CardsRow = styled.div`
-  display: flex;
-  gap: 10px;
-  justify-content: center;
+const CardZone = styled.div`
   width: 100%;
-  max-width: 480px;
-`;
-
-const CardWrapper = styled.div<{ $held: boolean; $flipping?: boolean }>`
+  max-width: 440px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(46,204,113,0.25);
+  padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  ${({ $flipping }) =>
-    $flipping &&
-    css`
-      animation: ${flipIn} 0.35s ease forwards;
-    `}
+  gap: 8px;
+  animation: ${slideUp} 0.3s ease;
 `;
 
-const CardFace = styled.div<{ $red: boolean; $held: boolean; $result?: "win" | "lose" | null }>`
-  width: 64px;
-  height: 92px;
+const ZoneLabel = styled.div`
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+`;
+
+const CardsRow = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+`;
+
+const CardWrapper = styled.div<{ $held: boolean; $flipping: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  ${({ $flipping }) => $flipping && css`animation: ${flipIn} 0.35s ease forwards;`}
+`;
+
+const CardFace = styled.div<{ $red: boolean; $held: boolean; $win?: boolean }>`
+  width: 58px;
+  height: 84px;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 6px 7px;
+  padding: 5px 6px;
   font-weight: 700;
   user-select: none;
-  border: 2px solid ${({ $held, $result }) =>
-    $result === "win"
-      ? "#f0c040"
-      : $held
-      ? "#f0c040"
-      : "rgba(255,255,255,0.15)"};
-  box-shadow: ${({ $held, $result }) =>
-    $result === "win"
-      ? "0 0 10px rgba(240,192,64,0.5)"
-      : $held
-      ? "0 0 8px rgba(240,192,64,0.4)"
-      : "0 2px 6px rgba(0,0,0,0.5)"};
+  overflow: hidden;
+  border: 2px solid ${({ $held, $win }) =>
+    $win ? "#f0c040" : $held ? "#f0c040" : "rgba(255,255,255,0.12)"};
+  box-shadow: ${({ $held, $win }) =>
+    $win ? "0 0 10px rgba(240,192,64,0.5)"
+    : $held ? "0 0 8px rgba(240,192,64,0.35)"
+    : "0 2px 6px rgba(0,0,0,0.5)"};
   transition: border 0.15s, box-shadow 0.15s;
 `;
 
@@ -270,7 +236,7 @@ const CardCorner = styled.div<{ $red: boolean; $flip?: boolean }>`
   flex-direction: column;
   align-items: ${({ $flip }) => ($flip ? "flex-end" : "flex-start")};
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   line-height: 1.1;
   transform: ${({ $flip }) => ($flip ? "rotate(180deg)" : "none")};
 `;
@@ -280,32 +246,71 @@ const CardSuitBig = styled.div<{ $red: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
 `;
 
 const HoldBadge = styled.div<{ $held: boolean }>`
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 1px;
-  color: ${({ $held }) => ($held ? "#f0c040" : "rgba(255,255,255,0.25)")};
+  color: ${({ $held }) => ($held ? "#f0c040" : "rgba(255,255,255,0.22)")};
   text-transform: uppercase;
-  height: 14px;
+  height: 13px;
 `;
 
-// 칩 + 버튼
+// 현재 족보 뱃지
+const HandBadge = styled.div<{ $win: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: ${({ $win }) => ($win ? "rgba(240,192,64,0.18)" : "rgba(255,255,255,0.07)")};
+  border: 1px solid ${({ $win }) => ($win ? "rgba(240,192,64,0.5)" : "rgba(255,255,255,0.12)")};
+  color: ${({ $win }) => ($win ? "#f0c040" : "rgba(255,255,255,0.45)")};
+`;
+
+// 결과 배너
+const ResultBanner = styled.div<{ $win: boolean }>`
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: ${({ $win }) => ($win ? "rgba(240,192,64,0.15)" : "rgba(192,57,43,0.15)")};
+  border: 1px solid ${({ $win }) => ($win ? "rgba(240,192,64,0.4)" : "rgba(192,57,43,0.3)")};
+  animation: ${slideUp} 0.3s ease;
+`;
+
+const ResultLabel = styled.div`
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f0c040;
+`;
+
+const ResultDelta = styled.div<{ $win: boolean }>`
+  font-size: 0.85rem;
+  margin-top: 3px;
+  color: ${({ $win }) => ($win ? "#2ecc71" : "#e74c3c")};
+  font-weight: 600;
+`;
+
+// 하단
 const BottomArea = styled.div`
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: auto;
 `;
 
 const BalanceRow = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
   font-size: 0.8rem;
   color: rgba(255,255,255,0.6);
 `;
@@ -321,9 +326,9 @@ const ActionRow = styled.div`
   justify-content: center;
 `;
 
-const ActionBtn = styled.button<{ $variant?: "primary" | "secondary" | "danger" }>`
+const ActionBtn = styled.button<{ $variant?: "primary" | "draw" }>`
   flex: 1;
-  max-width: 160px;
+  max-width: 180px;
   padding: 10px 0;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -339,46 +344,25 @@ const ActionBtn = styled.button<{ $variant?: "primary" | "secondary" | "danger" 
         &:hover { filter: brightness(1.1); }
         &:disabled { opacity: 0.4; cursor: not-allowed; }
       `;
-    if ($variant === "danger")
+    if ($variant === "draw")
       return css`
-        background: linear-gradient(135deg, #c0392b 0%, #7b1a12 100%);
+        background: linear-gradient(135deg, #2ecc71 0%, #1a8a4a 100%);
         color: #fff;
         &:hover { filter: brightness(1.1); }
-        &:disabled { opacity: 0.4; cursor: not-allowed; }
       `;
     return css`
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
       color: #ccc;
-      &:hover { background: rgba(255,255,255,0.16); }
-      &:disabled { opacity: 0.4; cursor: not-allowed; }
     `;
   }}
 `;
 
-const ResultBanner = styled.div<{ $win: boolean }>`
-  width: 100%;
-  max-width: 480px;
+const HoldHint = styled.div`
   text-align: center;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: ${({ $win }) =>
-    $win ? "rgba(240,192,64,0.15)" : "rgba(192,57,43,0.15)"};
-  border: 1px solid ${({ $win }) =>
-    $win ? "rgba(240,192,64,0.4)" : "rgba(192,57,43,0.3)"};
-`;
-
-const ResultLabel = styled.div`
-  font-size: 1rem;
-  font-weight: 700;
-  color: #f0c040;
-`;
-
-const ResultDelta = styled.div<{ $win: boolean }>`
-  font-size: 0.85rem;
-  margin-top: 2px;
-  color: ${({ $win }) => ($win ? "#2ecc71" : "#e74c3c")};
-  font-weight: 600;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.5px;
 `;
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
@@ -408,8 +392,6 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
   const [handResult, setHandResult] = useState<HandResult | null>(null);
   const [lastDelta, setLastDelta] = useState<number | null>(null);
 
-  const isRed = (card: VPCard) => card.suit === "♥" || card.suit === "♦";
-
   const deal = useCallback(() => {
     if (balance < betAmount) return;
     const newDeck = shuffle(buildDeck());
@@ -428,12 +410,12 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
 
   const draw = useCallback(() => {
     if (phase !== "dealt") return;
+    const deckCopy = [...deck];
     const newHand = hand.map((card, i) => {
       if (held[i]) return card;
-      return deck.shift()!;
+      return deckCopy.shift()!;
     });
-    const newFlipping = hand.map((_, i) => !held[i]);
-    setFlipping(newFlipping);
+    setFlipping(hand.map((_, i) => !held[i]));
     setTimeout(() => setFlipping([false, false, false, false, false]), 400);
     setHand(newHand);
     const result = evaluateHand(newHand);
@@ -447,20 +429,17 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
 
   const toggleHold = (i: number) => {
     if (phase !== "dealt") return;
-    setHeld((prev) => {
-      const next = [...prev];
-      next[i] = !next[i];
-      return next;
-    });
+    setHeld((prev) => { const n = [...prev]; n[i] = !n[i]; return n; });
   };
 
-  const currentRank = phase === "dealt" ? evaluateHand(hand).rank : handResult?.rank;
+  const currentRank = phase === "dealt" ? evaluateHand(hand) : handResult;
+  const hasCards = phase === "dealt" || phase === "result";
 
   return (
     <Overlay>
-      <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="🎰 비디오 포커 도움말">
+      <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="🎲 비디오 포커 도움말">
         <HelpSection title="게임 방법">
-          <HelpText>{"DEAL을 누르면 5장을 받습니다.\n보관할 카드를 클릭해 HOLD하고 DRAW를 누르면 나머지 카드를 교체합니다.\n최종 5장의 족보에 따라 배당이 결정됩니다."}</HelpText>
+          <HelpText>{"DEAL — 5장을 받습니다.\n보관할 카드를 클릭해 HOLD 표시 후 DRAW.\n나머지 카드가 교체되어 최종 족보로 배당이 결정됩니다.\nJ·Q·K·A 원페어(잭스오어베터) 이상부터 배당이 있습니다."}</HelpText>
         </HelpSection>
         <HelpSection title="배당표">
           <HelpPayTable>
@@ -482,24 +461,10 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
       </GameHelpModal>
 
       <Header>
-        <Title>🎰 비디오 포커 (Jacks or Better)</Title>
+        <Title>🎲 비디오 포커</Title>
         <HelpBtn onClick={() => setShowHelp(true)}>?</HelpBtn>
         <CloseBtn onClick={onClose}>닫기</CloseBtn>
       </Header>
-
-      {/* 패이 테이블 */}
-      <PayTable>
-        {PAY_TABLE.map((entry) => (
-          <PayRow
-            key={entry.rank}
-            $active={currentRank === entry.rank}
-            $dim={!!currentRank && currentRank !== entry.rank && entry.rank !== "nothing"}
-          >
-            <span>{entry.label}</span>
-            <span style={{ textAlign: "right" }}>{entry.multiplier > 0 ? `${entry.multiplier}배` : "꽝"}</span>
-          </PayRow>
-        ))}
-      </PayTable>
 
       {/* 결과 배너 */}
       {phase === "result" && handResult && (
@@ -513,83 +478,88 @@ export default function VideoPokerGame({ balance, initialBalance, onBet, onResul
         </ResultBanner>
       )}
 
-      {/* 카드 */}
-      {(phase === "dealt" || phase === "result") && hand.length === 5 && (
-        <CardsRow>
-          {hand.map((card, i) => (
-            <CardWrapper
-              key={i}
-              $held={held[i]}
-              $flipping={flipping[i]}
-              onClick={() => toggleHold(i)}
-            >
-              <HoldBadge $held={held[i]}>
-                {held[i] ? "HOLD" : phase === "dealt" ? "hold?" : ""}
-              </HoldBadge>
-              <CardFace
-                $red={isRed(card)}
+      {/* 카드 존 */}
+      {hasCards && (
+        <CardZone>
+          <ZoneLabel>
+            {phase === "dealt" ? "카드를 클릭해 보관할 패를 선택하세요" : "최종 패"}
+          </ZoneLabel>
+          <CardsRow>
+            {hand.map((card, i) => (
+              <CardWrapper
+                key={i}
                 $held={held[i]}
-                $result={
-                  phase === "result"
-                    ? (handResult?.multiplier ?? 0) > 0
-                      ? "win"
-                      : "lose"
-                    : null
-                }
+                $flipping={flipping[i]}
+                onClick={() => toggleHold(i)}
               >
-                <CardCorner $red={isRed(card)}>
-                  <span>{card.value}</span>
-                  <span>{card.suit}</span>
-                </CardCorner>
-                <CardSuitBig $red={isRed(card)}>{card.suit}</CardSuitBig>
-                <CardCorner $red={isRed(card)} $flip>
-                  <span>{card.value}</span>
-                  <span>{card.suit}</span>
-                </CardCorner>
-              </CardFace>
-            </CardWrapper>
-          ))}
-        </CardsRow>
+                <HoldBadge $held={held[i]}>
+                  {held[i] ? "HOLD" : phase === "dealt" ? "hold?" : ""}
+                </HoldBadge>
+                <CardFace
+                  $red={isRed(card)}
+                  $held={held[i]}
+                  $win={phase === "result" && (handResult?.multiplier ?? 0) > 0}
+                >
+                  <CardCorner $red={isRed(card)}>
+                    <span>{card.value}</span>
+                    <span>{card.suit}</span>
+                  </CardCorner>
+                  <CardSuitBig $red={isRed(card)}>{card.suit}</CardSuitBig>
+                  <CardCorner $red={isRed(card)} $flip>
+                    <span>{card.value}</span>
+                    <span>{card.suit}</span>
+                  </CardCorner>
+                </CardFace>
+              </CardWrapper>
+            ))}
+          </CardsRow>
+          {/* 현재 족보 뱃지 */}
+          {currentRank && (
+            <HandBadge $win={currentRank.multiplier > 0}>
+              {currentRank.multiplier > 0 ? "✓" : "·"} {currentRank.label}
+              {currentRank.multiplier > 0 && ` (${currentRank.multiplier}배)`}
+            </HandBadge>
+          )}
+        </CardZone>
       )}
 
-      {/* 바닥 UI */}
+      {/* 하단 영역 */}
       <BottomArea>
         <BalanceRow>
-          <span>잔액</span>
-          <BalanceValue>{balance.toLocaleString()}</BalanceValue>
-          <span>베팅</span>
-          <BalanceValue>{betAmount.toLocaleString()}</BalanceValue>
+          <span>잔액 <BalanceValue>{balance.toLocaleString()}</BalanceValue></span>
+          {phase !== "idle" && (
+            <span>베팅 <BalanceValue>{betAmount.toLocaleString()}</BalanceValue></span>
+          )}
         </BalanceRow>
 
-        <BetControls
-          value={betAmount}
-          onChange={setBetAmount}
-          minBet={minBet}
-          maxBet={maxBet}
-          balance={balance}
-          disabled={phase === "dealt"}
-        />
-
-        <ActionRow>
-          {phase === "idle" || phase === "result" ? (
-            <ActionBtn
-              $variant="primary"
-              onClick={deal}
-              disabled={balance < betAmount}
-            >
-              {phase === "result" ? "다시 딜 (DEAL)" : "딜 (DEAL)"}
-            </ActionBtn>
-          ) : (
-            <>
-              <ActionBtn $variant="secondary" onClick={() => setHeld([false, false, false, false, false])}>
-                전부 버리기
+        {(phase === "idle" || phase === "result") && (
+          <>
+            <BetControls
+              value={betAmount}
+              onChange={setBetAmount}
+              minBet={minBet}
+              maxBet={maxBet}
+              balance={balance}
+              disabled={false}
+            />
+            <ActionRow>
+              <ActionBtn $variant="primary" onClick={deal} disabled={balance < betAmount}>
+                {phase === "result" ? "다시 딜 (DEAL)" : "딜 (DEAL)"}
               </ActionBtn>
-              <ActionBtn $variant="primary" onClick={draw}>
+            </ActionRow>
+          </>
+        )}
+
+        {phase === "dealt" && (
+          <>
+            <HoldHint>보관할 카드를 선택한 뒤 DRAW를 누르세요</HoldHint>
+            <ActionRow>
+              <ActionBtn $variant="draw" onClick={draw}>
                 드로우 (DRAW)
               </ActionBtn>
-            </>
-          )}
-        </ActionRow>
+            </ActionRow>
+          </>
+        )}
       </BottomArea>
     </Overlay>
   );

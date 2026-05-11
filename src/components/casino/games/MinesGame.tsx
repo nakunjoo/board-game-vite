@@ -68,7 +68,7 @@ const Overlay = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto;
+  overflow-y: scroll;
 `;
 
 const Header = styled.div`
@@ -95,6 +95,11 @@ const BalanceTag = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -165,8 +170,9 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
-  width: 100%;
-  max-width: 360px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  flex-shrink: 0;
   margin-bottom: 16px;
 `;
 

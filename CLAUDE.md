@@ -10,6 +10,13 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-05-11 | **카지노 버그 수정 및 UI 개선** |
+| 2026-05-11 | `components/casino/CasinoSetupModal.tsx`: 게임 시간 옵션 5분 / 10분 / 무제한 3가지로 축소 (30분·60분 제거). 기본값 10분 |
+| 2026-05-11 | `components/casino/games/VideoPokerGame.tsx`: 블랙잭 스타일 레이아웃으로 전면 재구성 — 초록 테이블 배경, 족보 테이블 화면에서 제거(? 도움말로만 확인), 카드 존 + 현재 족보 뱃지(알약형), "전부 버리기" 버튼 제거, DRAW 버튼만 유지 |
+| 2026-05-11 | `components/casino/games/BlackjackGame.tsx`, `VideoPokerGame.tsx`: `CardFace`에 `overflow: hidden` 추가 — 뒤집힌 하단 코너 숫자가 카드 밖으로 삐져나오는 버그 수정 |
+| 2026-05-11 | `components/casino/games/RouletteGame.tsx`: 멀티베팅 지원 — 여러 칸에 동시 배팅 가능. 좌클릭=칩 추가, 우클릭=해당 칸 취소, 전체 초기화 버튼. 칩 뱃지(노란색, 1k/10k 단위 표기). 총 베팅액 표시. 휠 160px로 축소, 전체 세로 간격 압축 |
+| 2026-05-11 | `components/casino/games/SlotsGame.tsx`: 스핀 애니메이션 전면 재작성 — `animation: infinite` → 결과가 심어진 긴 스트립(31개 심볼) CSS `transition` 방식으로 변경. `key` prop으로 리마운트 후 double rAF로 전환. 릴 1→1.8s, 릴 2→2.3s, 릴 3→2.8s 순차 정지. 중간에 빈 화면 나타나는 버그 수정 |
+| 2026-05-11 | `components/casino/games/HorseRacingGame.tsx`: 경마 결과 불일치 버그 수정 — 비우승 말 최종 거리를 70~97%로 사전 확정(절대 100% 도달 불가), 시각적 우승자 = 실제 우승자 보장 |
 | 2026-05-11 | **카지노 대출 시스템 추가** |
 | 2026-05-11 | `components/casino/CasinoHub.tsx`: 잔액이 초기금의 5% 미만일 때 깜빡이는 대출 배너 표시. 클릭 시 대출 모달 (최소 10 / 최대 초기금의 절반, 이자 10%). 누적 대출금 + 예상 상환액 표시. 대출 시 채팅 시스템 메시지 기록 |
 | 2026-05-11 | `pages/Room/casino/index.tsx`: `totalLoan` 상태 추가. `casinoLoanConfirmed` 이벤트 구독 (누적 대출 갱신 + 채팅 로그). `handleLoan` 핸들러 → `casinoLoan` 이벤트 전송. 게임 시작 시 `totalLoan` 초기화 |

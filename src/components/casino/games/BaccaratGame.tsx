@@ -148,6 +148,11 @@ const BalanceTag = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;

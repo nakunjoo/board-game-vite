@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import type { CasinoPlayer } from "./types";
-import CasinoLeaderboard from "./CasinoLeaderboard";
 import {
   HubWrapper,
   HubTopBar,
@@ -13,9 +12,6 @@ import {
   GameCardIcon,
   GameCardName,
   GamePlayButton,
-  VoteSection,
-  VoteButton,
-  VoteInfo,
 } from "../../styles/game/casino";
 
 const CASINO_GAMES = [
@@ -28,6 +24,153 @@ const CASINO_GAMES = [
   { id: "mines", name: "지뢰찾기", icon: "💣" },
 ];
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// ─── 순위 스타일 ──────────────────────────────────────────────────────────────
+
+const TopRankBar = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(240,192,64,0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  &:hover { border-color: rgba(240,192,64,0.5); }
+`;
+
+const RankChip = styled.div<{ $rank: number }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: ${({ $rank }) => $rank === 1 ? "#f0c040" : $rank === 2 ? "#aaa" : "#cd7f32"};
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const RankNum = styled.span`
+  font-weight: 700;
+`;
+
+const RankAmount = styled.span`
+  font-weight: 600;
+`;
+
+const RankNick = styled.span`
+  opacity: 0.75;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const VoteSmallBtn = styled.button<{ $voted?: boolean }>`
+  background: ${({ $voted }) => $voted ? "rgba(255,255,255,0.08)" : "rgba(192,57,43,0.8)"};
+  border: 1px solid ${({ $voted }) => $voted ? "rgba(255,255,255,0.15)" : "rgba(192,57,43,0.6)"};
+  border-radius: 6px;
+  color: ${({ $voted }) => $voted ? "#888" : "#fff"};
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: ${({ $voted }) => $voted ? "default" : "pointer"};
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const VoteCount = styled.span`
+  color: #aaa;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+`;
+
+// ─── 전체 순위 모달 ───────────────────────────────────────────────────────────
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalBox = styled.div`
+  background: #1a2a3a;
+  border: 1px solid rgba(240,192,64,0.3);
+  border-radius: 14px;
+  padding: 24px 20px;
+  width: 340px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const ModalTitle = styled.div`
+  color: #f0c040;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(240,192,64,0.2);
+`;
+
+const ModalRow = styled.div<{ $isMe?: boolean; $rank?: number }>`
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: ${({ $isMe }) => $isMe ? "rgba(240,192,64,0.1)" : "transparent"};
+  font-weight: ${({ $isMe }) => $isMe ? 700 : 400};
+`;
+
+const ModalRank = styled.div<{ $rank: number }>`
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  color: ${({ $rank }) => $rank === 1 ? "#f0c040" : $rank === 2 ? "#ccc" : $rank === 3 ? "#cd7f32" : "#666"};
+`;
+
+const ModalNick = styled.div`
+  font-size: 0.85rem;
+  color: #ddd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ModalAmount = styled.div<{ $positive?: boolean; $negative?: boolean }>`
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: ${({ $positive, $negative }) => $positive ? "#2ecc71" : $negative ? "#e74c3c" : "#aaa"};
+  white-space: nowrap;
+  text-align: right;
+`;
+
+const ModalCloseBtn = styled.button`
+  margin-top: 4px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.85rem;
+  padding: 8px;
+  cursor: pointer;
+  width: 100%;
+`;
+
 // ─── 대출 스타일 ──────────────────────────────────────────────────────────────
 
 const pulse = keyframes`
@@ -37,17 +180,15 @@ const pulse = keyframes`
 
 const LoanBanner = styled.button`
   width: 100%;
-  max-width: 100%;
   background: linear-gradient(135deg, #c0392b 0%, #8b0000 100%);
   border: none;
   border-radius: 10px;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  padding: 10px 16px;
+  padding: 8px 16px;
   cursor: pointer;
   animation: ${pulse} 1.8s ease-in-out infinite;
-  margin-bottom: 8px;
   letter-spacing: 1px;
 `;
 
@@ -84,6 +225,7 @@ const LoanInfo = styled.div`
   font-size: 0.82rem;
   text-align: center;
   line-height: 1.5;
+  white-space: pre-line;
 `;
 
 const LoanInput = styled.input`
@@ -123,11 +265,7 @@ const LoanTotalTag = styled.div`
   text-align: center;
 `;
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CasinoHubProps {
   myBalance: number;
@@ -144,6 +282,8 @@ interface CasinoHubProps {
   totalLoan: number;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function CasinoHub({
   myBalance,
   initialBalance,
@@ -155,19 +295,15 @@ export default function CasinoHub({
   onLoan,
   votes,
   votesNeeded,
-  memberCount,
   totalLoan,
 }: CasinoHubProps) {
   const [displaySeconds, setDisplaySeconds] = useState(remainingSeconds);
+  const [showRankModal, setShowRankModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [loanInput, setLoanInput] = useState("");
 
-  // 로컬 카운트다운 (서버 타이머 보정용 보조 표시)
   useEffect(() => {
-    if (remainingSeconds === null) {
-      setDisplaySeconds(null);
-      return;
-    }
+    if (remainingSeconds === null) { setDisplaySeconds(null); return; }
     setDisplaySeconds(remainingSeconds);
     const id = setInterval(() => {
       setDisplaySeconds((prev) => {
@@ -183,6 +319,9 @@ export default function CasinoHub({
   const maxLoan = Math.floor(initialBalance / 2);
   const showLoanBanner = myBalance < initialBalance * 0.05;
 
+  const sorted = [...players].sort((a, b) => b.balance - a.balance);
+  const top3 = sorted.slice(0, 3);
+
   const handleLoanConfirm = () => {
     const amount = parseInt(loanInput, 10);
     if (isNaN(amount) || amount < 10 || amount > maxLoan) return;
@@ -193,6 +332,31 @@ export default function CasinoHub({
 
   return (
     <HubWrapper>
+      {/* 전체 순위 모달 */}
+      {showRankModal && (
+        <ModalOverlay onClick={() => setShowRankModal(false)}>
+          <ModalBox onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>🏆 실시간 순위</ModalTitle>
+            {sorted.map((p, i) => {
+              const profit = p.balance - initialBalance;
+              return (
+                <ModalRow key={p.playerId} $isMe={p.playerId === myPlayerId} $rank={i + 1}>
+                  <ModalRank $rank={i + 1}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
+                  </ModalRank>
+                  <ModalNick>{p.nickname}</ModalNick>
+                  <ModalAmount $positive={profit > 0} $negative={profit < 0}>
+                    {p.balance.toLocaleString()}
+                  </ModalAmount>
+                </ModalRow>
+              );
+            })}
+            <ModalCloseBtn onClick={() => setShowRankModal(false)}>닫기</ModalCloseBtn>
+          </ModalBox>
+        </ModalOverlay>
+      )}
+
+      {/* 대출 모달 */}
       {showLoanModal && (
         <LoanOverlay onClick={() => setShowLoanModal(false)}>
           <LoanBox onClick={(e) => e.stopPropagation()}>
@@ -201,7 +365,7 @@ export default function CasinoHub({
               {`최소 10 ~ 최대 ${maxLoan.toLocaleString()}\n이자 10% — 게임 종료 시 자동 차감`}
             </LoanInfo>
             {totalLoan > 0 && (
-              <LoanTotalTag>현재 누적 대출: {totalLoan.toLocaleString()} (상환 예정: {Math.round(totalLoan * 1.1).toLocaleString()})</LoanTotalTag>
+              <LoanTotalTag>누적 대출: {totalLoan.toLocaleString()} (상환 예정: {Math.round(totalLoan * 1.1).toLocaleString()})</LoanTotalTag>
             )}
             <LoanInput
               type="number"
@@ -223,13 +387,29 @@ export default function CasinoHub({
 
       <HubTopBar>
         <BalanceDisplay>💰 {myBalance.toLocaleString()}</BalanceDisplay>
-        {displaySeconds !== null ? (
-          <TimerDisplay $urgent={isUrgent}>
-            ⏱ {formatTime(displaySeconds)}
-          </TimerDisplay>
-        ) : (
-          <TimerDisplay>⏱ 무제한</TimerDisplay>
-        )}
+
+        {/* 1~3위 인라인 + 전체 순위 모달 버튼 */}
+        <TopRankBar onClick={() => setShowRankModal(true)}>
+          {top3.map((p, i) => (
+            <RankChip key={p.playerId} $rank={i + 1}>
+              <RankNum>{i + 1}위</RankNum>
+              <RankAmount>{p.balance.toLocaleString()}</RankAmount>
+              <RankNick>{p.nickname}</RankNick>
+            </RankChip>
+          ))}
+        </TopRankBar>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+          {displaySeconds !== null ? (
+            <TimerDisplay $urgent={isUrgent}>⏱ {formatTime(displaySeconds)}</TimerDisplay>
+          ) : (
+            <TimerDisplay>⏱ 무제한</TimerDisplay>
+          )}
+          <VoteSmallBtn onClick={hasVoted ? undefined : onVoteEnd} $voted={hasVoted}>
+            {hasVoted ? "✓ 투표" : "종료 투표"}
+          </VoteSmallBtn>
+          <VoteCount>{votes.length}/{votesNeeded}</VoteCount>
+        </div>
       </HubTopBar>
 
       <HubBody>
@@ -248,22 +428,7 @@ export default function CasinoHub({
               </GameCard>
             ))}
           </GameGrid>
-
-          <VoteSection>
-            <VoteButton onClick={onVoteEnd} disabled={hasVoted}>
-              {hasVoted ? "종료 투표 완료" : "게임 종료 투표"}
-            </VoteButton>
-            <VoteInfo>
-              {votes.length}/{votesNeeded} 명 동의 ({memberCount}명 중 과반수 필요)
-            </VoteInfo>
-          </VoteSection>
         </div>
-
-        <CasinoLeaderboard
-          players={players}
-          myPlayerId={myPlayerId}
-          initialBalance={initialBalance}
-        />
       </HubBody>
     </HubWrapper>
   );

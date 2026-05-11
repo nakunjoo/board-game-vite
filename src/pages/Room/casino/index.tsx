@@ -245,7 +245,26 @@ export default function CasinoRoom() {
     if (!roomName) return;
     send("casinoSwitchGame", { roomName, game });
     setCurrentGame(game);
+    if (game !== null) {
+      // 게임 진입 시 히스토리 엔트리 추가 → 뒤로가기 = 허브 복귀
+      window.history.pushState({ casinoGame: game }, "");
+    }
   };
+
+  // 뒤로가기 인터셉트: 게임 오버레이 중이면 허브로 복귀
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentGame((prev) => {
+        if (prev !== null) {
+          send("casinoSwitchGame", { roomName, game: null });
+          return null;
+        }
+        return prev;
+      });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [roomName, send]);
 
   const handleVoteEnd = () => {
     if (!roomName) return;

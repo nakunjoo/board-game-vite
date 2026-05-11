@@ -107,6 +107,11 @@ const Title = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -172,6 +177,7 @@ const CardFace = styled.div<{ $red: boolean; $new?: boolean }>`
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
   user-select: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  overflow: hidden;
   ${({ $new }) => $new && css`animation: ${flipIn} 0.3s ease forwards;`}
 `;
 

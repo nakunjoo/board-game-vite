@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
 import BetControls from "../BetControls";
 import GameHelpModal, { HelpSection, HelpText, PayTable as HelpPayTable, PayLabel, PayValue } from "./GameHelpModal";
@@ -19,11 +19,17 @@ const SLOTS_MAX_RATIO = 0.02;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
-type Symbol = typeof SYMBOLS[number];
+const CELL_H = 80;
+const REEL_COUNT = 3;
+// 스핀 중 스크롤할 행 수 (클수록 더 길게 돌아가는 느낌)
+const SPIN_ROWS = 28;
+// 각 릴이 멈추는 시간 (릴 1 → 2 → 3 순서로 순차 정지)
+const STOP_DURATIONS = [1.8, 2.3, 2.8];
 
-// Weighted pool for more realistic slot feel (cherries more common, 7 very rare)
-const SYMBOL_POOL: Symbol[] = [
+const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
+type SlotSymbol = typeof SYMBOLS[number];
+
+const SYMBOL_POOL: SlotSymbol[] = [
   "🍒", "🍒", "🍒", "🍒",
   "🍋", "🍋", "🍋",
   "🍊", "🍊", "🍊",
@@ -33,31 +39,36 @@ const SYMBOL_POOL: Symbol[] = [
   "7️⃣",
 ];
 
-function randomSymbol(): Symbol {
+function randomSymbol(): SlotSymbol {
   return SYMBOL_POOL[Math.floor(Math.random() * SYMBOL_POOL.length)];
 }
 
-function calcMultiplier(payline: Symbol[]): number {
+function calcMultiplier(payline: SlotSymbol[]): number {
   const [a, b, c] = payline;
-  // Two or more cherries
+  if (a === "7️⃣" && b === "7️⃣" && c === "7️⃣") return 100;
+  if (a === "💎" && b === "💎" && c === "💎") return 50;
+  if (a === "🔔" && b === "🔔" && c === "🔔") return 20;
+  if (a === "🍇" && b === "🍇" && c === "🍇") return 15;
+  if (a === "🍊" && b === "🍊" && c === "🍊") return 10;
+  if (a === "🍋" && b === "🍋" && c === "🍋") return 8;
   if (a === "🍒" && b === "🍒" && c === "🍒") return 5;
   if (a === "🍒" && b === "🍒") return 2;
   if (a === "🍒") return 2;
-  if (a === "🍋" && b === "🍋" && c === "🍋") return 8;
-  if (a === "🍊" && b === "🍊" && c === "🍊") return 10;
-  if (a === "🍇" && b === "🍇" && c === "🍇") return 15;
-  if (a === "🔔" && b === "🔔" && c === "🔔") return 20;
-  if (a === "💎" && b === "💎" && c === "💎") return 50;
-  if (a === "7️⃣" && b === "7️⃣" && c === "7️⃣") return 100;
   return 0;
 }
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+// 결과 심볼이 가운데 행에 오도록 긴 스트립 생성
+// 구조: [SPIN_ROWS개 랜덤] [result] [2개 랜덤]
+// 멈췄을 때: 위=SPIN_ROWS-1, 가운데=SPIN_ROWS(result), 아래=SPIN_ROWS+1
+function buildStrip(result: SlotSymbol): { strip: SlotSymbol[]; finalY: number } {
+  const total = SPIN_ROWS + 3;
+  const strip: SlotSymbol[] = Array.from({ length: total }, () => randomSymbol());
+  strip[SPIN_ROWS] = result;
+  const finalY = -((SPIN_ROWS - 1) * CELL_H);
+  return { strip, finalY };
+}
 
-const scrollAnim = keyframes`
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-${100 * 10}%); }
-`;
+// ─── Animations ───────────────────────────────────────────────────────────────
 
 const winPulse = keyframes`
   0%, 100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.6); }
@@ -106,6 +117,11 @@ const BalanceTag = styled.div`
 `;
 
 const HelpBtn = styled.button`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   background: rgba(240, 192, 64, 0.15);
   border: 1px solid rgba(240, 192, 64, 0.4);
   border-radius: 50%;
@@ -150,20 +166,20 @@ const ReelContainer = styled.div`
 
 const ReelWrapper = styled.div`
   flex: 1;
+  height: ${CELL_H * 3}px;
+  overflow: hidden;
   border: 2px solid #555;
   border-radius: 8px;
-  overflow: hidden;
   background: #111;
   position: relative;
-  height: 240px; /* 3 rows × 80px */
 `;
 
 const PaylineHighlight = styled.div<{ $win: boolean }>`
   position: absolute;
   left: 0;
   right: 0;
-  top: 80px;
-  height: 80px;
+  top: ${CELL_H}px;
+  height: ${CELL_H}px;
   border-top: 2px solid ${({ $win }) => ($win ? "#f0c040" : "rgba(240,192,64,0.25)")};
   border-bottom: 2px solid ${({ $win }) => ($win ? "#f0c040" : "rgba(240,192,64,0.25)")};
   pointer-events: none;
@@ -171,18 +187,20 @@ const PaylineHighlight = styled.div<{ $win: boolean }>`
   ${({ $win }) => $win && css`animation: ${winPulse} 0.8s ease infinite;`}
 `;
 
-const ReelStrip = styled.div<{ $spinning: boolean; $duration: number; $finalOffset: number }>`
+const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean }>`
   display: flex;
   flex-direction: column;
-  ${({ $spinning, $duration, $finalOffset }) =>
-    $spinning
-      ? css`animation: ${scrollAnim} ${$duration}s linear infinite;`
-      : css`transform: translateY(-${$finalOffset * 80}px); transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`}
+  will-change: transform;
+  transform: translateY(${({ $y }) => $y}px);
+  ${({ $animate, $duration }) =>
+    $animate
+      ? css`transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`
+      : css`transition: none;`}
 `;
 
 const SymbolCell = styled.div`
   width: 100%;
-  height: 80px;
+  height: ${CELL_H}px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,102 +264,99 @@ const PayRow = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const REEL_COUNT = 3;
-const ROW_COUNT = 3;
-
-function buildReelSymbols(count = 20): Symbol[] {
-  return Array.from({ length: count }, () => randomSymbol());
-}
-
 export default function SlotsGame({ balance, initialBalance, onBet, onResult, onClose }: CasinoGameProps) {
   const minBet = r100(initialBalance * SLOTS_MIN_RATIO);
   const maxBet = r100(initialBalance * SLOTS_MAX_RATIO);
+
   const [chipAmount, setChipAmount] = useState(() => r100(initialBalance * SLOTS_MIN_RATIO));
   const [spinning, setSpinning] = useState(false);
   const [resultText, setResultText] = useState("");
   const [isWin, setIsWin] = useState(false);
-  // Each reel: array of symbols (extra long for animation), final offset (index of top visible row)
-  const [reels, setReels] = useState<Symbol[][]>(() =>
-    Array.from({ length: REEL_COUNT }, () => buildReelSymbols())
-  );
-  const [finalOffsets, setFinalOffsets] = useState<number[]>([0, 0, 0]);
-  const [reelSpinning, setReelSpinning] = useState<boolean[]>([false, false, false]);
-  const [reelDurations, setReelDurations] = useState<number[]>([0, 0, 0]);
   const [winPayline, setWinPayline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Get visible 3 rows for a reel given finalOffset (offset = index of top visible)
-  const getVisible = (reel: Symbol[], offset: number): Symbol[] => {
-    const len = reel.length;
-    return [reel[offset % len], reel[(offset + 1) % len], reel[(offset + 2) % len]];
-  };
+  // 스트립 상태 — 각 릴마다 심볼 배열과 최종 Y값
+  const [spinKey, setSpinKey] = useState(0);
+  const [strips, setStrips] = useState<SlotSymbol[][]>(() =>
+    Array.from({ length: REEL_COUNT }, () => buildStrip(randomSymbol()).strip)
+  );
+  const [finalYs, setFinalYs] = useState<number[]>([0, 0, 0]);
+  const [animating, setAnimating] = useState<boolean[]>([false, false, false]);
+  const [durations, setDurations] = useState<number[]>(STOP_DURATIONS);
+
+  // 스핀 결과를 ref로 보관 (클로저 문제 방지)
+  const resultsRef = useRef<SlotSymbol[]>([]);
+  const betRef = useRef(0);
+  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSpin = () => {
     if (spinning || balance < chipAmount) return;
+
+    const newResults: SlotSymbol[] = Array.from({ length: REEL_COUNT }, () => randomSymbol());
+    const newStrips: SlotSymbol[][] = [];
+    const newFinalYs: number[] = [];
+
+    for (let ri = 0; ri < REEL_COUNT; ri++) {
+      const { strip, finalY } = buildStrip(newResults[ri]);
+      newStrips.push(strip);
+      newFinalYs.push(finalY);
+    }
+
+    resultsRef.current = newResults;
+    betRef.current = chipAmount;
+
     onBet(chipAmount);
+    setSpinning(true);
     setResultText("");
     setWinPayline(false);
-
-    // Build new reels with results embedded
-    const results: Symbol[] = Array.from({ length: REEL_COUNT }, () => randomSymbol());
-
-    const newReels: Symbol[][] = reels.map((_, ri) => {
-      const pool = buildReelSymbols(16);
-      // Place result at index 1 (middle visible row) of final 3
-      pool[pool.length - 2] = results[ri];
-      return pool;
-    });
-
-    const newOffsets: number[] = newReels.map((reel) => reel.length - ROW_COUNT);
-    const stopDurations: number[] = [1.8, 2.3, 2.8];
-    const spinDurations: number[] = [0.3, 0.3, 0.3];
-
-    setReels(newReels);
-    setFinalOffsets(newOffsets);
-    setReelSpinning([true, true, true]);
-    setReelDurations(spinDurations);
-    setSpinning(true);
-
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-
-    // Stop each reel sequentially
-    for (let ri = 0; ri < REEL_COUNT; ri++) {
-      const t = setTimeout(() => {
-        setReelSpinning((prev) => {
-          const next = [...prev];
-          next[ri] = false;
-          return next;
-        });
-        setReelDurations((prev) => {
-          const next = [...prev];
-          next[ri] = 0.4;
-          return next;
-        });
-
-        if (ri === REEL_COUNT - 1) {
-          // All reels stopped — calculate result
-          setTimeout(() => {
-            const payline = results;
-            const multiplier = calcMultiplier(payline);
-            const delta = multiplier > 0 ? (multiplier - 1) * chipAmount : 0;
-            const win = multiplier > 0;
-            setIsWin(win);
-            setWinPayline(win);
-            if (win) {
-              setResultText(`💰 ${multiplier}배! +${(delta).toLocaleString()}원`);
-            } else {
-              setResultText(`😢 꽝`);
-            }
-            onResult(delta);
-            setSpinning(false);
-          }, 300);
-        }
-      }, stopDurations[ri] * 1000);
-      timersRef.current.push(t);
-    }
+    setStrips(newStrips);
+    setFinalYs(newFinalYs);
+    setAnimating([false, false, false]); // transition: none 상태로 초기화
+    setSpinKey((k) => k + 1);           // key 변경 → ReelStrip 리마운트 (Y=0으로 리셋)
   };
+
+  // spinKey 변경(리마운트) 이후 애니메이션 적용
+  // double rAF: 브라우저가 Y=0 상태를 실제로 페인트한 뒤에 transition 시작
+  useEffect(() => {
+    if (spinKey === 0) return;
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => {
+        setAnimating([true, true, true]);
+        setDurations(STOP_DURATIONS);
+      });
+      return () => cancelAnimationFrame(id2);
+    });
+    return () => cancelAnimationFrame(id1);
+  }, [spinKey]);
+
+  // 마지막 릴이 멈춘 뒤 결과 계산
+  useEffect(() => {
+    if (!spinning) return;
+    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+
+    const lastDuration = STOP_DURATIONS[REEL_COUNT - 1];
+    resultTimerRef.current = setTimeout(() => {
+      const payline = resultsRef.current;
+      const bet = betRef.current;
+      const multiplier = calcMultiplier(payline);
+      const win = multiplier > 0;
+      setIsWin(win);
+      setWinPayline(win);
+      if (win) {
+        const profit = (multiplier - 1) * bet;
+        setResultText(`💰 ${multiplier}배! +${profit.toLocaleString()}원`);
+        onResult(multiplier * bet);
+      } else {
+        setResultText("😢 꽝");
+        onResult(0);
+      }
+      setSpinning(false);
+    }, (lastDuration + 0.3) * 1000);
+
+    return () => {
+      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+    };
+  }, [spinning]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSpin = !spinning && balance >= chipAmount;
 
@@ -380,29 +395,22 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
 
       <Machine>
         <ReelContainer>
-          {reels.map((reel, ri) => {
-            const visibleSymbols = getVisible(reel, reelSpinning[ri] ? 0 : finalOffsets[ri]);
-            // For spinning: show a long strip; for stopped: show 3 cells at offset
-            return (
-              <ReelWrapper key={ri}>
-                <PaylineHighlight $win={winPayline} />
-                {reelSpinning[ri] ? (
-                  <ReelStrip $spinning $duration={reelDurations[ri]} $finalOffset={0}>
-                    {/* Repeat symbols for infinite scroll illusion */}
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SymbolCell key={i}>{SYMBOLS[i % SYMBOLS.length]}</SymbolCell>
-                    ))}
-                  </ReelStrip>
-                ) : (
-                  <div>
-                    {visibleSymbols.map((sym, si) => (
-                      <SymbolCell key={si}>{sym}</SymbolCell>
-                    ))}
-                  </div>
-                )}
-              </ReelWrapper>
-            );
-          })}
+          {Array.from({ length: REEL_COUNT }, (_, ri) => (
+            <ReelWrapper key={ri}>
+              <PaylineHighlight $win={winPayline} />
+              {/* key 변경 시 리마운트 → translateY가 0으로 초기화 */}
+              <ReelStrip
+                key={`${ri}-${spinKey}`}
+                $y={animating[ri] ? finalYs[ri] : 0}
+                $duration={durations[ri]}
+                $animate={animating[ri]}
+              >
+                {strips[ri].map((sym, si) => (
+                  <SymbolCell key={si}>{sym}</SymbolCell>
+                ))}
+              </ReelStrip>
+            </ReelWrapper>
+          ))}
         </ReelContainer>
 
         <ResultText $win={isWin}>{resultText || " "}</ResultText>

@@ -266,6 +266,7 @@ export function useRoomBase() {
     }
   };
 
+
   const handleKickPlayer = (targetPlayerId: string) => {
     if (!roomName) return;
     const target = players.find((p) => p.playerId === targetPlayerId);

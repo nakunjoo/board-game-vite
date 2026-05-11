@@ -14,8 +14,6 @@ import {
 const TIME_OPTIONS: { label: string; value: number | null }[] = [
   { label: "5분", value: 5 * 60 },
   { label: "10분", value: 10 * 60 },
-  { label: "30분", value: 30 * 60 },
-  { label: "60분", value: 60 * 60 },
   { label: "무제한", value: null },
 ];
 
@@ -32,7 +30,7 @@ export default function CasinoSetupModal({
   memberCount,
   onStart,
 }: CasinoSetupModalProps) {
-  const [selectedTime, setSelectedTime] = useState<number | null>(30 * 60);
+  const [selectedTime, setSelectedTime] = useState<number | null>(10 * 60);
   const [selectedBalance, setSelectedBalance] = useState(10_000);
 
   const handleStart = () => {
