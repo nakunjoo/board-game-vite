@@ -21,8 +21,8 @@ const SLOTS_MAX_RATIO = 0.02;
 
 const CELL_H = 80;
 const REEL_COUNT = 3;
-const SPIN_ROWS = 28;
-const STOP_DURATIONS = [1.8, 2.3, 2.8];
+const SPIN_ROWS = 80;
+const STOP_DURATIONS = [5.0, 5.0, 5.0];
 const AUTO_STOP_DELAY = 5000; // 5초 후 자동 정지
 
 const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
@@ -195,7 +195,7 @@ const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean;
     $animate
       ? $stopping
         ? css`transition: transform ${$duration}s ease-out;`
-        : css`transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`
+        : css`transition: transform ${$duration}s linear;`
       : css`transition: none;`}
 `;
 
@@ -309,13 +309,16 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     setSpinning(false);
   };
 
-  // STOP 버튼: 누를 때마다 왼쪽 릴부터 순서대로 정지
+  // STOP 버튼: 한 번 누르면 1→2→3 순서대로 자동 연속 정지
   const handleStop = () => {
     if (!spinning || stoppedCount >= REEL_COUNT) return;
-    const ri = stoppedCount;
-    setReelStopped((prev) => { const n = [...prev]; n[ri] = true; return n; });
-    setDurations((prev) => { const n = [...prev]; n[ri] = 0.3; return n; });
-    setStoppedCount((c) => c + 1);
+    setStoppedCount(REEL_COUNT);
+    [0, 1, 2].forEach((ri) => {
+      setTimeout(() => {
+        setReelStopped((prev) => { const n = [...prev]; n[ri] = true; return n; });
+        setDurations((prev) => { const n = [...prev]; n[ri] = 0.3; return n; });
+      }, ri * 300);
+    });
   };
 
   const handleSpin = () => {

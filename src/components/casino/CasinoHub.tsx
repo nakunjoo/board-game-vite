@@ -71,26 +71,6 @@ const RankNick = styled.span`
   text-overflow: ellipsis;
 `;
 
-const VoteSmallBtn = styled.button<{ $voted?: boolean }>`
-  background: ${({ $voted }) => $voted ? "rgba(255,255,255,0.08)" : "rgba(192,57,43,0.8)"};
-  border: 1px solid ${({ $voted }) => $voted ? "rgba(255,255,255,0.15)" : "rgba(192,57,43,0.6)"};
-  border-radius: 6px;
-  color: ${({ $voted }) => $voted ? "#888" : "#fff"};
-  font-size: 1rem;
-  padding: 3px 7px;
-  cursor: ${({ $voted }) => $voted ? "default" : "pointer"};
-  white-space: nowrap;
-  flex-shrink: 0;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-`;
-
-const VoteCount = styled.span`
-  color: #aaa;
-  font-size: 0.65rem;
-  flex-shrink: 0;
-`;
 
 // ─── 전체 순위 모달 ───────────────────────────────────────────────────────────
 
@@ -275,10 +255,7 @@ interface CasinoHubProps {
   players: CasinoPlayer[];
   myPlayerId: string;
   onSelectGame: (game: string) => void;
-  onVoteEnd: () => void;
   onLoan: (amount: number) => void;
-  votes: string[];
-  votesNeeded: number;
   memberCount: number;
   totalLoan: number;
 }
@@ -292,10 +269,7 @@ export default function CasinoHub({
   players,
   myPlayerId,
   onSelectGame,
-  onVoteEnd,
   onLoan,
-  votes,
-  votesNeeded,
   totalLoan,
 }: CasinoHubProps) {
   const [displaySeconds, setDisplaySeconds] = useState(remainingSeconds);
@@ -316,7 +290,6 @@ export default function CasinoHub({
   }, [remainingSeconds]);
 
   const isUrgent = displaySeconds !== null && displaySeconds < 60;
-  const hasVoted = votes.includes(myPlayerId);
   const maxLoan = Math.floor(initialBalance / 2);
   const showLoanBanner = myBalance < initialBalance * 0.05;
 

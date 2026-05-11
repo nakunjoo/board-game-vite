@@ -46,8 +46,6 @@ export default function CasinoRoom() {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [players, setPlayers] = useState<CasinoPlayer[]>([]);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
-  const [votes, setVotes] = useState<string[]>([]);
-  const [votesNeeded, setVotesNeeded] = useState(1);
   const [totalLoan, setTotalLoan] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverData, setGameOverData] = useState<CasinoGameOverData | null>(null);
@@ -119,7 +117,6 @@ export default function CasinoRoom() {
                 Date.now() - ((d.casinoTimeLimit ?? 0) - d.casinoRemainingSeconds) * 1000;
             }
             if (d.casinoPlayers) setPlayers(d.casinoPlayers);
-            if (d.casinoVotes) setVotes(d.casinoVotes);
           }
           break;
         }
@@ -144,7 +141,6 @@ export default function CasinoRoom() {
             }))
           );
           setCurrentGame(null);
-          setVotes([]);
           setTotalLoan(0);
           setGameOver(false);
           setGameOverData(null);
@@ -189,13 +185,6 @@ export default function CasinoRoom() {
               p.playerId === d.playerId ? { ...p, currentGame: d.currentGame } : p
             )
           );
-          break;
-        }
-
-        case "casinoVoteStatus": {
-          const d = data as { votes: string[]; needed: number; total: number };
-          setVotes(d.votes);
-          setVotesNeeded(d.needed);
           break;
         }
 
@@ -265,11 +254,6 @@ export default function CasinoRoom() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [roomName, send]);
-
-  const handleVoteEnd = () => {
-    if (!roomName) return;
-    send("casinoVoteEnd", { roomName });
-  };
 
   const handleLoan = (amount: number) => {
     if (!roomName) return;
@@ -405,10 +389,7 @@ export default function CasinoRoom() {
           onSelectGame={(game) => {
             handleSwitchGame(game);
           }}
-          onVoteEnd={handleVoteEnd}
           onLoan={handleLoan}
-          votes={votes}
-          votesNeeded={votesNeeded}
           memberCount={memberCount}
           totalLoan={totalLoan}
         />

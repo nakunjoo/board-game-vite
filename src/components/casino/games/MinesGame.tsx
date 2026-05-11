@@ -179,7 +179,7 @@ const GridWrapper = styled.div`
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-template-rows: repeat(5, ${TILE_PX}px);
   gap: ${GRID_GAP}px;
   width: 100%;
@@ -187,6 +187,8 @@ const Grid = styled.div`
 
 const Tile = styled.button<{ $state: TileState; $revealed: boolean; $isLoss?: boolean }>`
   height: ${TILE_PX}px;
+  min-width: 0;
+  width: 100%;
   border-radius: 8px;
   border: none;
   font-size: 1.4rem;
