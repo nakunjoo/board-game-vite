@@ -21,10 +21,9 @@ const SLOTS_MAX_RATIO = 0.02;
 
 const CELL_H = 80;
 const REEL_COUNT = 3;
-// 스핀 중 스크롤할 행 수 (클수록 더 길게 돌아가는 느낌)
 const SPIN_ROWS = 28;
-// 각 릴이 멈추는 시간 (릴 1 → 2 → 3 순서로 순차 정지)
 const STOP_DURATIONS = [1.8, 2.3, 2.8];
+const AUTO_STOP_DELAY = 5000; // 5초 후 자동 정지
 
 const SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣"] as const;
 type SlotSymbol = typeof SYMBOLS[number];
@@ -187,15 +186,46 @@ const PaylineHighlight = styled.div<{ $win: boolean }>`
   ${({ $win }) => $win && css`animation: ${winPulse} 0.8s ease infinite;`}
 `;
 
-const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean }>`
+const ReelStrip = styled.div<{ $y: number; $duration: number; $animate: boolean; $stopping: boolean }>`
   display: flex;
   flex-direction: column;
   will-change: transform;
   transform: translateY(${({ $y }) => $y}px);
-  ${({ $animate, $duration }) =>
+  ${({ $animate, $duration, $stopping }) =>
     $animate
-      ? css`transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`
+      ? $stopping
+        ? css`transition: transform ${$duration}s ease-out;`
+        : css`transition: transform ${$duration}s cubic-bezier(0.23, 1, 0.32, 1);`
       : css`transition: none;`}
+`;
+
+const StopReelBtn = styled.button`
+  width: 100%;
+  padding: 6px 0;
+  border-radius: 6px;
+  border: none;
+  background: rgba(240,192,64,0.85);
+  color: #0d3d22;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 1px;
+  &:hover { background: #f0c040; }
+`;
+
+const StopDoneTag = styled.div`
+  text-align: center;
+  color: #2ecc71;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 0;
+`;
+
+const AutoStopLabel = styled.div`
+  text-align: center;
+  color: rgba(240,192,64,0.6);
+  font-size: 0.72rem;
+  margin-top: 2px;
 `;
 
 const SymbolCell = styled.div`
@@ -283,11 +313,49 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
   const [finalYs, setFinalYs] = useState<number[]>([0, 0, 0]);
   const [animating, setAnimating] = useState<boolean[]>([false, false, false]);
   const [durations, setDurations] = useState<number[]>(STOP_DURATIONS);
+  const [reelStopped, setReelStopped] = useState<boolean[]>([false, false, false]);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
-  // 스핀 결과를 ref로 보관 (클로저 문제 방지)
   const resultsRef = useRef<SlotSymbol[]>([]);
   const betRef = useRef(0);
-  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animatingRef = useRef<boolean[]>([false, false, false]);
+
+  // animating 변경 시 ref도 동기화
+  useEffect(() => { animatingRef.current = animating; }, [animating]);
+
+  const showResult = () => {
+    const payline = resultsRef.current;
+    const bet = betRef.current;
+    const multiplier = calcMultiplier(payline);
+    const win = multiplier > 0;
+    setIsWin(win);
+    setWinPayline(win);
+    if (win) {
+      const profit = (multiplier - 1) * bet;
+      setResultText(`💰 ${multiplier}배! +${profit.toLocaleString()}원`);
+      onResult(multiplier * bet);
+    } else {
+      setResultText("😢 꽝");
+      onResult(0);
+    }
+    setSpinning(false);
+    setCountdown(null);
+  };
+
+  const stopReel = (ri: number) => {
+    if (!animatingRef.current[ri]) return;
+    setReelStopped((prev) => {
+      if (prev[ri]) return prev;
+      const next = [...prev];
+      next[ri] = true;
+      return next;
+    });
+    setDurations((prev) => {
+      const next = [...prev];
+      next[ri] = 0.3;
+      return next;
+    });
+  };
 
   const handleSpin = () => {
     if (spinning || balance < chipAmount) return;
@@ -311,12 +379,14 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     setWinPayline(false);
     setStrips(newStrips);
     setFinalYs(newFinalYs);
-    setAnimating([false, false, false]); // transition: none 상태로 초기화
-    setSpinKey((k) => k + 1);           // key 변경 → ReelStrip 리마운트 (Y=0으로 리셋)
+    setAnimating([false, false, false]);
+    setReelStopped([false, false, false]);
+    setDurations(STOP_DURATIONS);
+    setCountdown(AUTO_STOP_DELAY / 1000);
+    setSpinKey((k) => k + 1);
   };
 
-  // spinKey 변경(리마운트) 이후 애니메이션 적용
-  // double rAF: 브라우저가 Y=0 상태를 실제로 페인트한 뒤에 transition 시작
+  // double rAF: 리마운트 후 애니메이션 적용
   useEffect(() => {
     if (spinKey === 0) return;
     const id1 = requestAnimationFrame(() => {
@@ -329,34 +399,30 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
     return () => cancelAnimationFrame(id1);
   }, [spinKey]);
 
-  // 마지막 릴이 멈춘 뒤 결과 계산
+  // 전체 릴 정지 시 결과 계산
   useEffect(() => {
     if (!spinning) return;
-    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+    if (!reelStopped.every(Boolean)) return;
+    const id = setTimeout(showResult, 500);
+    return () => clearTimeout(id);
+  }, [spinning, reelStopped]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const lastDuration = STOP_DURATIONS[REEL_COUNT - 1];
-    resultTimerRef.current = setTimeout(() => {
-      const payline = resultsRef.current;
-      const bet = betRef.current;
-      const multiplier = calcMultiplier(payline);
-      const win = multiplier > 0;
-      setIsWin(win);
-      setWinPayline(win);
-      if (win) {
-        const profit = (multiplier - 1) * bet;
-        setResultText(`💰 ${multiplier}배! +${profit.toLocaleString()}원`);
-        onResult(multiplier * bet);
-      } else {
-        setResultText("😢 꽝");
-        onResult(0);
-      }
-      setSpinning(false);
-    }, (lastDuration + 0.3) * 1000);
+  // 5초 자동 정지
+  useEffect(() => {
+    if (!spinning) return;
+    const id = setTimeout(() => {
+      setReelStopped([true, true, true]);
+      setDurations([0.3, 0.3, 0.3]);
+    }, AUTO_STOP_DELAY);
+    return () => clearTimeout(id);
+  }, [spinning]);
 
-    return () => {
-      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-    };
-  }, [spinning]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 카운트다운 표시
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    const id = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+    return () => clearTimeout(id);
+  }, [countdown]);
 
   const canSpin = !spinning && balance >= chipAmount;
 
@@ -396,22 +462,34 @@ export default function SlotsGame({ balance, initialBalance, onBet, onResult, on
       <Machine>
         <ReelContainer>
           {Array.from({ length: REEL_COUNT }, (_, ri) => (
-            <ReelWrapper key={ri}>
-              <PaylineHighlight $win={winPayline} />
-              {/* key 변경 시 리마운트 → translateY가 0으로 초기화 */}
-              <ReelStrip
-                key={`${ri}-${spinKey}`}
-                $y={animating[ri] ? finalYs[ri] : 0}
-                $duration={durations[ri]}
-                $animate={animating[ri]}
-              >
-                {strips[ri].map((sym, si) => (
-                  <SymbolCell key={si}>{sym}</SymbolCell>
-                ))}
-              </ReelStrip>
-            </ReelWrapper>
+            <div key={ri} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+              <ReelWrapper>
+                <PaylineHighlight $win={winPayline} />
+                <ReelStrip
+                  key={`${ri}-${spinKey}`}
+                  $y={animating[ri] ? finalYs[ri] : 0}
+                  $duration={durations[ri]}
+                  $animate={animating[ri]}
+                  $stopping={reelStopped[ri]}
+                >
+                  {strips[ri].map((sym, si) => (
+                    <SymbolCell key={si}>{sym}</SymbolCell>
+                  ))}
+                </ReelStrip>
+              </ReelWrapper>
+              {spinning && animating[ri] && !reelStopped[ri] && (
+                <StopReelBtn onClick={() => stopReel(ri)}>STOP</StopReelBtn>
+              )}
+              {spinning && reelStopped[ri] && (
+                <StopDoneTag>✓</StopDoneTag>
+              )}
+            </div>
           ))}
         </ReelContainer>
+
+        {spinning && countdown !== null && countdown > 0 && (
+          <AutoStopLabel>{countdown}초 후 자동 정지</AutoStopLabel>
+        )}
 
         <ResultText $win={isWin}>{resultText || " "}</ResultText>
       </Machine>

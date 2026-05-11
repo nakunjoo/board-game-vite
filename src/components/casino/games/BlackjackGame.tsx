@@ -169,15 +169,14 @@ const CardFace = styled.div<{ $red: boolean; $new?: boolean }>`
   height: 80px;
   background: #fff;
   border-radius: 7px;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 5px 6px;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
   user-select: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  overflow: hidden;
   ${({ $new }) => $new && css`animation: ${flipIn} 0.3s ease forwards;`}
 `;
 
@@ -197,20 +196,20 @@ const CardBack = styled.div`
 `;
 
 const CardCorner = styled.div<{ $flip?: boolean }>`
+  position: absolute;
   display: flex;
   flex-direction: column;
-  align-items: ${({ $flip }) => ($flip ? "flex-end" : "flex-start")};
-  font-size: 0.7rem;
-  line-height: 1.1;
-  transform: ${({ $flip }) => ($flip ? "rotate(180deg)" : "none")};
+  align-items: flex-start;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  ${({ $flip }) =>
+    $flip
+      ? css`bottom: 3px; right: 4px; transform: rotate(180deg);`
+      : css`top: 3px; left: 4px;`}
 `;
 
 const CardSuitBig = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
 `;
 
 const DealerZone = styled.div`

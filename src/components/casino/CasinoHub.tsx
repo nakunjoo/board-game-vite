@@ -4,7 +4,6 @@ import type { CasinoPlayer } from "./types";
 import {
   HubWrapper,
   HubTopBar,
-  BalanceDisplay,
   TimerDisplay,
   HubBody,
   GameGrid,
@@ -77,12 +76,14 @@ const VoteSmallBtn = styled.button<{ $voted?: boolean }>`
   border: 1px solid ${({ $voted }) => $voted ? "rgba(255,255,255,0.15)" : "rgba(192,57,43,0.6)"};
   border-radius: 6px;
   color: ${({ $voted }) => $voted ? "#888" : "#fff"};
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 8px;
+  font-size: 1rem;
+  padding: 3px 7px;
   cursor: ${({ $voted }) => $voted ? "default" : "pointer"};
   white-space: nowrap;
   flex-shrink: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
 `;
 
 const VoteCount = styled.span`
@@ -386,8 +387,6 @@ export default function CasinoHub({
       )}
 
       <HubTopBar>
-        <BalanceDisplay>💰 {myBalance.toLocaleString()}</BalanceDisplay>
-
         {/* 1~3위 인라인 + 전체 순위 모달 버튼 */}
         <TopRankBar onClick={() => setShowRankModal(true)}>
           {top3.map((p, i) => (
@@ -405,8 +404,8 @@ export default function CasinoHub({
           ) : (
             <TimerDisplay>⏱ 무제한</TimerDisplay>
           )}
-          <VoteSmallBtn onClick={hasVoted ? undefined : onVoteEnd} $voted={hasVoted}>
-            {hasVoted ? "✓ 투표" : "종료 투표"}
+          <VoteSmallBtn onClick={hasVoted ? undefined : onVoteEnd} $voted={hasVoted} title={hasVoted ? "투표 완료" : "종료 투표"}>
+            {hasVoted ? "✓" : "🚪"}
           </VoteSmallBtn>
           <VoteCount>{votes.length}/{votesNeeded}</VoteCount>
         </div>

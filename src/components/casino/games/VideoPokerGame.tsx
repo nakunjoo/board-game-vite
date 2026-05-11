@@ -215,13 +215,12 @@ const CardFace = styled.div<{ $red: boolean; $held: boolean; $win?: boolean }>`
   height: 84px;
   background: #fff;
   border-radius: 7px;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 5px 6px;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
   user-select: none;
-  overflow: hidden;
   border: 2px solid ${({ $held, $win }) =>
     $win ? "#f0c040" : $held ? "#f0c040" : "rgba(255,255,255,0.12)"};
   box-shadow: ${({ $held, $win }) =>
@@ -232,21 +231,21 @@ const CardFace = styled.div<{ $red: boolean; $held: boolean; $win?: boolean }>`
 `;
 
 const CardCorner = styled.div<{ $red: boolean; $flip?: boolean }>`
+  position: absolute;
   display: flex;
   flex-direction: column;
-  align-items: ${({ $flip }) => ($flip ? "flex-end" : "flex-start")};
+  align-items: flex-start;
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
-  font-size: 0.72rem;
-  line-height: 1.1;
-  transform: ${({ $flip }) => ($flip ? "rotate(180deg)" : "none")};
+  font-size: 0.62rem;
+  line-height: 1.15;
+  ${({ $flip }) =>
+    $flip
+      ? css`bottom: 3px; right: 4px; transform: rotate(180deg);`
+      : css`top: 3px; left: 4px;`}
 `;
 
 const CardSuitBig = styled.div<{ $red: boolean }>`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   color: ${({ $red }) => ($red ? "#c0392b" : "#1a1a2e")};
 `;
 

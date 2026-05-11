@@ -166,18 +166,27 @@ const SafeCount = styled.div`
   text-align: center;
 `;
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  width: 360px;
+const GRID_PX = 360;
+const GRID_GAP = 6;
+const TILE_PX = (GRID_PX - GRID_GAP * 4) / 5; // ≈ 67.2px
+
+const GridWrapper = styled.div`
+  width: ${GRID_PX}px;
   max-width: calc(100vw - 32px);
   flex-shrink: 0;
   margin-bottom: 16px;
 `;
 
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, ${TILE_PX}px);
+  gap: ${GRID_GAP}px;
+  width: 100%;
+`;
+
 const Tile = styled.button<{ $state: TileState; $revealed: boolean; $isLoss?: boolean }>`
-  aspect-ratio: 1;
+  height: ${TILE_PX}px;
   border-radius: 8px;
   border: none;
   font-size: 1.4rem;
@@ -421,21 +430,23 @@ export default function MinesGame({ balance, initialBalance, onBet, onResult, on
       )}
 
       {/* 그리드 */}
-      <Grid>
-        {tiles.map((tileState, idx) => (
-          <Tile
-            key={idx}
-            $state={tileState}
-            $revealed={idx === newlyRevealed}
-            $isLoss={phase === "lost"}
-            onClick={() => handleTileClick(idx)}
-            disabled={phase !== "playing" || tileState !== "hidden"}
-          >
-            {tileState === "safe" && "✅"}
-            {tileState === "mine" && "💣"}
-          </Tile>
-        ))}
-      </Grid>
+      <GridWrapper>
+        <Grid>
+          {tiles.map((tileState, idx) => (
+            <Tile
+              key={idx}
+              $state={tileState}
+              $revealed={idx === newlyRevealed}
+              $isLoss={phase === "lost"}
+              onClick={() => handleTileClick(idx)}
+              disabled={phase !== "playing" || tileState !== "hidden"}
+            >
+              {tileState === "safe" && "✅"}
+              {tileState === "mine" && "💣"}
+            </Tile>
+          ))}
+        </Grid>
+      </GridWrapper>
 
       {/* 하단 컨트롤 */}
       <Section>
