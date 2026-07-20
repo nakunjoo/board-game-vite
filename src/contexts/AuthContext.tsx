@@ -17,7 +17,6 @@ interface AuthContextType {
   nickname: string | null;
   nicknameUpdatedAt: string | null | undefined;
   isAdmin: boolean;
-  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updateNickname: (newNickname: string) => Promise<{ error?: string }>;
 }
@@ -71,15 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -113,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, nickname, nicknameUpdatedAt, isAdmin, signInWithGoogle, signOut, updateNickname }}>
+    <AuthContext.Provider value={{ user, session, loading, nickname, nicknameUpdatedAt, isAdmin, signOut, updateNickname }}>
       {children}
     </AuthContext.Provider>
   );

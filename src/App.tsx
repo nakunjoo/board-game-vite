@@ -4,7 +4,6 @@ import { WebSocketProvider } from "./contexts/WebSocketContext";
 import AuthGuard from "./components/AuthGuard";
 import AdminGuard from "./components/AdminGuard";
 import Login from "./pages/Login";
-import AuthCallback from "./pages/AuthCallback";
 import Lobby from "./pages/Lobby";
 import Room from "./pages/Room/index";
 import SlidePuzzle from "./pages/Single/SlidePuzzle/index";
@@ -19,7 +18,6 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* 멀티 게임 (소켓) */}
           <Route
