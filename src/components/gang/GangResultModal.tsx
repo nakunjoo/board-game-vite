@@ -150,25 +150,14 @@ export default function GangResultModal({
       {sortedResults.map((result, index) => {
         const handRank = evaluateHand(result.hand, openCards);
 
-        let isWinner = false;
-        let isLoser = false;
-
-        // 각 플레이어는 이전 플레이어보다 높거나 같은 족보를 가져야 성공
-        if (index === 0) {
-          // 첫 번째 플레이어: 다음 플레이어보다 낮거나 같으면 성공
-          if (index < allRanks.length - 1) {
-            isWinner = isLowerOrEqualRank(allRanks[index], allRanks[index + 1]);
-            isLoser = !isWinner;
-          } else {
-            isWinner = isGameSuccess;
-          }
-        } else {
-          // 나머지 플레이어: 이전 플레이어보다 높거나 같고, 다음 플레이어보다 낮거나 같으면 성공
-          const higherOrEqualThanPrev = isLowerOrEqualRank(allRanks[index - 1], allRanks[index]);
-          const lowerOrEqualThanNext = index < allRanks.length - 1 ? isLowerOrEqualRank(allRanks[index], allRanks[index + 1]) : true;
-          isWinner = higherOrEqualThanPrev && lowerOrEqualThanNext;
-          isLoser = !isWinner;
-        }
+        // 이 플레이어는 앞에 있는 모든 사람보다 높거나 같고, 뒤에 있는 모든 사람보다 낮거나 같아야 성공
+        // (바로 옆 사람만 비교하면 안 됨 — 전체 순서 안에서 제자리인지를 봐야 함)
+        const isWinner = allRanks.every((otherRank, otherIndex) => {
+          if (otherIndex < index) return isLowerOrEqualRank(otherRank, allRanks[index]);
+          if (otherIndex > index) return isLowerOrEqualRank(allRanks[index], otherRank);
+          return true;
+        });
+        const isLoser = !isWinner;
 
         return (
           <PlayerResultItem key={index} $isWinner={isWinner} $isLoser={isLoser}>

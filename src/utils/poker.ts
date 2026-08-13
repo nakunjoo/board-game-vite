@@ -425,7 +425,6 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
   // 하이카드 - 내 손패 중 가장 높은 카드 우선
   const myCardsSorted = myCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value));
   const highCard = myCardsSorted.length > 0 ? myCardsSorted[0] : allCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
-  const allSorted = allCards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value)).slice(0, 5);
 
   return {
     rank: "high-card",
@@ -433,6 +432,6 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
     detailName: `${getValueDisplayName(highCard.value)} 하이카드`,
     cards: [highCard],
     score: HAND_SCORES["high-card"],
-    tiebreakers: allSorted.map(c => getRankValue(c.value))
+    tiebreakers: myCardsSorted.map(c => getRankValue(c.value))
   };
 }

@@ -10,6 +10,14 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-08-13 | **Gang 결과 판정 버그 수정** |
+| 2026-08-13 | `utils/poker.ts`: `evaluateHand`의 "하이카드" 폴백에서 `tiebreakers`가 보드 공유 카드까지 섞인 `allSorted` 기준으로 계산되던 버그 수정 — 원페어/투페어/트리플 폴백처럼 내 카드만(`myCardsSorted`) 기준으로 변경. 미사용된 `allSorted` 변수 제거 |
+| 2026-08-13 | `components/gang/GangResultModal.tsx`: 개별 플레이어 성공/실패 판정을 "바로 옆 사람과만 비교" → "앞의 모든 사람 / 뒤의 모든 사람과 비교"로 변경. 기존 로직은 3인 초과 시(또는 특정 3인 조합에서도) 중간에 순서가 깨졌는데 마지막 플레이어가 직전 사람하고만 비교해 성공으로 잘못 표시되는 경우가 있었음 |
+| 2026-08-13 | **구글 로그인 제거 → 아이디/닉네임/비밀번호 로그인 전환** (카카오톡 등 인앱 브라우저에서 구글 OAuth 팝업이 막히는 문제 해결 목적) |
+| 2026-08-13 | `pages/Login.tsx` 전면 교체 — 로그인/회원가입 탭, 아이디(영문 소문자/숫자/`_` 4~20자)/닉네임(1~6자)/비밀번호(6자+) 입력. 로그인은 `supabase.auth.signInWithPassword({ email: `${id}@bobogang.local`, password })`, 회원가입은 `POST /api/auth/signup` 호출 후 자동 로그인 |
+| 2026-08-13 | `contexts/AuthContext.tsx`: `signInWithGoogle` 제거 |
+| 2026-08-13 | `pages/AuthCallback.tsx` 삭제, `App.tsx`에서 `/auth/callback` 라우트 제거 (OAuth 리다이렉트 콜백이라 더 이상 불필요) |
+| 2026-08-13 | `pages/Lobby.tsx`: 첫 로그인 시 닉네임 미설정 감지 → 설정 모달 표시 로직 전체 제거 (`nicknameUpdatedAt` 감지 useEffect, 관련 상태/함수/모달 JSX) — 가입 시점에 이미 닉네임을 받으므로 불필요해짐 |
 | 2026-05-11 | **카지노 게임 기록 잔액 차트 개선** |
 | 2026-05-11 | `pages/MyPage.tsx`: `BalanceChart` SVG → Canvas로 전면 재작성. 단일 플레이어 히스토리 → 멀티플레이어(`ChartPlayer[]`) 지원으로 확장. 플레이어별 고정 색상(`CHART_COLORS`), 내 라인 굵게(3px)/타인 라인 얇게(1.5px/0.6 alpha). 캔버스 아래 HTML 범례(색상 바 + 닉네임, 내 플레이어 금색 굵게). 구버전 기록 폴백: `playersHistory` 없으면 `ex.history` + `patchHistory(history, final)`로 단일 라인 표시 |
 | 2026-05-11 | `pages/MyPage.tsx`: `patchHistory` 함수 추가 — 히스토리 마지막 포인트 잔액이 실제 최종 잔액(`init + profit`)과 다를 경우 끝점 추가. 대출 상환으로 음수가 된 최종 잔액도 차트에 반영 (`entry.score` 대신 `final = init + profit` 사용)
