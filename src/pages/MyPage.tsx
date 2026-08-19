@@ -27,15 +27,70 @@ import {
   DetailMeta,
   DetailRow,
   DetailSectionTitle,
-  WinLossDots,
-  WinLossDot,
   GamePlayedTable,
   GamePlayedRow,
   PlayersTableWrap,
   PlayerRow,
   MeTag,
   SkulkingRoundTable,
+  GangRoundTabs,
+  GangRoundTabButton,
+  GangRoundContent,
+  GangRoundCardsRow,
+  GangRoundCardImg,
+  GangRoundPlayerRow,
+  GangRoundPlayerName,
 } from "../styles/pages/MyPage";
+import type { Card } from "../types/game";
+
+interface GangRoundSnapshot {
+  round: number;
+  openCards: Card[];
+  hands: Record<string, Card[]>;
+  nicknames: Record<string, string>;
+  isWinner: boolean;
+}
+
+function GangRoundHistoryTabs({ roundHistory }: { roundHistory: GangRoundSnapshot[] }) {
+  const [selected, setSelected] = useState(roundHistory.length - 1);
+  if (roundHistory.length === 0) return null;
+  const current = roundHistory[Math.min(selected, roundHistory.length - 1)];
+
+  return (
+    <>
+      <DetailSectionTitle>라운드별 카드</DetailSectionTitle>
+      <GangRoundTabs>
+        {roundHistory.map((r, i) => (
+          <GangRoundTabButton key={i} $active={i === selected} $win={r.isWinner} onClick={() => setSelected(i)}>
+            {r.round}R {r.isWinner ? "✓" : "✗"}
+          </GangRoundTabButton>
+        ))}
+      </GangRoundTabs>
+      <GangRoundContent>
+        <div>
+          <div style={{ fontSize: "0.72rem", color: "#666", marginBottom: 4 }}>공유 카드</div>
+          <GangRoundCardsRow>
+            {current.openCards.length === 0 ? (
+              <span style={{ color: "#555", fontSize: "0.78rem" }}>없음</span>
+            ) : (
+              current.openCards.map((c, i) => <GangRoundCardImg key={i} src={c.image} alt={c.name} />)
+            )}
+          </GangRoundCardsRow>
+        </div>
+        {Object.entries(current.hands).map(([playerId, cards]) => (
+          <GangRoundPlayerRow key={playerId}>
+            <GangRoundPlayerName>{current.nicknames[playerId] ?? playerId}</GangRoundPlayerName>
+            <GangRoundCardsRow>
+              {cards.map((c, i) => (
+                <GangRoundCardImg key={i} src={c.image} alt={c.name} />
+              ))}
+            </GangRoundCardsRow>
+          </GangRoundPlayerRow>
+        ))}
+      </GangRoundContent>
+    </>
+  );
+}
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 const COOLDOWN_DAYS = 1;
@@ -321,8 +376,8 @@ function DetailContent({ entry }: { entry: HistoryEntry }) {
   }
 
   if (entry.gameType === "gang") {
-    const winLoss = (ex?.winLossRecord as boolean[]) ?? [];
     const gameOverResult = ex?.gameOverResult as string | null;
+    const roundHistory = (ex?.roundHistory as GangRoundSnapshot[]) ?? [];
     return (
       <>
         <DetailSectionTitle>게임 결과</DetailSectionTitle>
@@ -332,16 +387,7 @@ function DetailContent({ entry }: { entry: HistoryEntry }) {
             {gameOverResult === "victory" ? "🏆 승리" : gameOverResult === "defeat" ? "💀 패배" : "-"}
           </span>
         </DetailRow>
-        {winLoss.length > 0 && (
-          <>
-            <DetailSectionTitle>라운드 기록</DetailSectionTitle>
-            <WinLossDots>
-              {winLoss.map((w, i) => (
-                <WinLossDot key={i} $win={w}>{w ? "✓" : "✗"}</WinLossDot>
-              ))}
-            </WinLossDots>
-          </>
-        )}
+        <GangRoundHistoryTabs roundHistory={roundHistory} />
         <PlayersTable entry={entry} />
       </>
     );

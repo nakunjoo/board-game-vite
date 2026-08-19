@@ -306,6 +306,59 @@ export const GamePlayedRow = styled.div`
   span:last-child { color: #ccc; }
 `;
 
+export const GangRoundTabs = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const GangRoundTabButton = styled.button<{ $active: boolean; $win: boolean }>`
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid ${({ $win }) => ($win ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.4)")};
+  background: ${({ $active, $win }) =>
+    $active ? ($win ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)") : "transparent"};
+  color: ${({ $win }) => ($win ? "#22c55e" : "#ef4444")};
+`;
+
+export const GangRoundContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 10px;
+`;
+
+export const GangRoundCardsRow = styled.div`
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+`;
+
+export const GangRoundCardImg = styled.img`
+  width: 26px;
+  height: 36px;
+  border-radius: 3px;
+  background: #fff;
+`;
+
+export const GangRoundPlayerRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const GangRoundPlayerName = styled.span`
+  font-size: 0.78rem;
+  color: #999;
+  min-width: 56px;
+  flex-shrink: 0;
+`;
+
 export const SkulkingRoundTable = styled.table`
   width: 100%;
   border-collapse: collapse;
