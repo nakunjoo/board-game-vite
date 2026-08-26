@@ -12,10 +12,9 @@ import {
   KickButton,
   getSeatPosition,
 } from "../../styles/pages/Room";
-import type { Card, GameConfig, PlayerHand } from "../../types/game";
+import type { Card, GameConfig, Player, PlayerHand } from "../../types/game";
 import { SPICE_SUIT_COLORS } from "../../utils/games/spice";
 import { playTickSound } from "../../utils/audio";
-import type { Player } from "../gang/types";
 import { SpiceSuitIcon, SpiceCard, SpiceCardBack } from "./game/SpiceCard";
 import SpiceOtherPlayerFan from "./game/SpiceOtherPlayerFan";
 import {

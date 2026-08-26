@@ -1,3 +1,8 @@
+export interface CoPlayer {
+  nickname: string;
+  profit: number;
+}
+
 export interface CasinoPlayer {
   playerId: string;
   nickname: string;

@@ -8,12 +8,14 @@ import GameHelpModal, {
   PayLabel,
   PayValue,
 } from "./GameHelpModal";
+import type { CoPlayer } from "../types";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
 interface CasinoGameProps {
   balance: number;
   initialBalance: number;
+  coPlayers: CoPlayer[];
   onBet: (amount: number) => void;
   onResult: (delta: number) => void;
   onClose: () => void;
@@ -151,6 +153,35 @@ const CloseButton = styled.button<{ $disabled?: boolean }>`
   font-size: 0.9rem;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+`;
+
+const CoPlayersRow = styled.div`
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px 8px;
+  box-sizing: border-box;
+`;
+
+const CoPlayerTag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+`;
+
+const CoPlayerName = styled.span`
+  color: #ddd;
+`;
+
+const CoPlayerProfit = styled.span<{ $positive: boolean; $negative: boolean }>`
+  font-weight: 700;
+  color: ${({ $positive, $negative }) => ($positive ? "#2ecc71" : $negative ? "#e74c3c" : "#888")};
 `;
 
 const MultiplierBar = styled.div`
@@ -321,6 +352,7 @@ const ActionBtn = styled.button<{ $variant: "primary" | "cashout" | "danger" }>`
 export default function MinesGame({
   balance,
   initialBalance,
+  coPlayers,
   onBet,
   onResult,
   onClose,
@@ -453,6 +485,19 @@ export default function MinesGame({
           닫기
         </CloseButton>
       </Header>
+
+      {coPlayers.length > 0 && (
+        <CoPlayersRow>
+          {coPlayers.map((p) => (
+            <CoPlayerTag key={p.nickname}>
+              <CoPlayerName>{p.nickname}</CoPlayerName>
+              <CoPlayerProfit $positive={p.profit > 0} $negative={p.profit < 0}>
+                {p.profit > 0 ? `+${p.profit.toLocaleString()}` : p.profit.toLocaleString()}
+              </CoPlayerProfit>
+            </CoPlayerTag>
+          ))}
+        </CoPlayersRow>
+      )}
 
       <ScrollBody>
         {/* 배수 / 수령금 / 안전 개수 표시 */}

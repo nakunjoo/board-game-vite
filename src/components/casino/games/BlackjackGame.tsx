@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import BetControls from "../BetControls";
+import type { CoPlayer } from "../types";
 import GameHelpModal, { HelpSection, HelpText, PayTable, PayLabel, PayValue } from "./GameHelpModal";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -133,6 +134,35 @@ const CloseBtn = styled.button`
   padding: 4px 12px;
   cursor: pointer;
   &:hover { background: rgba(255,255,255,0.14); color: #fff; }
+`;
+
+const CoPlayersRow = styled.div`
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px 8px;
+  box-sizing: border-box;
+`;
+
+const CoPlayerTag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+`;
+
+const CoPlayerName = styled.span`
+  color: #ddd;
+`;
+
+const CoPlayerProfit = styled.span<{ $positive: boolean; $negative: boolean }>`
+  font-weight: 700;
+  color: ${({ $positive, $negative }) => ($positive ? "#2ecc71" : $negative ? "#e74c3c" : "#888")};
 `;
 
 const ZoneLabel = styled.div`
@@ -316,12 +346,13 @@ const BJ_MAX_RATIO = 0.10;
 interface Props {
   balance: number;
   initialBalance: number;
+  coPlayers: CoPlayer[];
   onBet: (amount: number) => void;
   onResult: (delta: number) => void;
   onClose: () => void;
 }
 
-export default function BlackjackGame({ balance, initialBalance, onBet, onResult, onClose }: Props) {
+export default function BlackjackGame({ balance, initialBalance, coPlayers, onBet, onResult, onClose }: Props) {
   const minBet = r100(initialBalance * BJ_MIN_RATIO);
   const maxBet = r100(initialBalance * BJ_MAX_RATIO);
   const [showHelp, setShowHelp] = useState(false);
@@ -480,6 +511,19 @@ export default function BlackjackGame({ balance, initialBalance, onBet, onResult
         <HelpBtn onClick={() => setShowHelp(true)}>?</HelpBtn>
         <CloseBtn onClick={onClose}>닫기</CloseBtn>
       </Header>
+
+      {coPlayers.length > 0 && (
+        <CoPlayersRow>
+          {coPlayers.map((p) => (
+            <CoPlayerTag key={p.nickname}>
+              <CoPlayerName>{p.nickname}</CoPlayerName>
+              <CoPlayerProfit $positive={p.profit > 0} $negative={p.profit < 0}>
+                {p.profit > 0 ? `+${p.profit.toLocaleString()}` : p.profit.toLocaleString()}
+              </CoPlayerProfit>
+            </CoPlayerTag>
+          ))}
+        </CoPlayersRow>
+      )}
 
       {phase !== "idle" && (
         <DealerZone>

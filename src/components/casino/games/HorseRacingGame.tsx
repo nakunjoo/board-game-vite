@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
 import BetControls from "../BetControls";
+import type { CoPlayer } from "../types";
 import GameHelpModal, { HelpSection, HelpText, PayTable as HelpPayTable, PayLabel, PayValue } from "./GameHelpModal";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
@@ -8,6 +9,7 @@ import GameHelpModal, { HelpSection, HelpText, PayTable as HelpPayTable, PayLabe
 interface CasinoGameProps {
   balance: number;
   initialBalance: number;
+  coPlayers: CoPlayer[];
   onBet: (amount: number) => void;
   onResult: (delta: number) => void;
   onClose: () => void;
@@ -127,6 +129,35 @@ const CloseButton = styled.button<{ $disabled?: boolean }>`
   font-size: 0.9rem;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+`;
+
+const CoPlayersRow = styled.div`
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px 8px;
+  box-sizing: border-box;
+`;
+
+const CoPlayerTag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+`;
+
+const CoPlayerName = styled.span`
+  color: #ddd;
+`;
+
+const CoPlayerProfit = styled.span<{ $positive: boolean; $negative: boolean }>`
+  font-weight: 700;
+  color: ${({ $positive, $negative }) => ($positive ? "#2ecc71" : $negative ? "#e74c3c" : "#888")};
 `;
 
 const TrackArea = styled.div`
@@ -323,7 +354,7 @@ function simulateRace(winnerId: number): number[][] {
   return positions;
 }
 
-export default function HorseRacingGame({ balance, initialBalance, onBet, onResult, onClose }: CasinoGameProps) {
+export default function HorseRacingGame({ balance, initialBalance, coPlayers, onBet, onResult, onClose }: CasinoGameProps) {
   const minBet = r100(initialBalance * HORSE_MIN_RATIO);
   const maxBet = r100(initialBalance * HORSE_MAX_RATIO);
 
@@ -424,6 +455,19 @@ export default function HorseRacingGame({ balance, initialBalance, onBet, onResu
           닫기
         </CloseButton>
       </Header>
+
+      {coPlayers.length > 0 && (
+        <CoPlayersRow>
+          {coPlayers.map((p) => (
+            <CoPlayerTag key={p.nickname}>
+              <CoPlayerName>{p.nickname}</CoPlayerName>
+              <CoPlayerProfit $positive={p.profit > 0} $negative={p.profit < 0}>
+                {p.profit > 0 ? `+${p.profit.toLocaleString()}` : p.profit.toLocaleString()}
+              </CoPlayerProfit>
+            </CoPlayerTag>
+          ))}
+        </CoPlayersRow>
+      )}
 
       <ScrollBody>
         <TrackArea>

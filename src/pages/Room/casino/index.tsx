@@ -312,9 +312,14 @@ export default function CasinoRoom() {
   const renderCurrentGameOverlay = () => {
     if (!currentGame || !gameStarted) return null;
 
+    const coPlayers = players
+      .filter((p) => p.currentGame === currentGame && p.playerId !== playerId)
+      .map((p) => ({ nickname: p.nickname, profit: p.balance - initialBalance }));
+
     const commonProps = {
       balance: myBalance,
       initialBalance,
+      coPlayers,
       onBet: handleBet,
       onResult: (delta: number) => handleResult(delta, currentGame),
       onClose: () => handleSwitchGame(null),

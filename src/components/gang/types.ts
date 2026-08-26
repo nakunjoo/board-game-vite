@@ -1,17 +1,3 @@
-import type { Card } from "../../types/game";
-
-export interface Player {
-  playerId: string;
-  nickname: string;
-  isMe: boolean;
-  order?: number;
-  bid?: number;
-  tricks?: number;
-  score?: number;
-  roundScores?: number[];
-  cardCount?: number;
-}
-
 export interface ChipData {
   number: number;
   state: number;
@@ -20,11 +6,4 @@ export interface ChipData {
 
 export interface PreviousChipsData {
   [playerId: string]: number[];
-}
-
-export interface PlayerResult {
-  playerId: string;
-  nickname: string;
-  hand: Card[];
-  chips: number[];
 }

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
 import BetControls from "../BetControls";
+import type { CoPlayer } from "../types";
 import GameHelpModal, { HelpSection, HelpText, PayTable, PayLabel, PayValue } from "./GameHelpModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -8,6 +9,7 @@ import GameHelpModal, { HelpSection, HelpText, PayTable, PayLabel, PayValue } fr
 interface CasinoGameProps {
   balance: number;
   initialBalance: number;
+  coPlayers: CoPlayer[];
   onBet: (amount: number) => void;
   onResult: (delta: number) => void;
   onClose: () => void;
@@ -177,6 +179,35 @@ const CloseButton = styled.button<{ $disabled?: boolean }>`
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
 `;
 
+const CoPlayersRow = styled.div`
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px 8px;
+  box-sizing: border-box;
+`;
+
+const CoPlayerTag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+`;
+
+const CoPlayerName = styled.span`
+  color: #ddd;
+`;
+
+const CoPlayerProfit = styled.span<{ $positive: boolean; $negative: boolean }>`
+  font-weight: 700;
+  color: ${({ $positive, $negative }) => ($positive ? "#2ecc71" : $negative ? "#e74c3c" : "#888")};
+`;
+
 const TableArea = styled.div`
   width: 100%;
   max-width: 500px;
@@ -319,7 +350,7 @@ const InfoRow = styled.div`
 
 type Phase = "idle" | "dealing" | "done";
 
-export default function BaccaratGame({ balance, initialBalance, onBet, onResult, onClose }: CasinoGameProps) {
+export default function BaccaratGame({ balance, initialBalance, coPlayers, onBet, onResult, onClose }: CasinoGameProps) {
   const minBet = r100(initialBalance * BACCARAT_MIN_RATIO);
   const maxBet = r100(initialBalance * BACCARAT_MAX_RATIO);
   const [showHelp, setShowHelp] = useState(false);
@@ -472,6 +503,19 @@ export default function BaccaratGame({ balance, initialBalance, onBet, onResult,
           닫기
         </CloseButton>
       </Header>
+
+      {coPlayers.length > 0 && (
+        <CoPlayersRow>
+          {coPlayers.map((p) => (
+            <CoPlayerTag key={p.nickname}>
+              <CoPlayerName>{p.nickname}</CoPlayerName>
+              <CoPlayerProfit $positive={p.profit > 0} $negative={p.profit < 0}>
+                {p.profit > 0 ? `+${p.profit.toLocaleString()}` : p.profit.toLocaleString()}
+              </CoPlayerProfit>
+            </CoPlayerTag>
+          ))}
+        </CoPlayersRow>
+      )}
 
       {/* Table */}
       <TableArea>

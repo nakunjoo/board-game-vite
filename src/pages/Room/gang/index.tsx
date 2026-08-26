@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { Card, PlayerHand } from "../../../types/game";
+import type { Card, PlayerHand, PlayerResult } from "../../../types/game";
 import { evaluateHand, type HandResult } from "../../../utils/poker";
 import { playChipStolenSound } from "../../../utils/audio";
 import {
@@ -9,7 +9,6 @@ import {
   GangHelpModal,
   type ChipData,
   type PreviousChipsData,
-  type PlayerResult,
 } from "../../../components/gang";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";

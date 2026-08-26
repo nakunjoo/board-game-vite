@@ -33,11 +33,11 @@ import {
   OtherPlayerCard,
   getSeatPosition,
 } from "../../styles/pages/Room";
-import type { Card, GameConfig, PlayerHand } from "../../types/game";
+import type { Card, GameConfig, Player, PlayerHand } from "../../types/game";
 import CardDeck from "../CardDeck";
 import { getCardImage, getCardName, getCardLabel } from "../../utils/cards";
 import { type HandResult } from "../../utils/poker";
-import type { Player, ChipData, PreviousChipsData } from "./types";
+import type { ChipData, PreviousChipsData } from "./types";
 import GangHandRankModal from "./game/GangHandRankModal";
 
 interface GangGameBoardProps {

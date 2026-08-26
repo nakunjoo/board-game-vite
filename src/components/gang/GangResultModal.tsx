@@ -20,9 +20,8 @@ import {
   PlayerResultRank,
   ResultStatus,
 } from "../../styles/game";
-import type { Card } from "../../types/game";
+import type { Card, PlayerResult } from "../../types/game";
 import { evaluateHand, type HandResult } from "../../utils/poker";
-import type { PlayerResult } from "./types";
 
 interface GangResultModalProps {
   // 결과 데이터

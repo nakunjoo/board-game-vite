@@ -11,6 +11,7 @@ import {
   GameCardIcon,
   GameCardName,
   GamePlayButton,
+  GameCardBadge,
 } from "../../styles/game/casino";
 
 const CASINO_GAMES = [
@@ -443,13 +444,17 @@ export default function CasinoHub({
             </LoanBanner>
           )}
           <GameGrid>
-            {CASINO_GAMES.map((game) => (
-              <GameCard key={game.id} onClick={() => onSelectGame(game.id)}>
-                <GameCardIcon>{game.icon}</GameCardIcon>
-                <GameCardName>{game.name}</GameCardName>
-                <GamePlayButton>플레이</GamePlayButton>
-              </GameCard>
-            ))}
+            {CASINO_GAMES.map((game) => {
+              const playingCount = players.filter((p) => p.currentGame === game.id).length;
+              return (
+                <GameCard key={game.id} onClick={() => onSelectGame(game.id)}>
+                  {playingCount > 0 && <GameCardBadge>👤 {playingCount}</GameCardBadge>}
+                  <GameCardIcon>{game.icon}</GameCardIcon>
+                  <GameCardName>{game.name}</GameCardName>
+                  <GamePlayButton>플레이</GamePlayButton>
+                </GameCard>
+              );
+            })}
           </GameGrid>
         </div>
       </HubBody>

@@ -76,6 +76,7 @@ export const GameGrid = styled.div`
 `;
 
 export const GameCard = styled.button`
+  position: relative;
   background: linear-gradient(135deg, #0d5c2e 0%, #0a3d1e 100%);
   border: 2px solid rgba(240, 192, 64, 0.25);
   border-radius: 8px;
@@ -115,6 +116,18 @@ export const GamePlayButton = styled.div`
   background: rgba(240, 192, 64, 0.15);
   border-radius: 4px;
   padding: 0.15rem 0.5rem;
+`;
+
+export const GameCardBadge = styled.div`
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(46, 204, 113, 0.9);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 1px 5px;
 `;
 
 export const VoteSection = styled.div`

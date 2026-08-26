@@ -1,5 +1,4 @@
-import type { Card } from "../../../types/game";
-import type { Player } from "../../gang/types";
+import type { Card, Player } from "../../../types/game";
 import { SPICE_SUIT_COLORS } from "../../../utils/games/spice";
 import { SpiceSuitIcon, SpiceCard, SpiceCardBack } from "./SpiceCard";
 

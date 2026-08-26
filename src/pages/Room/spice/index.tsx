@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { Card, PlayerHand } from "../../../types/game";
+import type { Card, PlayerHand, PlayerResult } from "../../../types/game";
 import SpiceGameBoard from "../../../components/spice/SpiceGameBoard";
 import SpiceResultModal from "../../../components/spice/SpiceResultModal";
 import SpiceHelpModal from "../../../components/spice/SpiceHelpModal";
-import type { PlayerResult } from "../../../components/gang/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
 

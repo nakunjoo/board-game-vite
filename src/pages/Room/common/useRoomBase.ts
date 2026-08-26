@@ -3,8 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useWebSocket } from "../../../contexts/WebSocketContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getGameConfig } from "../../../utils/games";
-import type { GameConfig } from "../../../types/game";
-import type { Player } from "../../../components/gang/types";
+import type { GameConfig, Player } from "../../../types/game";
 
 export interface LocationState {
   memberCount?: number;

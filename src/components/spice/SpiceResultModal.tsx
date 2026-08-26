@@ -7,9 +7,8 @@ import {
   GameFinishActionButton,
   GameFinishBottomButton,
 } from "../../styles/game";
-import type { Card } from "../../types/game";
+import type { Card, PlayerResult } from "../../types/game";
 import { SPICE_SUIT_COLORS, SPICE_SUIT_LABELS } from "../../utils/games/spice";
-import type { PlayerResult } from "../gang/types";
 
 interface SpiceResultModalProps {
   playerResults: (PlayerResult & {

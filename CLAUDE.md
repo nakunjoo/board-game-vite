@@ -10,6 +10,7 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-08-26 | **`Player`/`PlayerResult` 타입 위치 정리** — `components/gang/types.ts`에 있던 `Player`, `PlayerResult`가 사실 Gang 전용이 아니라 `pages/Room/common/useRoomBase.ts`(공통 훅), `components/spice/*`(Spice)에서도 import되고 있었음(공통 로직이 특정 게임의 컴포넌트 폴더에 의존하는 역방향 의존성). `src/types/game.ts`로 이동, 기존에 어디서도 안 쓰이던 얇은 `Player`(nickname/isMe/order만 있던 버전)는 제거하고 실제 사용 중이던 풍부한 버전으로 대체. `ChipData`/`PreviousChipsData`는 진짜 Gang 전용(다른 곳에서 import 없음)이라 `components/gang/types.ts`에 유지. 관련 import 9개 파일 수정, `tsc --noEmit`/`npm run build` 통과 확인 |
 | 2026-08-13 | **Gang 결과 판정 버그 수정** |
 | 2026-08-13 | `utils/poker.ts`: `evaluateHand`의 "하이카드" 폴백에서 `tiebreakers`가 보드 공유 카드까지 섞인 `allSorted` 기준으로 계산되던 버그 수정 — 원페어/투페어/트리플 폴백처럼 내 카드만(`myCardsSorted`) 기준으로 변경. 미사용된 `allSorted` 변수 제거 |
 | 2026-08-13 | `components/gang/GangResultModal.tsx`: 개별 플레이어 성공/실패 판정을 "바로 옆 사람과만 비교" → "앞의 모든 사람 / 뒤의 모든 사람과 비교"로 변경. 기존 로직은 3인 초과 시(또는 특정 3인 조합에서도) 중간에 순서가 깨졌는데 마지막 플레이어가 직전 사람하고만 비교해 성공으로 잘못 표시되는 경우가 있었음 |
@@ -335,7 +336,7 @@ calcTileDims(containerW, containerH, size, tileShape) → { tileW, tileH }
 
 ## 코드 컨벤션
 
-- 타입/인터페이스는 `src/types/` 또는 각 게임 폴더의 `types.ts`에 정의
+- 타입/인터페이스는 두 곳 중 하나에 정의 — **2개 이상의 게임/공통 훅에서 쓰이면** `src/types/`, **정말 그 게임에만 있는 개념이면** 해당 게임 폴더의 `types.ts`. 애매하면 일단 게임 폴더에 두되, 다른 게임/공통 코드에서 import하게 되는 순간 `src/types/`로 옮길 것 (2026-08-26: `Player`/`PlayerResult`가 이 규칙을 어기고 있다가 정리됨)
 - 상수명은 UPPER_SNAKE_CASE
 - styled-components transient props는 `$` 접두사 (예: `$isMe`, `$totalPlayers`)
 - 게임별 컴포넌트는 `src/components/[게임타입]/` 폴더에 분리
