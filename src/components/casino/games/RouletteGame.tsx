@@ -575,7 +575,7 @@ export default function RouletteGame({ balance, initialBalance, coPlayers, onBet
     <Overlay>
       <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="🎡 룰렛 도움말">
         <HelpSection title="게임 방법">
-          <HelpText>{"칩 금액을 설정하고 원하는 베팅 칸을 클릭해 칩을 올리세요.\n여러 칸에 동시에 베팅할 수 있습니다.\n우클릭하면 해당 칸의 베팅을 취소합니다.\n공이 멈춘 숫자와 색상에 따라 배당이 계산됩니다."}</HelpText>
+          <HelpText>{"칩 금액을 설정하고 원하는 베팅 칸을 클릭해 칩을 올리세요.\n여러 칸에 동시에 베팅할 수 있습니다.\n전체 초기화 버튼으로 베팅을 모두 취소할 수 있습니다.\n공이 멈춘 숫자와 색상에 따라 배당이 계산됩니다."}</HelpText>
         </HelpSection>
         <HelpSection title="배당표">
           <PayTable>
@@ -730,7 +730,7 @@ export default function RouletteGame({ balance, initialBalance, coPlayers, onBet
               <NumberModalClose onClick={() => setShowNumberModal(false)}>완료</NumberModalClose>
             </NumberModalHeader>
             <div style={{ fontSize: "0.75rem", color: "#aaa" }}>
-              탭할 때마다 칩 추가 · 취소는 아래 태그의 ✕ 버튼
+              탭할 때마다 칩 추가 · 취소는 전체 초기화 버튼
             </div>
             <NumberTable>
               {[0, ...Array.from({ length: 36 }, (_, i) => i + 1)].map((n) => {

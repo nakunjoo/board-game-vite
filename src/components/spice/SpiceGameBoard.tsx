@@ -146,10 +146,23 @@ export default function SpiceGameBoard({
     null,
   );
 
+  // 선언 도중 턴을 잃으면 다음 내 턴에 옛 선언으로 이어지지 않게 비운다
+  const [prevIsMyTurn, setPrevIsMyTurn] = useState(isMyTurn);
+  if (prevIsMyTurn !== isMyTurn) {
+    setPrevIsMyTurn(isMyTurn);
+    if (!isMyTurn) {
+      setPlayStep("idle");
+      setDeclaredSuit(null);
+      setDeclaredNumber(null);
+      setSelectedCardIndex(null);
+    }
+  }
+
   // 30초 턴 타이머 — 표시 전용. 시간 초과 시 자동 패스는 서버가 집행한다.
   // (예전엔 턴 주인 클라이언트가 직접 pass를 보냈는데, iOS에서 화면을 잠그거나
   //  앱을 전환하면 아무도 패스하지 않아 판이 멈췄다)
   const TURN_TIME = 30;
+  const showingChallengeResult = !!challengeResult;
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // 재연결 시 서버에서 받은 남은 시간을 한 번만 사용하기 위한 ref
@@ -183,8 +196,9 @@ export default function SpiceGameBoard({
     if (initialTime !== TURN_TIME) {
       onReconnectTimeLeftConsumed?.();
     }
-    // 도전 페이즈 중이거나 게임 종료 시 타이머 비활성화
-    if (!(gameStarted && currentTurnPlayerId && !challengePhase)) {
+    // 도전 페이즈·결과 표시 중이거나 게임 종료 시 타이머 비활성화
+    // (도전 결과 3초는 서버 턴 시계에서도 제외된다)
+    if (!(gameStarted && currentTurnPlayerId && !challengePhase && !showingChallengeResult)) {
       setTimeLeft(initialTime);
       return clearTimer;
     }
@@ -209,7 +223,7 @@ export default function SpiceGameBoard({
       if (next <= 0) clearTimer();
     }, 250);
     return clearTimer;
-  }, [currentTurnPlayerId, challengePhase, gameStarted]);
+  }, [currentTurnPlayerId, challengePhase, gameStarted, showingChallengeResult]);
 
   // 도전 페이즈 5초 카운트다운 (UI 표시용)
   const CHALLENGE_TIME = 5;

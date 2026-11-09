@@ -111,7 +111,6 @@ export default function CasinoHelpModal({ isOpen, onClose }: CasinoHelpModalProp
           <SectionTitle>게임 종료</SectionTitle>
           <Text>
             설정된 시간이 지나면 자동으로 종료됩니다.
-            과반수 이상이 "게임 종료 투표"에 동의하면 즉시 종료할 수 있습니다.
           </Text>
         </Section>
 

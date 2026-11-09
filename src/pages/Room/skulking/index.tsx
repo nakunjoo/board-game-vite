@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { Card, PlayerHand } from "../../../types/game";
 import SkulkingGameBoard from "../../../components/skulking/SkulkingGameBoard";
@@ -17,6 +17,9 @@ import {
   SKULKING_SUIT_NAMES,
   isSpecialCard,
 } from "../../../utils/games/skulking";
+
+// 트릭이 끝난 직후 1.5초 안에 누른 카드. 다음 트릭이 곧 시작되므로 알릴 일이 아니다
+const SILENT_ERRORS = ["지금 카드 낼 차례가 아닙니다"];
 
 export default function SkulkingRoom() {
   const {
@@ -43,8 +46,9 @@ export default function SkulkingRoom() {
     leaveRoom,
     handleKickPlayer,
     locationState,
-  } = useRoomBase();
+  } = useRoomBase({ silentErrors: SILENT_ERRORS });
   const { isAdmin } = useAuth();
+  const trickCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const addGameLog = (message: string) => {
     setMessages((prev) => [...prev, { message, isSystem: true }]);
@@ -187,8 +191,13 @@ export default function SkulkingRoom() {
             currentTrick?: TrickEntry[];
             skulkingIsFirstDraw?: boolean;
             skulkingDrawnCount?: number;
+            skulkingGameOverResult?: GameOverResult;
           };
           if (d.name !== roomName) break;
+          if (d.skulkingGameOverResult) {
+            setGameOverResult(d.skulkingGameOverResult);
+            setShowGameOver(true);
+          }
           if (d.skulkingIsFirstDraw) {
             setIsFirstDraw(true);
             setFirstDrawCount(d.skulkingDrawnCount ?? 0);
@@ -233,6 +242,7 @@ export default function SkulkingRoom() {
           setFirstDrawWinnerNickname(null);
           setFirstDrawCount(0);
           setGameStarted(true);
+          setInitialTimerTimeLeft(null); // 재연결 때 받은 남은 시간은 그 라운드에만 쓴다
           setRound(d.round);
           setMyHand(d.myHand);
           setPlayerHands(d.playerHands);
@@ -250,6 +260,9 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingFirstDrawStarted": {
+          setShowGameOver(false);
+          setGameOverResult(null);
+          setGameOver(false);
           setIsFirstDraw(true);
           setMyDrawnNumber(null);
           setFirstDrawResults({});
@@ -335,6 +348,7 @@ export default function SkulkingRoom() {
             trickOrder?: string[];
           };
           if (d.isNewTrick) {
+            if (trickCleanupRef.current) clearTimeout(trickCleanupRef.current);
             setCurrentTrick([]);
             setTrickWinnerId(null);
             setTrickLeadPlayerId(d.currentPlayerId);
@@ -366,8 +380,8 @@ export default function SkulkingRoom() {
             `🏆 ${d.winnerNickname} 트릭 획득${bonusText} [${d.trickCount}/${d.totalTricks}]\n${trickLines}`,
           );
           // skulkingTurnUpdate(isNewTrick:true)가 오지 않는 경우(라운드 마지막 트릭 등)를 대비해
-          // 2초 후에도 초기화되지 않았으면 강제 초기화
-          setTimeout(() => {
+          // 2초 후에도 초기화되지 않았으면 강제 초기화 (새 트릭이 먼저 시작되면 취소)
+          trickCleanupRef.current = setTimeout(() => {
             setCurrentTrick((prev) => (prev.length > 0 ? [] : prev));
             setTrickWinnerId(null);
           }, 2000);
@@ -408,11 +422,6 @@ export default function SkulkingRoom() {
                 });
               }, 1000);
             }, 3000);
-            if (isHost) {
-              setTimeout(() => {
-                send("skulkingNextRound", { roomName });
-              }, 8000);
-            }
           } else {
             setCurrentTrick([]);
             setTrickWinnerId(null);
@@ -559,6 +568,7 @@ export default function SkulkingRoom() {
             nickname: p.nickname,
           }))}
           isHost={isHost}
+          onRestart={handleStartGame}
         />
       )}
     </RoomLayout>

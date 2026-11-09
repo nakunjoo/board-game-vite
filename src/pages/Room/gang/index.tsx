@@ -100,6 +100,7 @@ export default function GangRoom() {
             chips?: ChipData[];
             currentStep?: number;
             readyPlayers?: string[];
+            nextRoundReady?: string[];
             previousChips?: Record<string, number[]>;
             winLossRecord?: Record<string, boolean[]>;
           };
@@ -115,7 +116,14 @@ export default function GangRoom() {
             if (joinData.openCards) setOpenCards(joinData.openCards);
             if (joinData.chips !== undefined) setChips(joinData.chips);
             if (joinData.currentStep !== undefined) setCurrentStep(joinData.currentStep);
-            if (joinData.readyPlayers !== undefined) setReadyPlayers(joinData.readyPlayers);
+            if (joinData.readyPlayers !== undefined) {
+              setReadyPlayers(joinData.readyPlayers);
+              setIsReady(joinData.readyPlayers.includes(playerId));
+            }
+            if (joinData.nextRoundReady !== undefined) {
+              setNextRoundReadyPlayers(joinData.nextRoundReady);
+              setIsNextRoundReady(joinData.nextRoundReady.includes(playerId));
+            }
             if (joinData.previousChips !== undefined) setPreviousChips(joinData.previousChips);
             if (joinData.winLossRecord !== undefined) setWinLossRecord(joinData.winLossRecord);
           }

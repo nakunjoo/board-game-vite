@@ -25,7 +25,7 @@ interface SpiceResultModalProps {
   gameOverResult: "victory" | "defeat" | null;
   isHost: boolean;
   spiceGameOverMeta?: {
-    reason: 'trophy' | 'deck';
+    reason: 'trophy' | 'deck' | 'playerLeft';
     winnerIds: string[];
     winnerNicknames: string[];
     maxScore: number;
@@ -118,7 +118,8 @@ export default function SpiceResultModal({
 
   const reasonLabel =
     spiceGameOverMeta?.reason === 'trophy' ? '트로피 조건 달성' :
-    spiceGameOverMeta?.reason === 'deck' ? '덱 소진' : '';
+    spiceGameOverMeta?.reason === 'deck' ? '덱 소진' :
+    spiceGameOverMeta?.reason === 'playerLeft' ? '상대 퇴장' : '';
 
   return (
     <GameFinishContainer>

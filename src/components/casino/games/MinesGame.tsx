@@ -436,7 +436,7 @@ export default function MinesGame({
     setNewlyRevealed(null);
   };
 
-  const previewMults = [1, 2, 3, 5, 8, 10, 15, 20].map((k) => ({
+  const previewMults = [1, 2, 3, 5, 8, 10, 12, 15].map((k) => ({
     safe: k,
     mult: calcMultiplier(k),
   }));
@@ -451,11 +451,11 @@ export default function MinesGame({
         <HelpSection title="게임 방법">
           <HelpText>
             {
-              "베팅금을 설정하고 START를 누르세요.\n25칸 중 5개의 지뢰가 숨어 있습니다.\n타일을 클릭해 지뢰를 피할수록 배수가 올라갑니다.\n언제든지 캐시아웃으로 현재 금액을 수령할 수 있습니다."
+              "베팅금을 설정하고 START를 누르세요.\n25칸 중 10개의 지뢰가 숨어 있습니다.\n타일을 클릭해 지뢰를 피할수록 배수가 올라갑니다.\n언제든지 캐시아웃으로 현재 금액을 수령할 수 있습니다."
             }
           </HelpText>
         </HelpSection>
-        <HelpSection title="배당표 (지뢰 5개 / 25칸)">
+        <HelpSection title="배당표 (지뢰 10개 / 25칸)">
           <HelpPayTable>
             {previewMults.map(({ safe, mult }) => (
               <>

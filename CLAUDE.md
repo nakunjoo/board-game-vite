@@ -10,6 +10,10 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-11-09 | `useRoomBase.ts`: `userLeft`의 `hostPlayerId`로 방장 갱신, 위임 시 채팅 안내. `utils/poker.ts`: 스트레이트를 중복 숫자를 합쳐 가장 높은 5연속으로 판정(서버와 동일). 재연결 시 Gang 다음 라운드 준비 상태 복원 |
+| 2026-11-09 | Spice: 턴을 잃으면 선언 진행 상태 초기화, 종료 결과(`spiceGameOverMeta`) 복원. Skulking: 다음 라운드는 서버가 시작(`skulkingNextRound` 전송 제거), 재연결 남은 시간은 그 라운드에만 사용, 결과 화면 재시작 버튼 연결, 종료 결과 복원, 새 트릭 카드를 지우던 2초 정리 타이머 취소. **서버 먼저 배포할 것** |
+| 2026-11-09 | `SpiceGameBoard.tsx`: 도전 결과 표시 3초 동안 턴 타이머를 멈춤 (서버 턴 시계도 이 3초를 제외. 턴 주인이 그대로일 때 화면만 3초 먼저 시작되던 문제) |
+| 2026-11-09 | Casino: 끊긴 사이 종료되면 결과 복원, 늦게 온 결과 오류 alert 제거, 대출 배너 조건 `max(초기금 5%, 100)`. 블랙잭: Soft 17 판정을 도움말대로 수정, 히트·더블 후 조작 잠금, 딜러 진행 중 닫기 비활성. 지뢰찾기·룰렛·카지노·Gang 도움말을 실제 동작에 맞춤 |
 | 2026-11-09 | **GitHub Actions 자동 배포 추가** (`.github/workflows/deploy.yml`) — main push(문서만 바뀐 경우 제외) 또는 수동 실행 시 빌드 후 GCP VM `/var/www/html`을 교체. 고정 SSH 키로 `deploy` 계정에 접속한다(VM의 guest agent가 멈춰 있어 gcloud 메타데이터 키는 적용되지 않음). Secrets: `VM_HOST`, `VM_SSH_USER`, `VM_SSH_KEY`, `VM_KNOWN_HOSTS`, `VITE_*` 5개, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`(`notify` job이 성공·실패·종료 코드를 텔레그램으로 전송, 없으면 건너뜀). 진행 중인 WebSocket을 끊지 않도록 nginx는 reload만 한다 |
 | 2026-11-09 | **WebSocket 자동 재연결** (`WebSocketContext.tsx`) — 끊기면 지수 백오프(1~10초)로 재시도, 화면 복귀·`online` 시 즉시 재시도. 접속 때마다 `supabase.auth.getSession()`으로 토큰을 받는다. 토큰 자동 갱신으로 소켓을 교체하던 동작 제거(서버는 접속 시에만 검증). 서버 `authenticated` 이벤트마다 `connectionId` 증가, '인증에 실패했습니다'를 받으면 화면 복귀 전까지 재시도 중단 |
 | 2026-11-09 | `useRoomBase.ts`: `connectionId`가 바뀌면 `joinRoom` 재전송(연결당 1회, `joinedConnectionRef`). 재입장이 거부되면 로비로 이동(`ROOM_ACCESS_LOST_ERRORS`). 끊긴 상태에서 나가기를 누르면 `roomLeft`를 기다리지 않고 로비로 이동 |

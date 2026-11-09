@@ -73,6 +73,8 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     getGameConfig(locationState?.gameType ?? "gang"),
   );
   const [hostPlayerId, setHostPlayerId] = useState<string>("");
+  // 구독 콜백에서 방장이 나갔는지 판단하기 위한 최신값
+  const hostPlayerIdRef = useRef("");
   const [_hostNickname, setHostNickname] = useState<string>("");
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {
@@ -140,7 +142,10 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
                 })),
               );
             }
-            if (joinData.hostPlayerId !== undefined) setHostPlayerId(joinData.hostPlayerId);
+            if (joinData.hostPlayerId !== undefined) {
+              hostPlayerIdRef.current = joinData.hostPlayerId;
+              setHostPlayerId(joinData.hostPlayerId);
+            }
             if (joinData.hostNickname !== undefined) setHostNickname(joinData.hostNickname);
           }
           break;
@@ -209,15 +214,25 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
             memberCount: number;
             playerId?: string;
             nickname?: string;
+            hostPlayerId?: string;
+            hostNickname?: string;
           };
           if (leftData.roomName === roomName) {
             setMemberCount(leftData.memberCount);
             if (leftData.playerId) {
               setPlayers((prev) => prev.filter((p) => p.playerId !== leftData.playerId));
             }
+            const hostLeft = leftData.playerId !== undefined && leftData.playerId === hostPlayerIdRef.current;
+            if (leftData.hostPlayerId) {
+              hostPlayerIdRef.current = leftData.hostPlayerId;
+              setHostPlayerId(leftData.hostPlayerId);
+            }
             setMessages((prev) => [
               ...prev,
               { message: `${leftData.nickname || "누군가"} 퇴장했습니다.`, isSystem: true },
+              ...(hostLeft && leftData.hostNickname
+                ? [{ message: `${leftData.hostNickname}님이 새 방장이 되었습니다.`, isSystem: true }]
+                : []),
             ]);
           }
           break;

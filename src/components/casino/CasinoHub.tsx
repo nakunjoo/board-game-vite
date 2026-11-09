@@ -321,7 +321,8 @@ export default function CasinoHub({
 
   const isUrgent = displaySeconds !== null && displaySeconds < 60;
   const maxLoan = Math.floor(initialBalance / 2);
-  const showLoanBanner = myBalance < initialBalance * 0.05;
+  // 최소 베팅이 100이라 그보다 적으면 어떤 게임도 시작할 수 없다 (서버 조건과 동일)
+  const showLoanBanner = myBalance < Math.max(initialBalance * 0.05, 100);
 
   const sorted = [...players].sort((a, b) => b.balance - a.balance);
   const top3 = sorted.slice(0, 3);

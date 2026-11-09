@@ -60,8 +60,10 @@ function dealerShouldHit(cards: BJCard[]): boolean {
   const score = calcScore(cards);
   if (score < 17) return true;
   if (score === 17) {
+    // A를 1로 내린 횟수보다 A가 많으면 11로 세는 A가 남아 있다 (Soft 17)
     const rawSum = cards.reduce((s, c) => s + c.numVal, 0);
-    return rawSum !== 17;
+    const aces = cards.filter((c) => c.value === "A").length;
+    return aces > (rawSum - score) / 10;
   }
   return false;
 }
@@ -449,6 +451,7 @@ export default function BlackjackGame({ balance, initialBalance, coPlayers, onBe
     setPlayerCards(newCards);
     setNewCardIdx(newCards.length - 1);
     if (calcScore(newCards) >= 21) {
+      setPhase("dealer"); // 400ms 대기 중 추가 조작으로 한 판이 두 번 정산되지 않게 잠근다
       setTimeout(() => runDealerTurn(rest, dealerCards, newCards, doubled), 400);
     }
   }, [phase, deckRef, playerCards, dealerCards, doubled, runDealerTurn]);
@@ -467,6 +470,7 @@ export default function BlackjackGame({ balance, initialBalance, coPlayers, onBe
     setPlayerCards(newCards);
     setDoubled(true);
     setNewCardIdx(newCards.length - 1);
+    setPhase("dealer");
     setTimeout(() => runDealerTurn(rest, dealerCards, newCards, true), 400);
   }, [phase, deckRef, playerCards, dealerCards, balance, betAmount, onBet, runDealerTurn]);
 
@@ -509,7 +513,7 @@ export default function BlackjackGame({ balance, initialBalance, coPlayers, onBe
       <Header>
         <Title>♠ 블랙잭</Title>
         <HelpBtn onClick={() => setShowHelp(true)}>?</HelpBtn>
-        <CloseBtn onClick={onClose}>닫기</CloseBtn>
+        <CloseBtn onClick={onClose} disabled={phase === "dealer"}>닫기</CloseBtn>
       </Header>
 
       {coPlayers.length > 0 && (

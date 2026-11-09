@@ -98,62 +98,26 @@ function countSuits(cards: Card[]): Map<string, Card[]> {
 }
 
 function isStraight(cards: Card[]): boolean {
-  if (cards.length < 5) return false;
-
-  const sortedCards = [...cards].sort((a, b) => getRankValue(a.value) - getRankValue(b.value));
-
-  // 일반 스트레이트 체크
-  for (let i = 0; i <= sortedCards.length - 5; i++) {
-    let isConsecutive = true;
-    for (let j = 0; j < 4; j++) {
-      if (getRankValue(sortedCards[i + j + 1].value) !== getRankValue(sortedCards[i + j].value) + 1) {
-        isConsecutive = false;
-        break;
-      }
-    }
-    if (isConsecutive) return true;
-  }
-
-  // A-2-3-4-5 스트레이트 체크 (백스트레이트)
-  const hasAce = sortedCards.some(c => c.value === 1);
-  const has2 = sortedCards.some(c => c.value === 2);
-  const has3 = sortedCards.some(c => c.value === 3);
-  const has4 = sortedCards.some(c => c.value === 4);
-  const has5 = sortedCards.some(c => c.value === 5);
-
-  if (hasAce && has2 && has3 && has4 && has5) return true;
-
-  return false;
+  return getStraightCards(cards).length > 0;
 }
 
+// 같은 숫자는 하나로 보고 가장 높은 5연속을 찾는다 (A는 14이자 백스트레이트의 1)
 function getStraightCards(cards: Card[]): Card[] {
-  if (cards.length < 5) return [];
-
-  const sortedCards = [...cards].sort((a, b) => getRankValue(a.value) - getRankValue(b.value));
-
-  // 일반 스트레이트 찾기
-  for (let i = 0; i <= sortedCards.length - 5; i++) {
-    let isConsecutive = true;
-    for (let j = 0; j < 4; j++) {
-      if (getRankValue(sortedCards[i + j + 1].value) !== getRankValue(sortedCards[i + j].value) + 1) {
-        isConsecutive = false;
-        break;
-      }
-    }
-    if (isConsecutive) {
-      return sortedCards.slice(i, i + 5);
-    }
+  const cardByRank = new Map<number, Card>();
+  for (const card of cards) {
+    const rank = getRankValue(card.value);
+    if (!cardByRank.has(rank)) cardByRank.set(rank, card);
+    if (rank === 14 && !cardByRank.has(1)) cardByRank.set(1, card);
   }
 
-  // A-2-3-4-5 백스트레이트
-  const ace = sortedCards.find(c => c.value === 1);
-  const two = sortedCards.find(c => c.value === 2);
-  const three = sortedCards.find(c => c.value === 3);
-  const four = sortedCards.find(c => c.value === 4);
-  const five = sortedCards.find(c => c.value === 5);
-
-  if (ace && two && three && four && five) {
-    return [ace, two, three, four, five];
+  for (let top = 14; top >= 5; top--) {
+    const run: Card[] = [];
+    for (let rank = top; rank > top - 5; rank--) {
+      const card = cardByRank.get(rank);
+      if (!card) break;
+      run.push(card);
+    }
+    if (run.length === 5) return run.reverse();
   }
 
   return [];

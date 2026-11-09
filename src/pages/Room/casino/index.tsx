@@ -37,6 +37,9 @@ const DeltaFlash = styled.div<{ $positive: boolean }>`
   white-space: nowrap;
 `;
 
+// 판이 끝나거나 게임을 나간 뒤 늦게 도착한 결과. 베팅금은 서버가 이미 처리했다
+const SILENT_ERRORS = ["게임이 진행 중이지 않습니다", "유효하지 않은 게임 결과입니다"];
+
 export default function CasinoRoom() {
   const { isAdmin } = useAuth();
   const {
@@ -60,7 +63,7 @@ export default function CasinoRoom() {
     messagesEndRef,
     sendMessage,
     leaveRoom,
-  } = useRoomBase();
+  } = useRoomBase({ silentErrors: SILENT_ERRORS });
 
   // ── 게임 진행 상태 ──────────────────────────────────────────────────
   const [roomJoinedReceived, setRoomJoinedReceived] = useState(false);
@@ -127,8 +130,18 @@ export default function CasinoRoom() {
             casinoMyHistory?: { t: number; b: number }[];
             casinoAllHistories?: Record<string, { t: number; b: number }[]>;
             casinoVotes?: string[];
+            casinoLastResult?: CasinoGameOverData;
           };
           setRoomJoinedReceived(true);
+          // 끊겨 있는 동안 게임이 끝났으면 허브에 남지 않고 결과로 돌아간다
+          if (d.name === roomName && !d.casinoStarted) {
+            setGameStarted(false);
+            setCurrentGame(null);
+            if (d.casinoLastResult) {
+              setGameOver(true);
+              setGameOverData(d.casinoLastResult);
+            }
+          }
           if (d.name === roomName && d.casinoStarted) {
             setGameStarted(true);
             if (d.casinoInitialBalance !== undefined) {

@@ -126,8 +126,8 @@ export default function GangHelpModal({ isOpen, onClose }: GangHelpModalProps) {
               <br />
               • 2라운드: 오픈카드 3장 추가
               <br />
-              • 3라운드: 오픈카드 5장
-              <br />• 4라운드: 오픈카드 6장 (최종)
+              • 3라운드: 오픈카드 4장
+              <br />• 4라운드: 오픈카드 5장 (최종)
             </p>
 
             <p>

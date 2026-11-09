@@ -90,7 +90,7 @@ export default function SpiceRoom() {
 
   // 스파이스 게임 종료 메타 (점수 기반 결과)
   const [spiceGameOverMeta, setSpiceGameOverMeta] = useState<{
-    reason: 'trophy' | 'deck';
+    reason: 'trophy' | 'deck' | 'playerLeft';
     winnerIds: string[];
     winnerNicknames: string[];
     maxScore: number;
@@ -171,8 +171,15 @@ export default function SpiceRoom() {
             firstDrawResults?: Record<string, number>;
             firstPlayerId?: string | null;
             firstNickname?: string | null;
+            spiceGameOverMeta?: {
+              reason: 'trophy' | 'deck' | 'playerLeft';
+              winnerIds: string[];
+              winnerNicknames: string[];
+              maxScore: number;
+            };
           };
           if (joinData.name === roomName) {
+            if (joinData.spiceGameOverMeta) setSpiceGameOverMeta(joinData.spiceGameOverMeta);
             if (joinData.deck && joinData.deck.length > 0) setDeck(joinData.deck);
             if (joinData.playerHands) setPlayerHands(joinData.playerHands);
             if (joinData.myHand && joinData.myHand.length > 0) setMyHand(joinData.myHand);
@@ -497,7 +504,7 @@ export default function SpiceRoom() {
         case "spiceGameOver": {
           const soData = data as {
             roomName: string;
-            reason: 'trophy' | 'deck';
+            reason: 'trophy' | 'deck' | 'playerLeft';
             trophies: Record<string, number>;
             playerResults: {
               playerId: string;
