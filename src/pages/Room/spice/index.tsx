@@ -243,6 +243,18 @@ export default function SpiceRoom() {
           }
           break;
         }
+        case "firstDrawCancelled": {
+          if ((data as { roomName: string }).roomName === roomName) {
+            setIsFirstDraw(false);
+            setMyDrawnNumber(null);
+            setFirstDrawResults({});
+            setFirstDrawFinished(false);
+            setFirstPlayerId(null);
+            setFirstNickname(null);
+            setDrawnCount(0);
+          }
+          break;
+        }
         case "firstDrawResult": {
           const resultData = data as {
             roomName: string;

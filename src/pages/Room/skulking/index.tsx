@@ -194,10 +194,10 @@ export default function SkulkingRoom() {
             skulkingGameOverResult?: GameOverResult;
           };
           if (d.name !== roomName) break;
-          if (d.skulkingGameOverResult) {
-            setGameOverResult(d.skulkingGameOverResult);
-            setShowGameOver(true);
-          }
+          // 서버가 결과를 주지 않으면 끊긴 사이 재시작됐거나 그 판 참가자가 아니다
+          setGameOverResult(d.skulkingGameOverResult ?? null);
+          setShowGameOver(!!d.skulkingGameOverResult);
+          setGameOver(!!d.skulkingGameOverResult);
           if (d.skulkingIsFirstDraw) {
             setIsFirstDraw(true);
             setFirstDrawCount(d.skulkingDrawnCount ?? 0);
@@ -206,7 +206,6 @@ export default function SkulkingRoom() {
           if (d.myHand) setMyHand(d.myHand);
           if (d.playerHands) setPlayerHands(d.playerHands);
           if (d.gameStarted !== undefined) setGameStarted(d.gameStarted);
-          if (d.gameOver !== undefined) setGameOver(d.gameOver);
           if (d.skulkingRound) setRound(d.skulkingRound);
           if (d.skulkingPhase) setPhase(d.skulkingPhase);
           if (d.skulkingCurrentBidPlayerId !== undefined)
@@ -259,10 +258,22 @@ export default function SkulkingRoom() {
           addGameLog(`━━━ 🃏 라운드 ${d.round} 시작 ━━━`);
           break;
         }
+        case "skulkingFirstDrawCancelled": {
+          setIsFirstDraw(false);
+          setMyDrawnNumber(null);
+          setFirstDrawResults({});
+          setFirstDrawFinished(false);
+          setFirstDrawWinnerId(null);
+          setFirstDrawWinnerNickname(null);
+          setFirstDrawCount(0);
+          setGameStarted(false);
+          break;
+        }
         case "skulkingFirstDrawStarted": {
           setShowGameOver(false);
           setGameOverResult(null);
           setGameOver(false);
+          setRoundHistory([]);
           setIsFirstDraw(true);
           setMyDrawnNumber(null);
           setFirstDrawResults({});

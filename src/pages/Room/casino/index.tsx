@@ -79,6 +79,8 @@ export default function CasinoRoom() {
   const [deltaFlashes, setDeltaFlashes] = useState<{ id: number; value: number }[]>([]);
   const deltaIdRef = useRef(0);
   const [gameOverData, setGameOverData] = useState<CasinoGameOverData | null>(null);
+  // 닫은 결과창이 재연결 때 다시 열리지 않게 한다 (새 판이 시작되면 초기화)
+  const resultDismissedRef = useRef(false);
 
   // 타이머 참조 (게임 시작 시각 기반 로컬 카운트다운)
   const timerStartRef = useRef<number | null>(null);
@@ -137,7 +139,7 @@ export default function CasinoRoom() {
           if (d.name === roomName && !d.casinoStarted) {
             setGameStarted(false);
             setCurrentGame(null);
-            if (d.casinoLastResult) {
+            if (d.casinoLastResult && !resultDismissedRef.current) {
               setGameOver(true);
               setGameOverData(d.casinoLastResult);
             }
@@ -193,9 +195,10 @@ export default function CasinoRoom() {
           );
           setCurrentGame(null);
           setTotalLoan(0);
+          resultDismissedRef.current = false;
           setGameOver(false);
           setGameOverData(null);
-          setMessages((prev) => [
+setMessages((prev) => [
             ...prev,
             { message: "🎰 카지노 게임이 시작되었습니다!", isSystem: true },
           ]);
@@ -472,6 +475,7 @@ export default function CasinoRoom() {
           result={gameOverData}
           myPlayerId={playerId}
           onClose={() => {
+            resultDismissedRef.current = true;
             setGameOver(false);
             setGameOverData(null);
           }}

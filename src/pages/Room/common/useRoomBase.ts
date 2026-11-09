@@ -72,9 +72,10 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const [gameConfig, setGameConfig] = useState<GameConfig>(() =>
     getGameConfig(locationState?.gameType ?? "gang"),
   );
-  const [hostPlayerId, setHostPlayerId] = useState<string>("");
+  // 로비에서 입장하면 roomJoined를 로비가 받으므로 넘겨받은 값으로 시작한다
+  const [hostPlayerId, setHostPlayerId] = useState<string>(locationState?.hostPlayerId ?? "");
   // 구독 콜백에서 방장이 나갔는지 판단하기 위한 최신값
-  const hostPlayerIdRef = useRef("");
+  const hostPlayerIdRef = useRef(locationState?.hostPlayerId ?? "");
   const [_hostNickname, setHostNickname] = useState<string>("");
   const [players, setPlayers] = useState<Player[]>(() => {
     if (locationState?.players) {

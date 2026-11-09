@@ -181,7 +181,7 @@ export default function SkulkingGameBoard({
           isMyPlayTurn={isMyPlayTurn}
           players={players}
           currentTrick={currentTrick}
-          initialTimerTimeLeft={initialTimerTimeLeft}
+          initialTimerTimeLeft={phase === "play" ? initialTimerTimeLeft : null}
           trickKey={trickKey}
         />
       )}

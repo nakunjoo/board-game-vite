@@ -194,13 +194,15 @@ export function evaluateHand(myCards: Card[], openCards: Card[]): HandResult {
   if (isStraightFlush(allCards)) {
     const cards = getStraightFlushCards(allCards);
     const topCard = cards.sort((a, b) => getRankValue(b.value) - getRankValue(a.value))[0];
+    // 백스트레이트 플러시 (A-2-3-4-5)의 탑은 A가 아니라 5다 (서버와 동일)
+    const isBackStraight = cards.some(c => c.value === 1) && cards.some(c => c.value === 5);
     return {
       rank: "straight-flush",
       rankName: HAND_NAMES["straight-flush"],
-      detailName: `${getValueDisplayName(topCard.value)} 탑 스트레이트 플러시`,
+      detailName: `${isBackStraight ? "5" : getValueDisplayName(topCard.value)} 탑 스트레이트 플러시`,
       cards,
       score: HAND_SCORES["straight-flush"],
-      tiebreakers: [getRankValue(topCard.value)]
+      tiebreakers: [isBackStraight ? 5 : getRankValue(topCard.value)]
     };
   }
 
