@@ -895,17 +895,19 @@ export const ResultStatus = styled.span<{ $isWinner?: boolean }>`
 
 export const GameFinishActions = styled.div`
   position: absolute;
-  top: 50%;
+  /* 공개 카드와 내 족보(HandRankContainer) 사이에 가로로 둔다 */
+  bottom: 240px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-direction: row;
+  gap: 16px;
   align-items: center;
   z-index: 100;
 
   @media (max-width: 768px) {
-    gap: 15px;
+    bottom: 195px;
+    gap: 10px;
   }
 `;
 
@@ -942,9 +944,9 @@ export const GameFinishActionButton = styled.button<{
   }
 
   @media (max-width: 768px) {
-    padding: 1rem 1.2rem;
+    padding: 0.8rem 0.5rem;
     font-size: 1rem;
-    width: 180px;
+    width: min(43vw, 180px);
   }
 `;
 

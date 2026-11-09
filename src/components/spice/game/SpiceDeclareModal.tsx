@@ -1,6 +1,7 @@
 import type { Card } from "../../../types/game";
 import { SPICE_SUIT_COLORS } from "../../../utils/games/spice";
 import { SpiceSuitIcon, SpiceCard } from "./SpiceCard";
+import { pressable } from "../../../utils/pressable";
 
 // ── Step 1: 선언 모달 (향신료 + 숫자 선택) ──────────────
 
@@ -323,7 +324,7 @@ export function SpiceCardPickModal({
           {myHand.map((card, i) => (
             <div
               key={`${card.name}-${i}`}
-              onClick={() => onPickCard(i)}
+              {...pressable(() => onPickCard(i))}
               style={{
                 cursor: "pointer",
                 borderRadius: "8px",

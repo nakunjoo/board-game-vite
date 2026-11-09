@@ -506,7 +506,8 @@ export default function RouletteGame({ balance, initialBalance, coPlayers, onBet
   const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
 
   const placeBet = (bt: BetType) => {
-    if (spinning) return;
+    // MAX는 칸마다가 아니라 한 판 전체의 베팅 한도다
+    if (spinning || totalBet + chipAmount > maxBet) return;
     const key = betKey(bt);
     setBets((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + chipAmount }));
   };
@@ -575,7 +576,7 @@ export default function RouletteGame({ balance, initialBalance, coPlayers, onBet
     <Overlay>
       <GameHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="🎡 룰렛 도움말">
         <HelpSection title="게임 방법">
-          <HelpText>{"칩 금액을 설정하고 원하는 베팅 칸을 클릭해 칩을 올리세요.\n여러 칸에 동시에 베팅할 수 있습니다.\n전체 초기화 버튼으로 베팅을 모두 취소할 수 있습니다.\n공이 멈춘 숫자와 색상에 따라 배당이 계산됩니다."}</HelpText>
+          <HelpText>{"칩 금액을 설정하고 원하는 베팅 칸을 클릭해 칩을 올리세요.\n여러 칸에 동시에 베팅할 수 있습니다.\n한 판의 총 베팅은 MAX까지 가능합니다.\n전체 초기화 버튼으로 베팅을 모두 취소할 수 있습니다.\n공이 멈춘 숫자와 색상에 따라 배당이 계산됩니다."}</HelpText>
         </HelpSection>
         <HelpSection title="배당표">
           <PayTable>
@@ -755,7 +756,7 @@ export default function RouletteGame({ balance, initialBalance, coPlayers, onBet
 
       {/* 총 베팅 요약 */}
       <BetSummaryRow>
-        <span>총 베팅: <strong style={{ color: totalBet > 0 ? "#f0c040" : "#666" }}>{totalBet.toLocaleString()}원</strong></span>
+        <span>총 베팅: <strong style={{ color: totalBet > 0 ? "#f0c040" : "#666" }}>{totalBet.toLocaleString()}원</strong> / {maxBet.toLocaleString()}원</span>
         {totalBet > 0 && !spinning && (
           <ClearBtn onClick={clearAllBets}>전체 초기화</ClearBtn>
         )}

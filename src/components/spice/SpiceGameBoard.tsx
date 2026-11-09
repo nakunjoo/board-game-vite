@@ -810,6 +810,8 @@ export default function SpiceGameBoard({
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
+                    // 도전 화면 뒤로 비치지 않게 숨기되 자리는 유지한다
+                    visibility: challengePhase || challengeResult ? "hidden" : "visible",
                     background: isMyTurn
                       ? timeLeft <= 5
                         ? "rgba(231,76,60,0.9)"
@@ -1206,10 +1208,12 @@ export default function SpiceGameBoard({
         >
           {myHand.map((card, i) => {
             const total = myHand.length;
-            const spreadAngle = Math.min(6 * (total - 1), 60);
+            // 카드가 많을수록 기울기를 줄이고 화면 폭 안에서 간격을 최대한 벌려 숫자가 보이게 한다
+            const spreadAngle = Math.min(6 * (total - 1), 36);
             const angleStep = total > 1 ? spreadAngle / (total - 1) : 0;
             const angle = -spreadAngle / 2 + angleStep * i;
-            const overlapOffset = Math.min(28, 180 / total);
+            const handWidth = Math.min(window.innerWidth, 900) * 0.8 - 70;
+            const overlapOffset = Math.min(44, handWidth / Math.max(total - 1, 1));
             const xOffset = (i - (total - 1) / 2) * overlapOffset;
             return (
               <div

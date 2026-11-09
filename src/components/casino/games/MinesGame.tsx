@@ -34,7 +34,7 @@ const GRID_SIZE = 25; // 5×5
 const MINE_COUNT = 10;
 
 const MULTIPLIER_TABLE: number[] = [
-  1, 1, 1.5, 2.5, 5, 8, 12, 17, 25, 35, 50, 90, 150, 250, 500, 1000,
+  1, 1.2, 1.5, 2.5, 5, 8, 12, 17, 25, 35, 50, 90, 150, 250, 500, 1000,
 ];
 
 function calcMultiplier(revealed: number): number {

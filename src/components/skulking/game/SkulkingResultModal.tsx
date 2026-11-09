@@ -100,12 +100,14 @@ interface GameOverModalProps {
   players: Array<{ playerId: string; nickname: string }>;
   isHost: boolean;
   onRestart?: () => void;
+  onClose?: () => void;
 }
 
 export function SkulkingGameOverModal({
   result,
   isHost,
   onRestart,
+  onClose,
 }: GameOverModalProps) {
   const { ranking } = result;
 
@@ -149,13 +151,14 @@ export function SkulkingGameOverModal({
           </tbody>
         </ResultTable>
 
-        {isHost && onRestart && (
-          <ResultButtonRow>
+        <ResultButtonRow>
+          {isHost && onRestart && (
             <ResultButton $primary onClick={onRestart}>
               다시 시작
             </ResultButton>
-          </ResultButtonRow>
-        )}
+          )}
+          {onClose && <ResultButton onClick={onClose}>닫기</ResultButton>}
+        </ResultButtonRow>
       </ResultModal>
     </ResultOverlay>
   );

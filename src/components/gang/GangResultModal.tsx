@@ -131,7 +131,7 @@ export default function GangResultModal({
             ? gameOverResult === 'victory'
               ? '최종 승리!'
               : '최종 패배...'
-            : `게임 종료 - ${isGameSuccess ? '성공' : '실패'}`}
+            : `라운드 ${isGameSuccess ? '성공' : '실패'}`}
         </GameFinishTitle>
         <GameFinishCloseButton onClick={onClose}>
           ✕
@@ -190,6 +190,19 @@ export default function GangResultModal({
           </PlayerResultItem>
         );
       })}
+      {gameOver ? (
+        isHost && (
+          <GameFinishBottomButton onClick={onRestart}>
+            다시 시작
+          </GameFinishBottomButton>
+        )
+      ) : (
+        <GameFinishBottomButton onClick={onNextRound} disabled={isNextRoundReady}>
+          {isNextRoundReady
+            ? `대기중 (${nextRoundReadyPlayers.length}/${memberCount})`
+            : '다음 라운드 진행'}
+        </GameFinishBottomButton>
+      )}
       <GameFinishBottomButton onClick={onClose}>
         닫기
       </GameFinishBottomButton>

@@ -22,6 +22,23 @@ const floatUp = keyframes`
   100% { opacity: 0; transform: translateY(-80px) scale(0.9); }
 `;
 
+// 미니게임 화면에서도 남은 시간을 볼 수 있게 허브 타이머를 띄워 둔다
+const GameTimeBadge = styled.div<{ $urgent: boolean }>`
+  position: fixed;
+  top: 96px;
+  right: 12px;
+  z-index: 9000;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  color: ${({ $urgent }) => ($urgent ? "#ff6b6b" : "#f0c040")};
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid ${({ $urgent }) => ($urgent ? "#ff6b6b" : "rgba(240, 192, 64, 0.4)")};
+`;
+
 const DeltaFlash = styled.div<{ $positive: boolean }>`
   position: fixed;
   top: 56px;
@@ -43,6 +60,7 @@ const SILENT_ERRORS = ["게임이 진행 중이지 않습니다", "유효하지 
 export default function CasinoRoom() {
   const { isAdmin } = useAuth();
   const {
+    entryState,
     roomName,
     playerId,
     send,
@@ -81,6 +99,7 @@ export default function CasinoRoom() {
   const [gameOverData, setGameOverData] = useState<CasinoGameOverData | null>(null);
   // 닫은 결과창이 재연결 때 다시 열리지 않게 한다 (새 판이 시작되면 초기화)
   const resultDismissedRef = useRef(false);
+  const entryAppliedRef = useRef(false);
 
   // 타이머 참조 (게임 시작 시각 기반 로컬 카운트다운)
   const timerStartRef = useRef<number | null>(null);
@@ -117,60 +136,69 @@ export default function CasinoRoom() {
 
   // ── 소켓 이벤트 구독 ────────────────────────────────────────────────
   useEffect(() => {
+    const applyJoinData = (d: {
+      name?: string;
+      casinoStarted?: boolean;
+      casinoInitialBalance?: number;
+      casinoTimeLimit?: number | null;
+      casinoRemainingSeconds?: number | null;
+      casinoPlayers?: CasinoPlayer[];
+      casinoMyHistory?: { t: number; b: number }[];
+      casinoAllHistories?: Record<string, { t: number; b: number }[]>;
+      casinoVotes?: string[];
+      casinoLastResult?: CasinoGameOverData;
+    }) => {
+      setRoomJoinedReceived(true);
+      // 끊겨 있는 동안 게임이 끝났으면 허브에 남지 않고 결과로 돌아간다
+      if (d.name === roomName && !d.casinoStarted) {
+        setGameStarted(false);
+        setCurrentGame(null);
+        if (d.casinoLastResult && !resultDismissedRef.current) {
+          setGameOver(true);
+          setGameOverData(d.casinoLastResult);
+        }
+      }
+      if (d.name === roomName && d.casinoStarted) {
+        setGameStarted(true);
+        if (d.casinoInitialBalance !== undefined) {
+          setInitialBalance(d.casinoInitialBalance);
+          const me = d.casinoPlayers?.find((p) => p.playerId === playerId);
+          setMyBalance(me?.balance ?? d.casinoInitialBalance);
+        }
+        if (d.casinoTimeLimit !== undefined) {
+          setTimeLimitSeconds(d.casinoTimeLimit);
+          timerLimitRef.current = d.casinoTimeLimit;
+        }
+        if (d.casinoRemainingSeconds !== undefined && d.casinoRemainingSeconds !== null) {
+          setRemainingSeconds(d.casinoRemainingSeconds);
+          timerStartRef.current =
+            Date.now() - ((d.casinoTimeLimit ?? 0) - d.casinoRemainingSeconds) * 1000;
+        }
+        if (d.casinoPlayers) {
+          const allHist = d.casinoAllHistories ?? {};
+          setPlayers(d.casinoPlayers.map((p) => ({
+            ...p,
+            currentGame: p.currentGame ?? null,
+            history: allHist[p.playerId]?.length
+              ? allHist[p.playerId]
+              : [{ t: 0, b: p.balance }],
+          })));
+        }
+      }
+    };
+
+    // 로비에서 들어오면 roomJoined를 로비가 이미 받았으므로 넘겨받은 데이터로 시작한다
+    if (entryState && !entryAppliedRef.current) {
+      entryAppliedRef.current = true;
+      applyJoinData(entryState as Parameters<typeof applyJoinData>[0]);
+    }
+
     const unsubscribe = subscribe((event, data) => {
       switch (event) {
         case "roomCreated":
         case "roomJoined": {
           // 재연결 시 카지노 상태 복원 (서버에서 보내준다면)
-          const d = data as {
-            name?: string;
-            casinoStarted?: boolean;
-            casinoInitialBalance?: number;
-            casinoTimeLimit?: number | null;
-            casinoRemainingSeconds?: number | null;
-            casinoPlayers?: CasinoPlayer[];
-            casinoMyHistory?: { t: number; b: number }[];
-            casinoAllHistories?: Record<string, { t: number; b: number }[]>;
-            casinoVotes?: string[];
-            casinoLastResult?: CasinoGameOverData;
-          };
-          setRoomJoinedReceived(true);
-          // 끊겨 있는 동안 게임이 끝났으면 허브에 남지 않고 결과로 돌아간다
-          if (d.name === roomName && !d.casinoStarted) {
-            setGameStarted(false);
-            setCurrentGame(null);
-            if (d.casinoLastResult && !resultDismissedRef.current) {
-              setGameOver(true);
-              setGameOverData(d.casinoLastResult);
-            }
-          }
-          if (d.name === roomName && d.casinoStarted) {
-            setGameStarted(true);
-            if (d.casinoInitialBalance !== undefined) {
-              setInitialBalance(d.casinoInitialBalance);
-              const me = d.casinoPlayers?.find((p) => p.playerId === playerId);
-              setMyBalance(me?.balance ?? d.casinoInitialBalance);
-            }
-            if (d.casinoTimeLimit !== undefined) {
-              setTimeLimitSeconds(d.casinoTimeLimit);
-              timerLimitRef.current = d.casinoTimeLimit;
-            }
-            if (d.casinoRemainingSeconds !== undefined && d.casinoRemainingSeconds !== null) {
-              setRemainingSeconds(d.casinoRemainingSeconds);
-              timerStartRef.current =
-                Date.now() - ((d.casinoTimeLimit ?? 0) - d.casinoRemainingSeconds) * 1000;
-            }
-            if (d.casinoPlayers) {
-              const allHist = d.casinoAllHistories ?? {};
-              setPlayers(d.casinoPlayers.map((p) => ({
-                ...p,
-                currentGame: p.currentGame ?? null,
-                history: allHist[p.playerId]?.length
-                  ? allHist[p.playerId]
-                  : [{ t: 0, b: p.balance }],
-              })));
-            }
-          }
+          applyJoinData(data as Parameters<typeof applyJoinData>[0]);
           break;
         }
 
@@ -271,7 +299,7 @@ setMessages((prev) => [
     });
 
     return unsubscribe;
-  }, [subscribe, roomName, playerId, setMessages]);
+  }, [subscribe, roomName, playerId, setMessages, entryState]);
 
   // ── 핸들러 ──────────────────────────────────────────────────────────
   const handleStart = (timeLimit: number | null, balance: number) => {
@@ -468,6 +496,12 @@ setMessages((prev) => [
 
       {/* 현재 게임 선택 오버레이 */}
       {renderCurrentGameOverlay()}
+
+      {currentGame && gameStarted && remainingSeconds !== null && (
+        <GameTimeBadge $urgent={remainingSeconds < 60}>
+          ⏱ {Math.floor(remainingSeconds / 60)}:{String(remainingSeconds % 60).padStart(2, "0")}
+        </GameTimeBadge>
+      )}
 
       {/* 게임 종료 결과 모달 */}
       {gameOver && gameOverData && (

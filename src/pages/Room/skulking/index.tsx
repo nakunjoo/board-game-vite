@@ -49,6 +49,7 @@ export default function SkulkingRoom() {
   } = useRoomBase({ silentErrors: SILENT_ERRORS });
   const { isAdmin } = useAuth();
   const trickCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultDismissedRef = useRef(false);
 
   const addGameLog = (message: string) => {
     setMessages((prev) => [...prev, { message, isSystem: true }]);
@@ -195,9 +196,13 @@ export default function SkulkingRoom() {
           };
           if (d.name !== roomName) break;
           // 서버가 결과를 주지 않으면 끊긴 사이 재시작됐거나 그 판 참가자가 아니다
-          setGameOverResult(d.skulkingGameOverResult ?? null);
-          setShowGameOver(!!d.skulkingGameOverResult);
-          setGameOver(!!d.skulkingGameOverResult);
+          // (이미 닫은 결과창은 재연결로 다시 열지 않는다)
+          {
+            const restored = resultDismissedRef.current ? undefined : d.skulkingGameOverResult;
+            setGameOverResult(restored ?? null);
+            setShowGameOver(!!restored);
+            setGameOver(!!restored);
+          }
           if (d.skulkingIsFirstDraw) {
             setIsFirstDraw(true);
             setFirstDrawCount(d.skulkingDrawnCount ?? 0);
@@ -270,6 +275,7 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingFirstDrawStarted": {
+          resultDismissedRef.current = false;
           setShowGameOver(false);
           setGameOverResult(null);
           setGameOver(false);
@@ -580,6 +586,11 @@ export default function SkulkingRoom() {
           }))}
           isHost={isHost}
           onRestart={handleStartGame}
+          onClose={() => {
+            resultDismissedRef.current = true;
+            setShowGameOver(false);
+            setGameOver(false);
+          }}
         />
       )}
     </RoomLayout>

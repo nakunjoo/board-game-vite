@@ -341,6 +341,7 @@ export default function GangRoom() {
       <GangGameBoard
         gameStarted={gameStarted}
         isHost={isHost}
+        gameFinished={gameFinished}
         memberCount={memberCount}
         currentStep={currentStep}
         players={players}

@@ -25,6 +25,7 @@ import {
   ConfirmCardButton,
 } from "../../styles/game/skulking/board";
 import { SkCard, SkCardLabel, SkCardValue } from "../../styles/game/skulking/card";
+import { pressable } from "../../utils/pressable";
 import type { Card, PlayerHand } from "../../types/game";
 import type { TrickEntry, SkulkingPlayer } from "./types";
 import {
@@ -433,7 +434,7 @@ export default function SkulkingGameBoard({
               return (
                 <HandCard
                   key={card.name}
-                  onClick={() => handleCardClick(i)}
+                  {...pressable(() => handleCardClick(i))}
                   style={{
                     cursor: isMyPlayTurn && !disabled
                       ? "pointer"

@@ -38,12 +38,14 @@ import CardDeck from "../CardDeck";
 import { getCardImage, getCardName, getCardLabel } from "../../utils/cards";
 import { type HandResult } from "../../utils/poker";
 import type { ChipData, PreviousChipsData } from "./types";
+import { pressable } from "../../utils/pressable";
 import GangHandRankModal from "./game/GangHandRankModal";
 
 interface GangGameBoardProps {
   // 게임 상태
   gameStarted: boolean;
   isHost: boolean;
+  gameFinished?: boolean;
   memberCount: number;
   currentStep: number;
 
@@ -84,6 +86,7 @@ interface GangGameBoardProps {
 export default function GangGameBoard({
   gameStarted,
   isHost,
+  gameFinished = false,
   memberCount,
   currentStep,
   players,
@@ -215,7 +218,7 @@ export default function GangGameBoard({
             onClick={() => setShowHandRankModal(true)}
           />
           <ChipsArea>
-            {chips.length > 0 && (
+            {chips.length > 0 && !gameFinished && (
               <ChipsGrid>
                 {chips.map((chip) => {
                   const isLocked = chip.owner
@@ -227,7 +230,8 @@ export default function GangGameBoard({
                       $state={chip.state}
                       $isSelected={chip.owner !== null}
                       $isLocked={isLocked}
-                      onClick={() => onChipClick(chip.number)}
+                      aria-label={`칩 ${chip.number}`}
+                      {...pressable(() => onChipClick(chip.number))}
                     >
                       {chip.number}
                     </Chip>
@@ -361,7 +365,7 @@ export default function GangGameBoard({
           {myHandRank && (
             <HandRankDisplay>{myHandRank.detailName}</HandRankDisplay>
           )}
-          {gameStarted && currentStep <= 4 && (
+          {gameStarted && currentStep <= 4 && !gameFinished && (
             <ReadyButton
               $disabled={isReady || !chips.some((c) => c.owner === playerId)}
               onClick={onReady}

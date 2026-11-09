@@ -69,8 +69,12 @@ export default function SkulkingStatsModal({
               {sortedPlayers.map((p) => {
                 const si = seatIndexMap.get(p.playerId) ?? 0;
                 return (
-                  <th key={p.playerId} style={{ color: COLORS[si % COLORS.length] }}>
-                    {p.nickname[0]}
+                  <th
+                    key={p.playerId}
+                    title={p.nickname}
+                    style={{ color: COLORS[si % COLORS.length], whiteSpace: "nowrap" }}
+                  >
+                    {p.nickname}
                   </th>
                 );
               })}

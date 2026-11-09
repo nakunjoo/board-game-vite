@@ -326,6 +326,8 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     : players.length > 0 && players[0]?.playerId === playerId;
 
   return {
+    // 로비가 대신 받은 입장 데이터 (새로고침이면 서버가 다시 보내주므로 null)
+    entryState: isRefresh ? null : locationState,
     roomName,
     playerId,
     nickname,

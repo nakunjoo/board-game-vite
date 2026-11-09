@@ -44,6 +44,11 @@ const TopRankBar = styled.button`
   min-width: 0;
   overflow: hidden;
   &:hover { border-color: rgba(240,192,64,0.5); }
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+  }
 `;
 
 const RankChip = styled.div<{ $rank: number }>`
@@ -305,7 +310,6 @@ export default function CasinoHub({
   const [showRankModal, setShowRankModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [loanInput, setLoanInput] = useState("");
-  const [rankIdx, setRankIdx] = useState(0);
 
   useEffect(() => {
     if (remainingSeconds === null) { setDisplaySeconds(null); return; }
@@ -326,14 +330,6 @@ export default function CasinoHub({
 
   const sorted = [...players].sort((a, b) => b.balance - a.balance);
   const top3 = sorted.slice(0, 3);
-
-  useEffect(() => {
-    if (top3.length <= 1) return;
-    const id = setInterval(() => {
-      setRankIdx((prev) => (prev + 1) % top3.length);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [top3.length]);
 
   const handleLoanConfirm = () => {
     const amount = parseInt(loanInput, 10);
@@ -413,10 +409,8 @@ export default function CasinoHub({
         <TopRankBar onClick={() => setShowRankModal(true)}>
           {top3.length === 0 ? (
             <RankChip $rank={1} style={{ opacity: 0.35 }}>순위 집계 중...</RankChip>
-          ) : (() => {
-            const i = rankIdx % top3.length;
-            const p = top3[i];
-            return (
+          ) : (
+            top3.map((p, i) => (
               <RankChip key={p.playerId} $rank={i + 1}>
                 <RankLeft>
                   <RankNum>{i + 1}위</RankNum>
@@ -424,8 +418,8 @@ export default function CasinoHub({
                 </RankLeft>
                 <RankNick>{p.nickname}</RankNick>
               </RankChip>
-            );
-          })()}
+            ))
+          )}
         </TopRankBar>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
