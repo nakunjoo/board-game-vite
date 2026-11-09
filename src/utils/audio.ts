@@ -5,12 +5,33 @@
 // Web Audio API를 사용한 AudioContext (싱글톤)
 let audioContext: AudioContext | null = null;
 
+type WindowWithWebkitAudio = Window & { webkitAudioContext?: typeof AudioContext };
+
 const getAudioContext = (): AudioContext => {
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const Ctor = window.AudioContext ?? (window as WindowWithWebkitAudio).webkitAudioContext!;
+    audioContext = new Ctor();
   }
   return audioContext;
 };
+
+// iOS Safari는 AudioContext를 항상 suspended 상태로 만들고, 사용자 제스처 안에서
+// resume()을 호출해야만 소리를 낸다. 타이머 똑딱 소리는 setInterval 안에서 처음
+// 재생되므로 그대로는 iOS에서 영원히 무음이다.
+// → 첫 터치/클릭/키 입력 때 컨텍스트를 만들고 resume해 '잠금 해제'해 둔다.
+if (typeof window !== "undefined") {
+  const unlock = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === "suspended") void ctx.resume();
+    } catch {
+      // 오디오 미지원 환경 — 무시
+    }
+  };
+  for (const evt of ["pointerdown", "touchend", "keydown"] as const) {
+    window.addEventListener(evt, unlock, { once: true, passive: true });
+  }
+}
 
 /**
  * Web Audio API를 사용하여 비프음 재생
@@ -21,6 +42,8 @@ const getAudioContext = (): AudioContext => {
 const playBeep = (frequency: number, duration: number, volume = 0.3): void => {
   try {
     const ctx = getAudioContext();
+    // 백그라운드 전환 등으로 다시 멈춘 경우 (제스처 밖이면 실패해도 무해)
+    if (ctx.state === "suspended") void ctx.resume();
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 

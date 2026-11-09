@@ -65,6 +65,8 @@ interface SpiceGameBoardProps {
     nickname: string;
     declaredSuit: string;
     declaredNumber: number;
+    /** 서버가 내려준 도전 제한시간(ms). 없으면 클라 기본값 사용 */
+    timeLimitMs?: number;
   } | null;
   challengeResult?: {
     challengerNickname: string;
@@ -78,6 +80,8 @@ interface SpiceGameBoardProps {
     declaredNumber: number;
   } | null;
   onChallenge?: (challengeType: "number" | "suit") => void;
+  // 이미 도전을 보냈거나 서버가 페이즈를 닫은 상태 → 도전 버튼 비활성화
+  challengeDisabled?: boolean;
   trophies?: Record<string, number>; // playerId → 트로피 수 (0~2)
   wonCardCounts?: Record<string, number>; // playerId → 획득 카드 수
   // 재연결 시 타이머 복원
@@ -117,6 +121,7 @@ export default function SpiceGameBoard({
   challengePhase = null,
   challengeResult = null,
   onChallenge,
+  challengeDisabled = false,
   trophies = {},
   wonCardCounts = {},
   reconnectTurnTimeLeft = null,
@@ -141,7 +146,9 @@ export default function SpiceGameBoard({
     null,
   );
 
-  // 30초 타이머 (시간 초과 시 자동 패스)
+  // 30초 턴 타이머 — 표시 전용. 시간 초과 시 자동 패스는 서버가 집행한다.
+  // (예전엔 턴 주인 클라이언트가 직접 pass를 보냈는데, iOS에서 화면을 잠그거나
+  //  앱을 전환하면 아무도 패스하지 않아 판이 멈췄다)
   const TURN_TIME = 30;
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -162,43 +169,45 @@ export default function SpiceGameBoard({
     }
   }, [reconnectTurnTimeLeft]);
 
-  // onPass prop 참조를 ref로 유지 (클로저 문제 방지)
-  const onPassRef = useRef(onPass);
+  // 타이머 콜백에서 최신 isMyTurn을 읽기 위한 ref (effect 의존성에 넣지 않기 위함)
+  const isMyTurnRef = useRef(isMyTurn);
   useEffect(() => {
-    onPassRef.current = onPass;
-  }, [onPass]);
+    isMyTurnRef.current = isMyTurn;
+  }, [isMyTurn]);
 
   useEffect(() => {
     clearTimer();
     // 재연결 시 서버에서 받은 남은 시간 사용, 없으면 TURN_TIME으로 초기화
     const initialTime = reconnectTurnTimeLeftRef.current ?? TURN_TIME;
     reconnectTurnTimeLeftRef.current = null; // 소비
-    if (initialTime === TURN_TIME) {
-      // 재연결이 아닌 일반 턴 전환이면 부모에게 소비 완료 알림
-    } else {
+    if (initialTime !== TURN_TIME) {
       onReconnectTimeLeftConsumed?.();
     }
-    setTimeLeft(initialTime);
     // 도전 페이즈 중이거나 게임 종료 시 타이머 비활성화
-    if (gameStarted && currentTurnPlayerId && !challengePhase) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          const next = prev - 1;
-          // 0을 1초 표시한 뒤 다음 틱(-1)에서 패스 실행
-          if (next < 0) {
-            clearTimer();
-            // 내 턴일 때만 자동 패스
-            if (isMyTurn) onPassRef.current?.();
-            return 0;
-          }
-          // 내 턴일 때만 5초 이하 똑딱 소리 (0초가 마지막 강조 틱)
-          if (isMyTurn && next <= 5) {
-            playTickSound(next === 0);
-          }
-          return next;
-        });
-      }, 1000);
+    if (!(gameStarted && currentTurnPlayerId && !challengePhase)) {
+      setTimeLeft(initialTime);
+      return clearTimer;
     }
+
+    // 틱을 하나씩 빼지 않고 데드라인 기준으로 매번 다시 계산한다.
+    // iOS Safari가 setInterval을 스로틀해도 표시값이 실제 남은 시간을 곧바로 따라잡는다.
+    const deadline = Date.now() + initialTime * 1000;
+    const remaining = () =>
+      Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    let lastShown = remaining();
+    setTimeLeft(lastShown);
+
+    timerRef.current = setInterval(() => {
+      const next = remaining();
+      if (next === lastShown) return;
+      lastShown = next;
+      setTimeLeft(next);
+      // 내 턴일 때만 5초 이하 똑딱 소리 (0초가 마지막 강조 틱)
+      if (isMyTurnRef.current && next <= 5) {
+        playTickSound(next === 0);
+      }
+      if (next <= 0) clearTimer();
+    }, 250);
     return clearTimer;
   }, [currentTurnPlayerId, challengePhase, gameStarted]);
 
@@ -230,17 +239,24 @@ export default function SpiceGameBoard({
       const initialChallengeTime =
         reconnectChallengeTimeLeftRef.current ?? CHALLENGE_TIME;
       reconnectChallengeTimeLeftRef.current = null; // 소비
-      setChallengeTimeLeft(initialChallengeTime);
+
+      // 틱을 하나씩 빼면 iOS Safari가 setInterval을 스로틀할 때(스크롤·터치 관성·
+      // 저전력 모드 등) 바가 실제보다 느리게 줄어든다. 그 결과 화면엔 시간이
+      // 남았는데 서버는 이미 5초가 지나 페이즈를 닫아버린다.
+      // → 데드라인을 잡아두고 매 틱마다 실제 경과 시간으로 다시 계산한다.
+      //   타이머가 밀려도 표시값이 곧바로 따라잡는다.
+      const deadline =
+        Date.now() +
+        (challengePhase.timeLimitMs ?? initialChallengeTime * 1000);
+      const remaining = () =>
+        Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+
+      setChallengeTimeLeft(remaining());
       challengeTimerRef.current = setInterval(() => {
-        setChallengeTimeLeft((prev) => {
-          // 0을 1초 표시한 뒤 다음 틱에서 정지
-          if (prev <= 0) {
-            clearChallengeTimer();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        const next = remaining();
+        setChallengeTimeLeft(next);
+        if (next <= 0) clearChallengeTimer();
+      }, 250);
     }
     return clearChallengeTimer;
   }, [challengePhase]);
@@ -869,6 +885,7 @@ export default function SpiceGameBoard({
               challengeTimeLeft={challengeTimeLeft}
               challengeTime={CHALLENGE_TIME}
               onChallenge={(type) => onChallenge?.(type)}
+              challengeDisabled={challengeDisabled}
             />
           )}
 

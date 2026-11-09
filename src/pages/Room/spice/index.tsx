@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { Card, PlayerHand, PlayerResult } from "../../../types/game";
 import SpiceGameBoard from "../../../components/spice/SpiceGameBoard";
@@ -6,6 +6,11 @@ import SpiceResultModal from "../../../components/spice/SpiceResultModal";
 import SpiceHelpModal from "../../../components/spice/SpiceHelpModal";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+
+// 다른 사람이 먼저 도전해 페이즈가 닫힌 뒤 내 도전이 도착한 경우.
+// 경합에서 진 것뿐이라 alert를 띄울 이유가 없다.
+// (모듈 스코프 상수 — 매 렌더 새 배열이 만들어지지 않도록)
+const SILENT_ERRORS = ["도전 페이즈가 아닙니다"];
 
 export default function SpiceRoom() {
   const {
@@ -32,7 +37,7 @@ export default function SpiceRoom() {
     leaveRoom,
     handleKickPlayer,
     locationState,
-  } = useRoomBase();
+  } = useRoomBase({ silentErrors: SILENT_ERRORS });
   const { isAdmin } = useAuth();
 
   const ls = locationState as LocationState & {
@@ -101,6 +106,7 @@ export default function SpiceRoom() {
     nickname: string;
     declaredSuit: string;
     declaredNumber: number;
+    timeLimitMs?: number;
   } | null>(null);
   const [challengeResult, setChallengeResult] = useState<{
     challengerNickname: string;
@@ -113,6 +119,16 @@ export default function SpiceRoom() {
     declaredSuit: string;
     declaredNumber: number;
   } | null>(null);
+  // 한 도전 페이즈당 도전은 한 번만 전송 (연타/중복 터치 방지)
+  // ref: 같은 tick 안의 연타까지 막는 동기 가드, state: 버튼 비활성화용
+  const challengeSentRef = useRef(false);
+  const [challengeSent, setChallengeSent] = useState(false);
+  // 서버가 이미 페이즈를 닫았음을 알게 된 시점 (버튼 즉시 비활성화)
+  const [challengeClosed, setChallengeClosed] = useState(false);
+
+  // 도전 페이즈마다 1씩 증가. challengeExpired 뒤 1.1초 지연 클리어가
+  // 그 사이 시작된 '다음' 페이즈를 지우지 않도록 어느 페이즈인지 확인하는 용도
+  const challengePhaseSeqRef = useRef(0);
 
   // 향신료 전용 소켓 이벤트
   useEffect(() => {
@@ -303,7 +319,12 @@ export default function SpiceRoom() {
           }
           break;
         }
-        case "cardPlayed":
+        // 한 발 늦은 도전 — 만료됐거나 남이 먼저 도전했다.
+        // 내 잘못이 아니니 alert 없이 버튼만 잠근다.
+        case "challengeTooLate": {
+          setChallengeClosed(true);
+          break;
+        }
         case "cardPassed": {
           const cardData = data as {
             roomName: string;
@@ -313,8 +334,16 @@ export default function SpiceRoom() {
             currentNumber: number;
             tableStackSize: number;
             deck: Card[];
+            nickname?: string;
+            auto?: boolean; // 서버가 턴 시간 초과로 자동 패스한 경우
           };
           if (cardData.roomName === roomName) {
+            if (cardData.auto && cardData.nickname) {
+              setMessages((prev) => [
+                ...prev,
+                { message: `⏰ ${cardData.nickname}님 시간 초과 — 자동 패스`, isSystem: true },
+              ]);
+            }
             if (cardData.playerHands) setPlayerHands(cardData.playerHands);
             setCurrentTurnPlayerId(cardData.currentTurnPlayerId);
             setCurrentSuit(cardData.currentSuit);
@@ -342,6 +371,7 @@ export default function SpiceRoom() {
             declaredNumber: number;
             playerHands?: PlayerHand[];
             deck: Card[];
+            challengeTimeLimitMs?: number;
           };
           if (cpData.roomName === roomName) {
             if (cpData.playerHands) setPlayerHands(cpData.playerHands);
@@ -351,8 +381,14 @@ export default function SpiceRoom() {
               nickname: cpData.nickname,
               declaredSuit: cpData.declaredSuit,
               declaredNumber: cpData.declaredNumber,
+              timeLimitMs: cpData.challengeTimeLimitMs,
             });
             setChallengeResult(null);
+            // 새 페이즈 → 도전 가드 해제
+            challengeSentRef.current = false;
+            setChallengeSent(false);
+            setChallengeClosed(false);
+            challengePhaseSeqRef.current += 1;
             setMessages((prev) => [
               ...prev,
               {
@@ -386,8 +422,14 @@ export default function SpiceRoom() {
             if (ceData.trophies) setTrophies(ceData.trophies);
             if (ceData.wonCardCounts) setWonCardCounts(ceData.wonCardCounts);
             setChallengeResult(null);
-            // 도전 타이머가 0을 표시할 시간(1틱)을 준 뒤 challengePhase 클리어
-            setTimeout(() => setChallengePhase(null), 1100);
+            // 서버는 이미 페이즈를 닫았다 → 버튼은 즉시 막는다.
+            // (오버레이 자체는 도전 타이머가 0을 표시할 시간(1틱)을 준 뒤 클리어)
+            setChallengeClosed(true);
+            const expiredSeq = challengePhaseSeqRef.current;
+            setTimeout(() => {
+              // 1.1초 안에 다음 페이즈가 시작됐으면 그 페이즈는 건드리지 않는다
+              if (challengePhaseSeqRef.current === expiredSeq) setChallengePhase(null);
+            }, 1100);
           }
           break;
         }
@@ -417,6 +459,8 @@ export default function SpiceRoom() {
           };
           if (crData.roomName === roomName) {
             setChallengePhase(null);
+            // 누군가 먼저 도전에 성공했다 → 이 페이즈는 닫힘
+            setChallengeClosed(true);
             if (crData.playerHands) setPlayerHands(crData.playerHands);
             if (crData.trophies) setTrophies(crData.trophies);
             if (crData.wonCardCounts) setWonCardCounts(crData.wonCardCounts);
@@ -551,6 +595,11 @@ export default function SpiceRoom() {
   };
   const handleChallenge = (challengeType: 'number' | 'suit') => {
     if (!roomName) return;
+    // 한 페이즈당 한 번만. 연타/중복 터치의 두 번째 요청은 서버에서
+    // '도전 페이즈가 아닙니다'로 튕겨 나와 alert가 뜨므로 여기서 차단한다.
+    if (challengeSentRef.current || challengeClosed) return;
+    challengeSentRef.current = true;
+    setChallengeSent(true);
     send("challenge", { roomName, challengeType });
   };
   const handleNextRound = () => {
@@ -626,6 +675,7 @@ export default function SpiceRoom() {
         challengePhase={challengePhase}
         challengeResult={challengeResult}
         onChallenge={handleChallenge}
+        challengeDisabled={challengeSent || challengeClosed}
         trophies={trophies}
         wonCardCounts={wonCardCounts}
         reconnectTurnTimeLeft={reconnectTurnTimeLeft}

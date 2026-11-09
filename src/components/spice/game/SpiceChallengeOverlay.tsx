@@ -29,6 +29,8 @@ interface Props {
   challengeTimeLeft: number;
   challengeTime: number;
   onChallenge: (type: "number" | "suit") => void;
+  /** 이미 도전을 보냈거나 서버가 페이즈를 닫음 */
+  challengeDisabled?: boolean;
 }
 
 export default function SpiceChallengeOverlay({
@@ -39,6 +41,7 @@ export default function SpiceChallengeOverlay({
   challengeTimeLeft,
   challengeTime,
   onChallenge,
+  challengeDisabled = false,
 }: Props) {
   if (!challengePhase && !challengeResult) return null;
 
@@ -314,42 +317,65 @@ export default function SpiceChallengeOverlay({
             </div>
 
             {challengePhase.playerId !== myPlayerId ? (
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  onClick={() => onChallenge("number")}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: "12px",
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #e74c3c, #c0392b)",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    fontSize: "0.9rem",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(231,76,60,0.4)",
-                  }}
-                >
-                  숫자 도전
-                </button>
-                <button
-                  onClick={() => onChallenge("suit")}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: "12px",
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #8e44ad, #6c3483)",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    fontSize: "0.9rem",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(142,68,173,0.4)",
-                  }}
-                >
-                  향신료 도전
-                </button>
-              </div>
+              // 도전을 이미 보냈거나(연타 방지), 서버가 페이즈를 닫았거나,
+              // 타이머가 0이 된 뒤에는 누를 수 없게 한다.
+              // 이 창이 열려 있으면 서버에 '도전 페이즈가 아닙니다'가 튕겨 나온다.
+              (() => {
+                const locked = challengeDisabled || challengeTimeLeft <= 0;
+                const btnStyle = (from: string, to: string, shadow: string) => ({
+                  padding: "10px 18px",
+                  borderRadius: "12px",
+                  border: "none",
+                  background: locked
+                    ? "rgba(255,255,255,0.12)"
+                    : `linear-gradient(135deg, ${from}, ${to})`,
+                  color: locked ? "rgba(255,255,255,0.35)" : "#fff",
+                  fontWeight: "bold",
+                  fontSize: "0.9rem",
+                  cursor: locked ? "not-allowed" : "pointer",
+                  boxShadow: locked ? "none" : `0 4px 12px ${shadow}`,
+                  transition: "background 0.15s, color 0.15s",
+                  // iOS: 비활성 상태에서 탭 하이라이트가 반짝이지 않도록
+                  WebkitTapHighlightColor: "transparent" as const,
+                });
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        onClick={() => onChallenge("number")}
+                        disabled={locked}
+                        style={btnStyle("#e74c3c", "#c0392b", "rgba(231,76,60,0.4)")}
+                      >
+                        숫자 도전
+                      </button>
+                      <button
+                        onClick={() => onChallenge("suit")}
+                        disabled={locked}
+                        style={btnStyle("#8e44ad", "#6c3483", "rgba(142,68,173,0.4)")}
+                      >
+                        향신료 도전
+                      </button>
+                    </div>
+                    {challengeDisabled && (
+                      <div
+                        style={{
+                          color: "rgba(255,255,255,0.45)",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        도전 처리 중...
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
             ) : (
               <div
                 style={{

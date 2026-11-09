@@ -76,6 +76,8 @@ export default function Lobby() {
   const [joinTargetRoom, setJoinTargetRoom] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+  // passwordVerified 수신 시 joinRoom에 다시 실어 보낼 값 (구독 콜백의 stale closure 회피)
+  const verifiedPasswordRef = useRef("");
   const [joinTargetIsPrivate, setJoinTargetIsPrivate] = useState(false);
   const [createTab, setCreateTab] = useState<CreateTab>("multi");
   const navigate = useNavigate();
@@ -147,7 +149,11 @@ export default function Lobby() {
           const verifyData = data as { name: string; success: boolean };
           if (verifyData.success) {
             const nick = nickname || "플레이어";
-            send("joinRoom", { name: verifyData.name, nickname: nick });
+            send("joinRoom", {
+              name: verifyData.name,
+              nickname: nick,
+              password: verifiedPasswordRef.current,
+            });
             setShowModal(false);
           } else {
             setError("비밀번호가 일치하지 않습니다");
@@ -230,6 +236,7 @@ export default function Lobby() {
         setTimeout(() => setError(null), 3000);
         return;
       }
+      verifiedPasswordRef.current = passwordInput.trim();
       send("verifyPassword", { name: joinTargetRoom, password: passwordInput.trim() });
     } else {
       joinRoom();

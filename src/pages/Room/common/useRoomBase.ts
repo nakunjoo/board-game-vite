@@ -33,9 +33,30 @@ interface ChatMessageData {
   isSystem?: boolean;
 }
 
-export function useRoomBase() {
+export interface UseRoomBaseOptions {
+  /**
+   * alert로 띄우지 않고 조용히 넘길 서버 에러 메시지 목록.
+   * 경합에서 진 요청처럼, 사용자가 잘못한 게 아니고 알려봐야 의미 없는 에러에 쓴다.
+   * (예: Spice에서 다른 사람이 먼저 도전해 페이즈가 닫힌 경우)
+   */
+  silentErrors?: string[];
+}
+
+// 방 페이지에서 받으면 재입장이 거부된 것 (재연결 유예 30초 초과 등) — 로비로 돌려보낸다
+const ROOM_ACCESS_LOST_ERRORS = [
+  "방이 존재하지 않습니다",
+  "이미 게임이 시작된 방입니다",
+  "비밀번호가 일치하지 않습니다",
+];
+
+export function useRoomBase(options: UseRoomBaseOptions = {}) {
+  const silentErrors = options.silentErrors;
+  const silentErrorsRef = useRef<string[]>(silentErrors ?? []);
+  useEffect(() => {
+    silentErrorsRef.current = silentErrors ?? [];
+  }, [silentErrors]);
   const { roomName } = useParams<{ roomName: string }>();
-  const { connected, send, subscribe } = useWebSocket();
+  const { connected, connectionId, send, subscribe } = useWebSocket();
   const { user, nickname: authNickname } = useAuth();
   const playerId = user?.id ?? "";
   const nickname = authNickname ?? user?.email ?? "";
@@ -212,8 +233,9 @@ export function useRoomBase() {
           break;
         case "error": {
           const errorData = data as { message: string };
+          if (silentErrorsRef.current.includes(errorData.message)) break;
           alert(errorData.message);
-          if (errorData.message.includes("방이 존재하지 않습니다")) {
+          if (ROOM_ACCESS_LOST_ERRORS.some((m) => errorData.message.includes(m))) {
             if (roomName) {
               sessionStorage.removeItem(`joined:${roomName}`);
             }
@@ -243,14 +265,20 @@ export function useRoomBase() {
     )[0] as PerformanceNavigationTiming | undefined;
     return navEntry?.type === "reload" || !locationState;
   })();
+
+  // 이 방에 입장 처리된 연결. 로비에서 들어왔으면 지금 소켓은 이미 입장한 상태다.
+  // 연결이 새로 맺어지면(새로고침, 끊긴 뒤 재연결) connectionId가 달라져 다시 joinRoom을 보낸다
+  const joinedConnectionRef = useRef(isRefresh ? 0 : connectionId);
   useEffect(() => {
-    if (connected && roomName && isRefresh) {
-      const timer = setTimeout(() => {
-        send("joinRoom", { name: roomName, nickname });
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [connected, roomName, send, nickname, isRefresh]);
+    if (!connected || !roomName || connectionId === 0) return;
+    if (joinedConnectionRef.current === connectionId) return;
+    // 새로고침 직후 프로필(닉네임)이 도착할 시간을 준다
+    const timer = setTimeout(() => {
+      joinedConnectionRef.current = connectionId;
+      send("joinRoom", { name: roomName, nickname });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [connected, connectionId, roomName, send, nickname]);
 
   const sendMessage = () => {
     if (!inputMessage.trim() || !roomName) return;
@@ -262,6 +290,8 @@ export function useRoomBase() {
     if (roomName) {
       send("leaveRoom", { name: roomName });
       sessionStorage.removeItem(`joined:${roomName}`);
+      // 끊긴 상태면 roomLeft가 오지 않는다. 서버는 유예 시간 뒤 알아서 내보낸다
+      if (!connected) navigate("/", { replace: true });
     }
   };
 

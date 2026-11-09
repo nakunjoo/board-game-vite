@@ -10,6 +10,17 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-11-09 | **GitHub Actions 자동 배포 추가** (`.github/workflows/deploy.yml`) — main push(문서만 바뀐 경우 제외) 또는 수동 실행 시 빌드 후 GCP VM `/var/www/html`을 교체. 고정 SSH 키로 `deploy` 계정에 접속한다(VM의 guest agent가 멈춰 있어 gcloud 메타데이터 키는 적용되지 않음). Secrets: `VM_HOST`, `VM_SSH_USER`, `VM_SSH_KEY`, `VM_KNOWN_HOSTS`, `VITE_*` 5개, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`(`notify` job이 성공·실패·종료 코드를 텔레그램으로 전송, 없으면 건너뜀). 진행 중인 WebSocket을 끊지 않도록 nginx는 reload만 한다 |
+| 2026-11-09 | **WebSocket 자동 재연결** (`WebSocketContext.tsx`) — 끊기면 지수 백오프(1~10초)로 재시도, 화면 복귀·`online` 시 즉시 재시도. 접속 때마다 `supabase.auth.getSession()`으로 토큰을 받는다. 토큰 자동 갱신으로 소켓을 교체하던 동작 제거(서버는 접속 시에만 검증). 서버 `authenticated` 이벤트마다 `connectionId` 증가, '인증에 실패했습니다'를 받으면 화면 복귀 전까지 재시도 중단 |
+| 2026-11-09 | `useRoomBase.ts`: `connectionId`가 바뀌면 `joinRoom` 재전송(연결당 1회, `joinedConnectionRef`). 재입장이 거부되면 로비로 이동(`ROOM_ACCESS_LOST_ERRORS`). 끊긴 상태에서 나가기를 누르면 `roomLeft`를 기다리지 않고 로비로 이동 |
+| 2026-11-09 | `Lobby.tsx`: 비공개 방 `verifyPassword` 성공 후 `joinRoom`에 비밀번호 포함 (없어서 올바른 비밀번호로도 입장이 거부됐음) |
+| 2026-10-08 | **Spice 도전 버그 수정 (iOS에서 첫 클릭에도 '도전 페이즈가 아닙니다' alert)** — 원인: 도전 카운트다운이 틱을 1씩 빼는 방식이라 iOS Safari가 `setInterval`을 스로틀하면 화면 바가 서버 5초보다 느리게 줄어, 버튼이 살아있는데 서버는 이미 페이즈를 닫은 상태가 됨 |
+| 2026-10-08 | `SpiceGameBoard.tsx`: 도전 타이머를 **데드라인 기준**(`Date.now()` + 서버가 준 `timeLimitMs`, 250ms마다 재계산)으로 변경. 턴 타이머도 같은 방식으로 바꾸고 **클라이언트 자동 패스 제거**(서버가 집행) |
+| 2026-10-08 | `SpiceChallengeOverlay.tsx`: `challengeDisabled` prop 추가 — 이미 보냄/서버가 닫음/0초면 도전 버튼 `disabled` + 회색, "도전 처리 중..." 표시 |
+| 2026-10-08 | `pages/Room/spice/index.tsx`: 페이즈당 도전 1회 가드(`challengeSentRef`), `challengeClosed` 상태, `challengeTooLate` 이벤트 처리, `cardPassed.auto`면 채팅에 "시간 초과 — 자동 패스". `challengeExpired` 후 1100ms 지연 클리어가 **그 사이 시작된 다음 페이즈를 지우던 버그** 수정(`challengePhaseSeqRef`로 같은 페이즈일 때만 클리어). 서버가 보내지 않는 `cardPlayed` 케이스 제거 |
+| 2026-10-08 | `useRoomBase.ts`: `useRoomBase({ silentErrors })` 옵션 추가 — 지정한 서버 에러 메시지는 alert 없이 무시 (Spice는 구버전 서버 호환용으로 '도전 페이즈가 아닙니다' 지정) |
+| 2026-10-08 | `utils/audio.ts`: iOS에서 `AudioContext`가 suspended로 남아 효과음이 안 나던 문제 수정 — 첫 `pointerdown`/`touchend`/`keydown`에서 컨텍스트 생성·`resume()`, 재생 시에도 suspended면 `resume()`. `any` 캐스팅 제거 |
+| 2026-10-08 | **레거시 독립 블랙잭 코드 제거**: `components/blackjack/`, `styles/game/blackjack/`, `utils/games/blackjack.ts` (어떤 라우트에서도 참조되지 않았음, 카지노 미니게임으로 대체됨) |
 | 2026-08-26 | **`Player`/`PlayerResult` 타입 위치 정리** — `components/gang/types.ts`에 있던 `Player`, `PlayerResult`가 사실 Gang 전용이 아니라 `pages/Room/common/useRoomBase.ts`(공통 훅), `components/spice/*`(Spice)에서도 import되고 있었음(공통 로직이 특정 게임의 컴포넌트 폴더에 의존하는 역방향 의존성). `src/types/game.ts`로 이동, 기존에 어디서도 안 쓰이던 얇은 `Player`(nickname/isMe/order만 있던 버전)는 제거하고 실제 사용 중이던 풍부한 버전으로 대체. `ChipData`/`PreviousChipsData`는 진짜 Gang 전용(다른 곳에서 import 없음)이라 `components/gang/types.ts`에 유지. 관련 import 9개 파일 수정, `tsc --noEmit`/`npm run build` 통과 확인 |
 | 2026-08-13 | **Gang 결과 판정 버그 수정** |
 | 2026-08-13 | `utils/poker.ts`: `evaluateHand`의 "하이카드" 폴백에서 `tiebreakers`가 보드 공유 카드까지 섞인 `allSorted` 기준으로 계산되던 버그 수정 — 원페어/투페어/트리플 폴백처럼 내 카드만(`myCardsSorted`) 기준으로 변경. 미사용된 `allSorted` 변수 제거 |
@@ -382,14 +393,20 @@ npm run preview  # 빌드된 결과물 미리보기
 
 ## 라우팅
 
+`App.tsx` 기준. `/login` 외 모든 경로는 `AuthGuard`(관리자 페이지는 `AdminGuard`)로 감싼다.
+
 **멀티플레이어 (WebSocketProvider 포함)**
 - `/` - 로비
-- `/room/gang/:roomName` - Gang 게임 룸
-- `/room/spice/:roomName` - Spice 게임 룸
-- `/room/skulking/:roomName` - Skulking 게임 룸
+- `/room/:roomName` - 게임 룸. 게임 종류는 URL이 아니라 `location.state.gameType`(새로고침 시 `sessionStorage['gameType-<방이름>']`)으로 `pages/Room/index.tsx`에서 분기 (gang / spice / skulking / casino)
 
 **싱글플레이어 (WebSocket 없음)**
 - `/single/slide-puzzle` - 슬라이드 퍼즐
+- `/single/minesweeper` - 지뢰찾기
+
+**기타**
+- `/login` - 로그인/회원가입
+- `/mypage` - 마이페이지 (전적·닉네임)
+- `/manager` - 관리자 콘솔 (`AdminGuard`)
 
 ## WebSocket 통신
 
@@ -442,7 +459,7 @@ useEffect(() => {
 
 **클라이언트 → 서버:** `startGame`, `drawFirstCard`, `playCard`, `pass`, `challenge`, `readyNextRound`
 
-**서버 → 클라이언트:** `firstDrawStarted`, `firstDrawResult`, `firstDrawProgress`, `firstDrawFinished`, `gameStarted`, `cardPlayed`, `cardPassed`, `myHandUpdate`, `challengePhase`, `challengeExpired`, `challengeResult`, `spiceGameOver`
+**서버 → 클라이언트:** `firstDrawStarted`, `firstDrawResult`, `firstDrawProgress`, `firstDrawFinished`, `gameStarted`, `cardPassed`(`auto`: 서버 자동 패스 여부), `myHandUpdate`, `challengePhase`(`challengeTimeLimitMs` 포함), `challengeExpired`, `challengeResult`, `challengeTooLate`(개인, 한 발 늦은 도전), `spiceGameOver`
 
 ## Skulking 게임 이벤트
 
@@ -574,16 +591,20 @@ const leadEntry = currentTrick.find((e) => this.isNumberSuit(this.getEffectiveTy
 
 ## 타이머 동작 방식
 
+> **두 타이머 모두 데드라인 기준이다.** `deadline = Date.now() + 남은시간`을 잡고 250ms마다 `ceil((deadline - now)/1000)`로 다시 계산한다.
+> 틱마다 1씩 빼는 방식은 iOS Safari가 `setInterval`을 스로틀하면(스크롤·터치 관성·저전력 모드) 실제보다 느려져 서버와 어긋난다 — 2026-10-08 도전 버그의 원인. 새 타이머를 만들 때도 이 방식을 쓸 것.
+
 ### 턴 타이머 (SpiceGameBoard.tsx)
+- **표시 전용**. 시간 초과 자동 패스는 서버가 한다 (클라이언트는 `pass`를 자동으로 보내지 않음)
 - `currentTurnPlayerId` 변경 또는 `challengePhase` 해제 시 리셋
 - **재연결 시**: `reconnectTurnTimeLeft` prop → `reconnectTurnTimeLeftRef`에 저장 → 타이머 effect에서 한 번만 소비
-- 카운트다운 로직: `next < 0`일 때 패스 실행 → 0을 1초 표시한 뒤 패스
+- 내 턴 5초 이하에서 초가 바뀔 때마다 똑딱 소리 (최신 `isMyTurn`은 `isMyTurnRef`로 읽음)
 
 ### 도전 타이머 (SpiceGameBoard.tsx)
-- `challengePhase` 설정 시 5초 카운트다운 시작
+- `challengePhase` 설정 시 시작. 제한시간은 서버가 준 `challengePhase.timeLimitMs`(없으면 5초)
 - **재연결 시**: `reconnectChallengeTimeLeft` prop → 남은 시간부터 카운트다운
-- 카운트다운 로직: `prev <= 0`일 때 타이머 정지 → 0을 1초 표시한 뒤 정지
-- **race condition 방지**: `challengeExpired` 수신 시 `setChallengePhase(null)`을 **1100ms 지연** → 도전 타이머가 0을 표시할 시간 확보
+- 0초가 되면 버튼 잠금 (`SpiceChallengeOverlay`의 `locked`)
+- `challengeExpired` 수신 시: 버튼은 즉시 잠그고(`challengeClosed`), 오버레이는 0초를 보여줄 수 있게 **1100ms 뒤** 닫는다. 단 그 사이 새 페이즈가 시작됐으면 닫지 않는다 (`challengePhaseSeqRef`)
 
 ## 재연결 (Spice)
 
