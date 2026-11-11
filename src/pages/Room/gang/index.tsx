@@ -15,6 +15,7 @@ import RoomLayout from "../common/RoomLayout";
 
 export default function GangRoom() {
   const {
+    reconnecting,
     roomName,
     playerId,
     nickname,
@@ -310,6 +311,7 @@ export default function GangRoom() {
 
   return (
     <RoomLayout
+      reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
       memberCount={memberCount}

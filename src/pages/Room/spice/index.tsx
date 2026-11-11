@@ -14,6 +14,7 @@ const SILENT_ERRORS = ["도전 페이즈가 아닙니다"];
 
 export default function SpiceRoom() {
   const {
+    reconnecting,
     roomName,
     playerId,
     send,
@@ -633,6 +634,7 @@ export default function SpiceRoom() {
 
   return (
     <RoomLayout
+      reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
       memberCount={memberCount}

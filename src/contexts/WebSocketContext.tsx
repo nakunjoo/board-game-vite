@@ -11,6 +11,8 @@ import { supabase } from "../lib/supabase";
 
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 10000; // 서버 재연결 유예(30초) 안에 여러 번 시도하도록 짧게 둔다
+const MAX_AUTH_RETRIES = 5; // 토큰 검증의 일시적 실패를 재시도하는 횟수 (백오프 합계 약 25초)
+const AUTH_FAILED_MESSAGE = "인증에 실패했습니다";
 
 interface WebSocketContextType {
   connected: boolean;
@@ -53,6 +55,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     let disposed = false;
     let connecting = false;
     let authRejected = false;
+    let authFailures = 0;
     let attempts = 0;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -93,19 +96,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        attempts = 0;
         setConnected(true);
       };
 
       ws.onmessage = (event) => {
         const { event: eventName, data } = JSON.parse(event.data);
         if (eventName === "authenticated") {
+          attempts = 0;
+          authFailures = 0;
           setConnectionId((id) => id + 1);
         } else if (
           eventName === "error" &&
-          (data as { message?: string }).message === "인증에 실패했습니다"
+          (data as { message?: string }).message === AUTH_FAILED_MESSAGE
         ) {
-          authRejected = true; // 같은 토큰으로 재시도해도 소용없고 alert만 반복된다
+          // 일시적인 검증 실패일 수 있으니 재연결 유예 안에서는 조용히 다시 시도한다
+          authFailures += 1;
+          if (authFailures <= MAX_AUTH_RETRIES) return;
+          authRejected = true; // 계속 실패하면 같은 토큰으로 재시도해도 alert만 반복된다
         }
         listenersRef.current.forEach((listener) => listener(eventName, data));
       };
@@ -123,6 +130,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     const reconnectNow = () => {
       if (document.visibilityState !== "visible") return;
       authRejected = false;
+      authFailures = 0;
       attempts = 0;
       void connect();
     };

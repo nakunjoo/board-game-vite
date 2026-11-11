@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useWebSocket } from "../../../contexts/WebSocketContext";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -47,7 +47,10 @@ const ROOM_ACCESS_LOST_ERRORS = [
   "방이 존재하지 않습니다",
   "이미 게임이 시작된 방입니다",
   "비밀번호가 일치하지 않습니다",
+  "인증에 실패했습니다",
 ];
+
+const MAX_SAVED_MESSAGES = 100;
 
 export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const silentErrors = options.silentErrors;
@@ -64,7 +67,51 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const location = useLocation();
   const locationState = location.state as LocationState | null;
 
-  const [messages, setMessages] = useState<ChatMessageData[]>([]);
+  // 새로고침 감지: performance API로 실제 reload 여부 확인
+  // location.state는 브라우저 History API에 의해 새로고침 후에도 유지되므로
+  // !locationState 만으로는 새로고침 감지가 불가능함
+  const isRefresh = (() => {
+    const navEntry = performance.getEntriesByType(
+      "navigation"
+    )[0] as PerformanceNavigationTiming | undefined;
+    return navEntry?.type === "reload" || !locationState;
+  })();
+
+  // 이 방에 입장 처리된 연결. 로비에서 들어왔으면 지금 소켓은 이미 입장한 상태다.
+  // 연결이 새로 맺어지면(새로고침, 끊긴 뒤 재연결) connectionId가 달라져 다시 joinRoom을 보낸다
+  const joinedConnectionRef = useRef(isRefresh ? 0 : connectionId);
+  // 서버가 roomJoined로 입장을 확인해 준 연결. 현재 연결과 다르면 아직 복원 중이다
+  const [confirmedConnection, setConfirmedConnection] = useState(isRefresh ? -1 : connectionId);
+
+  const chatStorageKey = `chat:${roomName}`;
+  const [messages, setMessages] = useState<ChatMessageData[]>(() => {
+    if (!isRefresh) return [];
+    try {
+      return JSON.parse(sessionStorage.getItem(chatStorageKey) ?? "[]") as ChatMessageData[];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(chatStorageKey, JSON.stringify(messages.slice(-MAX_SAVED_MESSAGES)));
+    } catch {
+      // 저장 공간이 부족하면 새로고침 때 채팅만 비워진다
+    }
+  }, [chatStorageKey, messages]);
+
+  // 닫은 결과창이 재연결·새로고침으로 다시 열리지 않게 한다 (새 판이 시작되면 초기화)
+  const resultDismissedKey = `result-dismissed:${roomName}`;
+  const resultDismissedRef = useRef(sessionStorage.getItem(resultDismissedKey) === "1");
+  const setResultDismissed = useCallback(
+    (dismissed: boolean) => {
+      resultDismissedRef.current = dismissed;
+      if (dismissed) sessionStorage.setItem(resultDismissedKey, "1");
+      else sessionStorage.removeItem(resultDismissedKey);
+    },
+    [resultDismissedKey],
+  );
+
   const [inputMessage, setInputMessage] = useState("");
   const [memberCount, setMemberCount] = useState(locationState?.memberCount ?? 0);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -131,6 +178,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
             hostNickname?: string;
           };
           if (joinData.name === roomName) {
+            setConfirmedConnection(joinedConnectionRef.current);
             if (joinData.gameType) setGameConfig(getGameConfig(joinData.gameType));
             if (joinData.memberCount) setMemberCount(joinData.memberCount);
             if (joinData.players) {
@@ -272,19 +320,6 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     return unsubscribe;
   }, [subscribe, roomName, navigate, playerId, isChatOpen]);
 
-  // 새로고침 감지: performance API로 실제 reload 여부 확인
-  // location.state는 브라우저 History API에 의해 새로고침 후에도 유지되므로
-  // !locationState 만으로는 새로고침 감지가 불가능함
-  const isRefresh = (() => {
-    const navEntry = performance.getEntriesByType(
-      "navigation"
-    )[0] as PerformanceNavigationTiming | undefined;
-    return navEntry?.type === "reload" || !locationState;
-  })();
-
-  // 이 방에 입장 처리된 연결. 로비에서 들어왔으면 지금 소켓은 이미 입장한 상태다.
-  // 연결이 새로 맺어지면(새로고침, 끊긴 뒤 재연결) connectionId가 달라져 다시 joinRoom을 보낸다
-  const joinedConnectionRef = useRef(isRefresh ? 0 : connectionId);
   useEffect(() => {
     if (!connected || !roomName || connectionId === 0) return;
     if (joinedConnectionRef.current === connectionId) return;
@@ -306,6 +341,8 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     if (roomName) {
       send("leaveRoom", { name: roomName });
       sessionStorage.removeItem(`joined:${roomName}`);
+      sessionStorage.removeItem(chatStorageKey);
+      sessionStorage.removeItem(resultDismissedKey);
       // 끊긴 상태면 roomLeft가 오지 않는다. 서버는 유예 시간 뒤 알아서 내보낸다
       if (!connected) navigate("/", { replace: true });
     }
@@ -332,6 +369,9 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     playerId,
     nickname,
     connected,
+    reconnecting: !connected || confirmedConnection !== connectionId,
+    resultDismissedRef,
+    setResultDismissed,
     send,
     subscribe,
     gameConfig,

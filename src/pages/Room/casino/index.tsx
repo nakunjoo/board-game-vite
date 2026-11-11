@@ -60,6 +60,9 @@ const SILENT_ERRORS = ["게임이 진행 중이지 않습니다", "유효하지 
 export default function CasinoRoom() {
   const { isAdmin } = useAuth();
   const {
+    reconnecting,
+    resultDismissedRef,
+    setResultDismissed,
     entryState,
     roomName,
     playerId,
@@ -97,9 +100,8 @@ export default function CasinoRoom() {
   const [deltaFlashes, setDeltaFlashes] = useState<{ id: number; value: number }[]>([]);
   const deltaIdRef = useRef(0);
   const [gameOverData, setGameOverData] = useState<CasinoGameOverData | null>(null);
-  // 닫은 결과창이 재연결 때 다시 열리지 않게 한다 (새 판이 시작되면 초기화)
-  const resultDismissedRef = useRef(false);
   const entryAppliedRef = useRef(false);
+  const firstJoinRef = useRef(true);
 
   // 타이머 참조 (게임 시작 시각 기반 로컬 카운트다운)
   const timerStartRef = useRef<number | null>(null);
@@ -147,8 +149,16 @@ export default function CasinoRoom() {
       casinoAllHistories?: Record<string, { t: number; b: number }[]>;
       casinoVotes?: string[];
       casinoLastResult?: CasinoGameOverData;
+      casinoPendingStake?: number;
     }) => {
       setRoomJoinedReceived(true);
+      // 판 결과는 브라우저가 만들기 때문에 새로고침하면 진행 중이던 판을 이어갈 수 없다
+      if (firstJoinRef.current && d.casinoPendingStake) {
+        alert(
+          `새로고침으로 진행 중이던 판이 중단됐습니다.\n베팅금 ${d.casinoPendingStake.toLocaleString()}원은 이대로 게임이 끝나면 환불되지만, 다른 미니게임을 시작하면 돌려받을 수 없습니다.`,
+        );
+      }
+      firstJoinRef.current = false;
       // 끊겨 있는 동안 게임이 끝났으면 허브에 남지 않고 결과로 돌아간다
       if (d.name === roomName && !d.casinoStarted) {
         setGameStarted(false);
@@ -223,7 +233,7 @@ export default function CasinoRoom() {
           );
           setCurrentGame(null);
           setTotalLoan(0);
-          resultDismissedRef.current = false;
+          setResultDismissed(false);
           setGameOver(false);
           setGameOverData(null);
 setMessages((prev) => [
@@ -299,7 +309,7 @@ setMessages((prev) => [
     });
 
     return unsubscribe;
-  }, [subscribe, roomName, playerId, setMessages, entryState]);
+  }, [subscribe, roomName, playerId, setMessages, entryState, resultDismissedRef, setResultDismissed]);
 
   // ── 핸들러 ──────────────────────────────────────────────────────────
   const handleStart = (timeLimit: number | null, balance: number) => {
@@ -438,6 +448,7 @@ setMessages((prev) => [
 
   return (
     <RoomLayout
+      reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
       memberCount={memberCount}
@@ -509,7 +520,7 @@ setMessages((prev) => [
           result={gameOverData}
           myPlayerId={playerId}
           onClose={() => {
-            resultDismissedRef.current = true;
+            setResultDismissed(true);
             setGameOver(false);
             setGameOverData(null);
           }}

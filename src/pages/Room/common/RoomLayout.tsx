@@ -67,6 +67,8 @@ interface Props {
   children: ReactNode;
   // 모달 (헬프 모달 등, 게임 영역 바깥에 렌더링)
   modals?: ReactNode;
+  // 서버 입장 확인 전 (새로고침·재연결). 복원 전 화면을 조작하지 못하게 가린다
+  reconnecting?: boolean;
   // 음성 통화 (선택)
   send?: (event: string, data: unknown) => void;
   subscribe?: (handler: (event: string, data: unknown) => void) => () => void;
@@ -91,6 +93,7 @@ export default function RoomLayout({
   onCloseChat,
   children,
   modals,
+  reconnecting = false,
   send,
   subscribe,
   playerId,
@@ -377,6 +380,19 @@ export default function RoomLayout({
       )}
 
       {modals}
+
+      {reconnecting && (
+        <div
+          role="status"
+          style={{
+            position: "fixed", top: 52, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.75)", color: "#e0e0e0", fontSize: "1rem",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9500,
+          }}
+        >
+          연결 중...
+        </div>
+      )}
 
       {showLeaveConfirm && (
         <div

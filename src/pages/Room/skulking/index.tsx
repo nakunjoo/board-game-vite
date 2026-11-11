@@ -23,6 +23,9 @@ const SILENT_ERRORS = ["지금 카드 낼 차례가 아닙니다"];
 
 export default function SkulkingRoom() {
   const {
+    reconnecting,
+    resultDismissedRef,
+    setResultDismissed,
     roomName,
     playerId,
     send,
@@ -49,7 +52,6 @@ export default function SkulkingRoom() {
   } = useRoomBase({ silentErrors: SILENT_ERRORS });
   const { isAdmin } = useAuth();
   const trickCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resultDismissedRef = useRef(false);
 
   const addGameLog = (message: string) => {
     setMessages((prev) => [...prev, { message, isSystem: true }]);
@@ -134,6 +136,7 @@ export default function SkulkingRoom() {
   const [roundEndCountdown, setRoundEndCountdown] = useState<number | null>(
     null,
   );
+  const roundEndTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
   const [trickKey, setTrickKey] = useState(0);
   const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<
@@ -163,11 +166,27 @@ export default function SkulkingRoom() {
   const [firstDrawCount, setFirstDrawCount] = useState(0);
 
   useEffect(() => {
+    const startRoundEndCountdown = (seconds: number) => {
+      if (roundEndTickRef.current) clearInterval(roundEndTickRef.current);
+      const deadline = Date.now() + seconds * 1000;
+      setRoundEndCountdown(seconds);
+      roundEndTickRef.current = setInterval(() => {
+        const left = Math.ceil((deadline - Date.now()) / 1000);
+        if (left > 0) {
+          setRoundEndCountdown(left);
+          return;
+        }
+        if (roundEndTickRef.current) clearInterval(roundEndTickRef.current);
+        setRoundEndCountdown(null);
+      }, 250);
+    };
+
     const unsubscribe = subscribe((event, data) => {
       switch (event) {
         case "roomCreated":
         case "roomJoined": {
           const d = data as {
+            skulkingNextRoundTimeLeft?: number | null;
             name?: string;
             myHand?: Card[];
             playerHands?: PlayerHand[];
@@ -195,6 +214,7 @@ export default function SkulkingRoom() {
             skulkingGameOverResult?: GameOverResult;
           };
           if (d.name !== roomName) break;
+          if (d.skulkingNextRoundTimeLeft) startRoundEndCountdown(d.skulkingNextRoundTimeLeft);
           // 서버가 결과를 주지 않으면 끊긴 사이 재시작됐거나 그 판 참가자가 아니다
           // (이미 닫은 결과창은 재연결로 다시 열지 않는다)
           {
@@ -275,7 +295,7 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingFirstDrawStarted": {
-          resultDismissedRef.current = false;
+          setResultDismissed(false);
           setShowGameOver(false);
           setGameOverResult(null);
           setGameOver(false);
@@ -428,16 +448,7 @@ export default function SkulkingRoom() {
             setTimeout(() => {
               setCurrentTrick([]);
               setTrickWinnerId(null);
-              setRoundEndCountdown(5);
-              const tick = setInterval(() => {
-                setRoundEndCountdown((c) => {
-                  if (c === null || c <= 1) {
-                    clearInterval(tick);
-                    return null;
-                  }
-                  return c - 1;
-                });
-              }, 1000);
+              startRoundEndCountdown(5);
             }, 3000);
           } else {
             setCurrentTrick([]);
@@ -496,6 +507,7 @@ export default function SkulkingRoom() {
 
   return (
     <RoomLayout
+      reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
       memberCount={memberCount}
@@ -587,7 +599,7 @@ export default function SkulkingRoom() {
           isHost={isHost}
           onRestart={handleStartGame}
           onClose={() => {
-            resultDismissedRef.current = true;
+            setResultDismissed(true);
             setShowGameOver(false);
             setGameOver(false);
           }}
