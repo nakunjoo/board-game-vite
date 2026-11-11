@@ -64,6 +64,10 @@ export default function SpiceChallengeOverlay({
           flexDirection: "column",
           alignItems: "center",
           gap: "16px",
+          // 휴대폰에서는 게임판 가운데의 선언·더미 카드가 바로 뒤에 겹쳐 비친다
+          padding: "16px 20px",
+          borderRadius: "16px",
+          background: "rgba(10, 30, 20, 0.92)",
         }}
       >
         {/* 상태 레이블 */}

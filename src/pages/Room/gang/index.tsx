@@ -26,6 +26,7 @@ export default function GangRoom() {
     memberCount,
     isHost,
     messages,
+    setMessages,
     inputMessage,
     setInputMessage,
     isChatOpen,
@@ -266,6 +267,30 @@ export default function GangRoom() {
           }
           break;
         }
+        case "gangGameCancelled": {
+          if ((data as { roomName: string }).roomName === roomName) {
+            setGameStarted(false);
+            setGameFinished(false);
+            setShowResults(false);
+            setPlayerResults([]);
+            setGameOver(false);
+            setGameOverResult(null);
+            setMyHand([]);
+            setOpenCards([]);
+            setChips([]);
+            setPreviousChips({});
+            setReadyPlayers([]);
+            setIsReady(false);
+            setNextRoundReadyPlayers([]);
+            setIsNextRoundReady(false);
+            setWinLossRecord({});
+            setMessages((prev) => [
+              ...prev,
+              { message: "혼자 남아 게임이 종료되었습니다. 다른 플레이어를 기다려 주세요.", isSystem: true },
+            ]);
+          }
+          break;
+        }
         case "nextRoundReadyUpdate": {
           const nextRoundData = data as { roomName: string; readyPlayers: string[]; allReady: boolean };
           if (nextRoundData.roomName === roomName) {
@@ -280,7 +305,7 @@ export default function GangRoom() {
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, playerId, nickname, players, isReady]);
+  }, [subscribe, roomName, playerId, nickname, players, isReady, setMessages]);
 
   const myHandRank: HandResult | null =
     myHand.length > 0 ? evaluateHand(myHand, openCards) : null;
