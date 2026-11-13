@@ -2,7 +2,7 @@ import type { GameConfig } from "../../types/game";
 
 export const DRAWING_CONFIG: GameConfig = {
   gameType: "drawing",
-  displayName: "그림 맞히기",
+  displayName: "끄적끄적",
   minPlayers: 3,
   maxPlayers: 6,
 };

@@ -240,7 +240,7 @@ export default function DrawingRoom() {
           setGameOver(null);
           model.reset([]);
           setResultDismissed(false);
-          addLog({ tone: "system", text: `🎨 그림 맞히기 시작! (${e.totalRounds}바퀴)` });
+          addLog({ tone: "system", text: `🎨 끄적끄적 시작! (${e.totalRounds}바퀴)` });
           break;
         }
         case "drawingTurn": {

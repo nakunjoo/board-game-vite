@@ -16,7 +16,7 @@ export default function DrawingHelpModal({ isOpen, onClose }: Props) {
   return (
     <ModalOverlay onClick={onClose}>
       <ModalBox onClick={(e) => e.stopPropagation()}>
-        <ModalTitle>🎨 그림 맞히기 규칙</ModalTitle>
+        <ModalTitle>🎨 끄적끄적 규칙</ModalTitle>
         <HelpSection>
           <h3>진행</h3>
           <ul>

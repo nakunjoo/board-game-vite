@@ -101,7 +101,7 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   spice: "향신료",
   skulking: "스컬킹",
   casino: "카지노",
-  drawing: "그림 맞히기",
+  drawing: "끄적끄적",
   minesweeper: "지뢰찾기",
   "slide-puzzle": "슬라이드 퍼즐",
 };

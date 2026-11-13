@@ -24,7 +24,7 @@ export default function DrawingSetupModal({ isHost, memberCount, onStart }: Prop
 
   return (
     <SetupPanel>
-        <ModalTitle>🎨 그림 맞히기</ModalTitle>
+        <ModalTitle>🎨 끄적끄적</ModalTitle>
         {isHost ? (
           <>
             <div>

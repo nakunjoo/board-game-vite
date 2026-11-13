@@ -183,7 +183,7 @@ export default function DrawingGameBoard(props: Props) {
             )}
           </>
         ) : (
-          "그림 맞히기"
+          "끄적끄적"
         )}
       </TopInfo>
       {isDrawer && phase === "draw" && word ? (
