@@ -13,7 +13,8 @@ export interface Stroke {
 }
 
 /** guess: 그리기 시간이 끝난 뒤 맞히기만 하는 30초 */
-export type DrawingPhase = "waiting" | "firstDraw" | "choose" | "draw" | "guess" | "reveal" | "over";
+/** ready: 뽑힌 제시어를 그리는 사람이 확인하는 3초 */
+export type DrawingPhase = "waiting" | "firstDraw" | "ready" | "draw" | "guess" | "reveal" | "over";
 
 export type DrawingViewMode = "bubble" | "chat";
 
@@ -36,13 +37,12 @@ export interface DrawingRestoreState {
   turnNumber: number;
   totalTurns: number;
   turnOrder: string[];
-  phase: "firstDraw" | "choose" | "draw" | "guess" | "reveal";
+  phase: "firstDraw" | "ready" | "draw" | "guess" | "reveal";
   firstDraw: Record<string, number>;
   firstPlayerId: string | null;
   nextDrawerId: string | null;
   drawerId: string;
   word: string | null;
-  choices: string[] | null;
   hint: (string | null)[];
   strokes: Stroke[];
   guessed: string[];

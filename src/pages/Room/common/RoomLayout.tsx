@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import {
   RoomPage,
   RoomHeader,
@@ -23,18 +23,7 @@ import {
   ChatInput,
   ChatSendButton,
   ToggleButtonStack,
-  VoiceToggleButton,
-  VoiceToggleButtonWrapper,
-  VoiceOverlay,
-  VoicePanel,
-  VoicePanelHeader,
-  VoicePanelCloseButton,
-  VoiceParticipantList,
-  VoiceParticipantItem,
-  VoiceEmptyMessage,
-  VoiceConnectButton,
 } from "../../../styles/chat";
-import { useVoice } from "./useVoice";
 
 interface Message {
   message: string;
@@ -69,16 +58,10 @@ interface Props {
   modals?: ReactNode;
   // 서버 입장 확인 전 (새로고침·재연결). 복원 전 화면을 조작하지 못하게 가린다
   reconnecting?: boolean;
-  // 음성 통화 (선택)
-  send?: (event: string, data: unknown) => void;
-  subscribe?: (handler: (event: string, data: unknown) => void) => () => void;
-  playerId?: string;
   // 채팅을 게임 화면에서 입력하는 게임(그림 맞히기)은 채팅창을 기록 보기 전용으로 쓴다
   chatReadOnly?: boolean;
   // 게임 화면에 채팅 기록이 이미 보이면 채팅 버튼을 숨긴다
   hideChatToggle?: boolean;
-  // 휴대폰에서 오른쪽 아래 음성·채팅 버튼 묶음 위치 (게임 UI와 겹치지 않게)
-  toggleStackStyle?: CSSProperties;
   // 게임이 뒤로가기를 직접 처리하면 true (예: 카지노 미니게임 → 허브). 그때는 나가기 확인창을 띄우지 않는다
   onBack?: () => boolean;
 }
@@ -102,21 +85,10 @@ export default function RoomLayout({
   children,
   modals,
   reconnecting = false,
-  send,
-  subscribe,
-  playerId,
   chatReadOnly = false,
   hideChatToggle = false,
-  toggleStackStyle,
   onBack,
 }: Props) {
-  const voiceEnabled = !!(send && subscribe && playerId && roomName);
-  const voice = useVoice(
-    voiceEnabled
-      ? { send, subscribe, roomName, playerId: playerId! }
-      : { send: () => {}, subscribe: () => () => {}, roomName: "", playerId: "" },
-  );
-
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const showLeaveConfirmRef = useRef(false);
   const isLeavingRef = useRef(false);
@@ -141,7 +113,6 @@ export default function RoomLayout({
 
   const confirmLeave = () => {
     isLeavingRef.current = true;
-    if (voice.isConnected) voice.disconnect();
     // 확인창용으로 넣은 기록을 먼저 빼고, 그게 끝난 뒤(popstate) 나간다.
     // 같이 하면 서버 roomLeft의 로비 이동(replace)이 먼저 처리되고 뒤로가기가 그 뒤에 와서 나간 방 화면이 다시 열렸다
     history.back();
@@ -243,29 +214,7 @@ export default function RoomLayout({
         <GameArea>
           {children}
 
-          <ToggleButtonStack style={toggleStackStyle}>
-            {voiceEnabled && (
-              <VoiceToggleButtonWrapper>
-                <VoiceToggleButton
-                  $active={voice.isConnected}
-                  onClick={() => voice.setIsVoicePanelOpen(!voice.isVoicePanelOpen)}
-                  aria-label="음성 통화"
-                >
-                  {voice.isConnected ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zm-1 3a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V4zm6.5 7.5a5.5 5.5 0 0 1-11 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-1.07A7 7 0 0 0 19 11.5h-1.5z" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
-                    </svg>
-                  )}
-                </VoiceToggleButton>
-              </VoiceToggleButtonWrapper>
-            )}
+          <ToggleButtonStack>
 
             {!hideChatToggle && (
               <ChatToggleButtonWrapper>
@@ -337,82 +286,6 @@ export default function RoomLayout({
         </ChatArea>
       </RoomContent>
 
-      {voiceEnabled && (
-        <>
-          <VoiceOverlay
-            $isOpen={voice.isVoicePanelOpen}
-            onClick={() => voice.setIsVoicePanelOpen(false)}
-          />
-          <VoicePanel $isOpen={voice.isVoicePanelOpen}>
-            <VoicePanelHeader>
-              <span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-                음성 통화
-                {voice.voiceParticipants.length > 0 && (
-                  <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: 400 }}>
-                    ({voice.voiceParticipants.length}명 참여 중)
-                  </span>
-                )}
-              </span>
-              <VoicePanelCloseButton onClick={() => voice.setIsVoicePanelOpen(false)}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </VoicePanelCloseButton>
-            </VoicePanelHeader>
-
-            <VoiceParticipantList>
-              {voice.voiceParticipants.length === 0 ? (
-                <VoiceEmptyMessage>아직 통화 참여자가 없습니다.</VoiceEmptyMessage>
-              ) : (
-                voice.voiceParticipants.map((p) => (
-                  <VoiceParticipantItem key={p.playerId} $isSpeaking={p.isSpeaking}>
-                    <div className="avatar">{p.nickname.charAt(0).toUpperCase()}</div>
-                    <span className="name">{p.nickname}</span>
-                    <span className="mic-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                    </span>
-                  </VoiceParticipantItem>
-                ))
-              )}
-            </VoiceParticipantList>
-
-            <VoiceConnectButton
-              $connected={voice.isConnected}
-              onClick={voice.isConnected ? voice.disconnect : voice.connect}
-            >
-              {voice.isConnected ? (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                    <path d="M16.5 16.5L21 21M9 15H3l3-3m0 0a6 6 0 0 1 12 0m-3 3h6l-3-3" />
-                  </svg>
-                  연결 끊기
-                </>
-              ) : (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
-                  연결하기
-                </>
-              )}
-            </VoiceConnectButton>
-          </VoicePanel>
-        </>
-      )}
 
       {modals}
 

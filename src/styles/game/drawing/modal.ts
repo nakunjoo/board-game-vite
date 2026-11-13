@@ -90,23 +90,6 @@ export const ModalNote = styled.p`
   line-height: 1.5;
 `;
 
-export const ChoiceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-export const ChoiceButton = styled.button`
-  height: 48px;
-  border-radius: 8px;
-  border: 1px solid rgba(241, 196, 15, 0.5);
-  background: rgba(241, 196, 15, 0.12);
-  color: #fff;
-  font-size: 1.15rem;
-  font-weight: 700;
-  cursor: pointer;
-`;
-
 export const RankTable = styled.div`
   display: flex;
   flex-direction: column;

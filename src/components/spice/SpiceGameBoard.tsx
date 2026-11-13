@@ -1214,7 +1214,7 @@ export default function SpiceGameBoard({
             const angle = -spreadAngle / 2 + angleStep * i;
             const handWidth = Math.min(window.innerWidth, 900) * 0.8 - 70;
             const overlapOffset = Math.min(44, handWidth / Math.max(total - 1, 1));
-            // 휴대폰에서는 우측 하단의 마이크·채팅 버튼에 가리지 않게 왼쪽으로 민다
+            // 휴대폰에서는 우측 하단의 채팅 버튼에 가리지 않게 왼쪽으로 민다
             const floatingButtonShift = window.innerWidth <= 768 ? -14 : 0;
             const xOffset = (i - (total - 1) / 2) * overlapOffset + floatingButtonShift;
             return (

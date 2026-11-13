@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode, RefObject } from "react";
 import DrawingCanvas from "./game/DrawingCanvas";
+import DrawingWordRoulette from "./game/DrawingWordRoulette";
 import type { DrawingCanvasHandle } from "./game/DrawingCanvas";
 import type { DrawingModel } from "./game/drawingModel";
 import type { DrawingBubble, DrawingPhase, DrawingSeat, DrawingViewMode, StrokeOp } from "./types";
@@ -24,7 +25,6 @@ import {
   CanvasOverlay,
   RevealWord,
   RevealBanner,
-  DrawerNote,
   GainList,
   Toast,
   HintLetters,
@@ -52,7 +52,7 @@ import {
 
 export interface DrawingLogEntry {
   key: number;
-  tone: "chat" | "system" | "success" | "close" | "insider";
+  tone: "chat" | "system" | "success" | "insider";
   nickname?: string;
   color?: string;
   text: string;
@@ -89,7 +89,7 @@ interface Props {
   onInputChange: (v: string) => void;
   onSubmit: () => void;
   iGuessed: boolean;
-  /** 휴대폰에서 오른쪽 아래 음성·채팅 버튼이 차지하는 폭 */
+  /** 휴대폰에서 오른쪽 아래 채팅 버튼이 차지하는 폭 */
   reserveRight: number;
   /** 시작 전 그림판 위에 띄울 설정·대기 안내 */
   waitingPanel?: ReactNode;
@@ -97,6 +97,8 @@ interface Props {
   firstDrawPanel?: ReactNode;
   /** 가로로 넓은 휴대폰·태블릿 화면 (말풍선 없이 채팅 기록을 옆에) */
   wide: boolean;
+  /** 제시어 뽑기(ready)가 끝나는 시각 — 룰렛 길이를 맞춘다 */
+  readyDeadline: number | null;
 }
 
 /** 맞히는 사람에게 보이는 힌트: 가린 글자는 _, 공개된 초성·글자는 그대로 */
@@ -148,15 +150,21 @@ export default function DrawingGameBoard(props: Props) {
     waitingPanel,
     firstDrawPanel,
     wide,
+    readyDeadline,
   } = props;
 
   const [color, setColor] = useState(DRAWING_COLORS[0]);
   const [size, setSize] = useState(DRAWING_SIZES[1]);
   const [eraser, setEraser] = useState(false);
+  // 그리는 사람이 그리다가 맞히는 화면을 보고 있는 턴 (턴이 바뀌면 자동으로 그리기 화면)
+  const [watchTurn, setWatchTurn] = useState<number | null>(null);
+  const watching = watchTurn === turnNumber;
   const logRef = useRef<HTMLDivElement>(null);
 
-  const drawing = isDrawer && phase === "draw";
-  const showChatLog = wide || (!isDrawer && viewMode === "chat");
+  // 그리기 도구 화면: 그리는 시간에만. 맞히기 시간·정답 공개에는 그리는 사람도 맞히는 화면을 본다
+  const toolsView = isDrawer && phase === "draw" && !watching;
+  const drawing = toolsView;
+  const showChatLog = wide || (!toolsView && viewMode === "chat");
 
   useEffect(() => {
     const el = logRef.current;
@@ -168,7 +176,7 @@ export default function DrawingGameBoard(props: Props) {
     onSubmit();
   };
 
-  const inGame = phase === "choose" || phase === "draw" || phase === "guess" || phase === "reveal";
+  const inGame = phase === "ready" || phase === "draw" || phase === "guess" || phase === "reveal";
   const guessing = phase === "draw" || phase === "guess";
   const urgent = guessing && secondsLeft <= 10;
   const time = (
@@ -195,10 +203,16 @@ export default function DrawingGameBoard(props: Props) {
           "끄적끄적"
         )}
       </TopInfo>
-      {!isDrawer && !wide && (
-        <ModeToggle type="button" onClick={onToggleMode}>
-          {viewMode === "bubble" ? "💬 채팅창 모드" : "🗨️ 말풍선 모드"}
+      {isDrawer && phase === "draw" ? (
+        <ModeToggle type="button" onClick={() => setWatchTurn(watching ? null : turnNumber)}>
+          {watching ? "✏️ 그리기" : "👀 맞히는 화면"}
         </ModeToggle>
+      ) : (
+        !wide && (
+          <ModeToggle type="button" onClick={onToggleMode}>
+            {viewMode === "bubble" ? "💬 채팅창 모드" : "🗨️ 말풍선 모드"}
+          </ModeToggle>
+        )
       )}
     </TopBar>
   );
@@ -232,7 +246,7 @@ export default function DrawingGameBoard(props: Props) {
           {seat.isDrawer && "✏️"}
           {seat.guessed && "✓"}
           {seat.nickname}
-          {!isDrawer && ` ${seat.score}`}
+          {!toolsView && ` ${seat.score}`}
           {seat.away && <AwayIcon>⚠︎</AwayIcon>}
         </Chip>
       ))}
@@ -242,9 +256,17 @@ export default function DrawingGameBoard(props: Props) {
   const overlay = (
     <>
       {(phase === "waiting" || phase === "over") && waitingPanel && <CanvasOverlay>{waitingPanel}</CanvasOverlay>}
-      {phase === "choose" && !isDrawer && (
+      {phase === "ready" && (
         <CanvasOverlay>
-          <span>✏️ {drawerNickname}님이 제시어를 고르는 중…</span>
+          <DrawingWordRoulette
+            key={turnNumber}
+            word={isDrawer ? word : null}
+            drawerNickname={drawerNickname}
+            deadline={readyDeadline}
+          />
+          <span>
+            <TimeText>{secondsLeft}초</TimeText> 뒤 그리기 시작
+          </span>
         </CanvasOverlay>
       )}
       {phase === "firstDraw" && firstDrawPanel && <CanvasOverlay>{firstDrawPanel}</CanvasOverlay>}
@@ -288,20 +310,9 @@ export default function DrawingGameBoard(props: Props) {
     </DrawingCanvas>
   );
 
-  const drawerInGame = isDrawer && inGame;
+  const drawerInGame = toolsView;
 
-  const drawerTools =
-    phase !== "draw" ? (
-      <ToolRow $reserve={reserveRight}>
-        <DrawerNote>
-          {phase === "guess"
-            ? "그리기 시간이 끝났어요. 다른 사람들이 맞히는 중…"
-            : phase === "reveal"
-              ? "곧 다음 그림이 시작돼요"
-              : "제시어를 고르세요"}
-        </DrawerNote>
-      </ToolRow>
-    ) : (
+  const drawerTools = (
       <>
         <ColorRow>
           {DRAWING_COLORS.map((c) => (
@@ -360,7 +371,15 @@ export default function DrawingGameBoard(props: Props) {
       <GuessInput
         value={input}
         onChange={(e) => onInputChange(e.target.value)}
-        placeholder={guessing ? (iGuessed ? "맞힌 사람끼리만 보여요" : "정답 또는 채팅") : "채팅"}
+        placeholder={
+          isDrawer && guessing
+            ? "채팅 (정답은 말할 수 없어요)"
+            : guessing
+              ? iGuessed
+                ? "맞힌 사람끼리만 보여요"
+                : "정답 또는 채팅"
+              : "채팅"
+        }
         maxLength={100}
         enterKeyHint="send"
         autoComplete="off"

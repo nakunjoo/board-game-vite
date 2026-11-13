@@ -264,6 +264,26 @@ export const DrawerNote = styled.div`
   text-align: center;
 `;
 
+const rouletteStop = keyframes`
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+`;
+
+/** 제시어 룰렛: 돌 때는 흐리게, 멈추면 노랗게 튀어나온다 */
+export const RouletteWord = styled.div<{ $done: boolean }>`
+  min-width: 140px;
+  padding: 6px 16px;
+  border-radius: 10px;
+  border: 2px solid ${({ $done }) => ($done ? "#f1c40f" : "rgba(255, 255, 255, 0.35)")};
+  background: ${({ $done }) => ($done ? "rgba(241, 196, 15, 0.18)" : "rgba(255, 255, 255, 0.08)")};
+  color: ${({ $done }) => ($done ? "#f1c40f" : "#ddd")};
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-align: center;
+  animation: ${({ $done }) => ($done ? css`${rouletteStop} 0.35s ease-out` : "none")};
+`;
+
 export const GainList = styled.div`
   display: flex;
   flex-direction: column;
@@ -302,7 +322,7 @@ export const HintLetters = styled.span`
 
 // ── 입력·기록 ──────────────────────────────────────────────
 
-/** 휴대폰에서 오른쪽 아래 음성·채팅 버튼 자리를 비워 둔다 */
+/** 휴대폰에서 오른쪽 아래 채팅 버튼 자리를 비워 둔다 */
 const reserveRight = ($reserve: number) => css`
   ${MOBILE} {
     padding-right: ${$reserve}px;
@@ -358,9 +378,9 @@ export const ChatLog = styled.div<{ $fill?: boolean }>`
   overscroll-behavior: contain;
 `;
 
-export const LogLine = styled.div<{ $tone?: "system" | "success" | "close" | "insider" }>`
+export const LogLine = styled.div<{ $tone?: "system" | "success" | "insider" }>`
   color: ${({ $tone }) =>
-    $tone === "system" ? "#999" : $tone === "success" ? "#2ecc71" : $tone === "close" ? "#f1c40f" : $tone === "insider" ? "#c8c0ff" : "#e0e0e0"};
+    $tone === "system" ? "#999" : $tone === "success" ? "#2ecc71" : $tone === "insider" ? "#c8c0ff" : "#e0e0e0"};
   word-break: break-all;
 
   b {

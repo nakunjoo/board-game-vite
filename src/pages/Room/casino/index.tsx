@@ -464,9 +464,6 @@ setMessages((prev) => [
       onHelp={() => setShowHelpModal(true)}
       onLeave={leaveRoom}
       onBack={() => currentGameRef.current !== null}
-      send={send}
-      subscribe={subscribe}
-      playerId={playerId}
       messages={messages}
       inputMessage={inputMessage}
       isChatOpen={isChatOpen}

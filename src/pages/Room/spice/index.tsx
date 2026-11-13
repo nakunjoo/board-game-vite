@@ -644,9 +644,6 @@ export default function SpiceRoom() {
       }}
       onHelp={() => setShowHelpModal(true)}
       onLeave={leaveRoom}
-      send={send}
-      subscribe={subscribe}
-      playerId={playerId}
       messages={messages}
       inputMessage={inputMessage}
       isChatOpen={isChatOpen}

@@ -5,7 +5,6 @@ import DrawingGameBoard from "../../../components/drawing/DrawingGameBoard";
 import type { DrawingLogEntry, DrawingReveal } from "../../../components/drawing/DrawingGameBoard";
 import DrawingHelpModal from "../../../components/drawing/DrawingHelpModal";
 import DrawingSetupModal from "../../../components/drawing/game/DrawingSetupModal";
-import DrawingChoiceModal from "../../../components/drawing/game/DrawingChoiceModal";
 import DrawingResultModal from "../../../components/drawing/game/DrawingResultModal";
 import DrawingFirstDrawPanel from "../../../components/drawing/game/DrawingFirstDrawPanel";
 import type { DrawingCanvasHandle } from "../../../components/drawing/game/DrawingCanvas";
@@ -22,7 +21,7 @@ import type {
 import { useDeadlineSeconds } from "../../../utils/useDeadlineSeconds";
 import { useMediaQuery } from "../../../utils/useMediaQuery";
 import {
-  DRAWING_CHOOSE_TIME,
+  DRAWING_READY_TIME,
   DRAWING_PLAYER_COLORS,
   DRAWING_VIEW_MODE_KEY,
 } from "../../../utils/games/drawing";
@@ -79,7 +78,6 @@ export default function DrawingRoom() {
   const [turnOrder, setTurnOrder] = useState<string[]>([]);
   const [drawerId, setDrawerId] = useState("");
   const [word, setWord] = useState<string | null>(null);
-  const [choices, setChoices] = useState<string[] | null>(null);
   const [hint, setHint] = useState<(string | null)[]>([]);
   const [guessed, setGuessed] = useState<string[]>([]);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -89,17 +87,34 @@ export default function DrawingRoom() {
   const [gameOver, setGameOver] = useState<DrawingGameOver | null>(null);
   const [bubbles, setBubbles] = useState<Record<string, DrawingBubble>>({});
   const [toast, setToast] = useState<string | null>(null);
-  const [logs, setLogs] = useState<DrawingLogEntry[]>([]);
+  // 게임 화면의 채팅 기록. 새로고침해도 남게 저장한다 (로비에서 새로 들어오면 비운다)
+  const logStorageKey = `drawing-log:${roomName}`;
+  const [logs, setLogs] = useState<DrawingLogEntry[]>(() => {
+    if (entryState) return [];
+    try {
+      return JSON.parse(sessionStorage.getItem(logStorageKey) ?? "[]") as DrawingLogEntry[];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(logStorageKey, JSON.stringify(logs));
+    } catch {
+      // 저장 공간이 부족하면 새로고침 때 기록만 비워진다
+    }
+  }, [logStorageKey, logs]);
   const [input, setInput] = useState("");
   const [viewMode, setViewMode] = useState<DrawingViewMode>(loadViewMode);
   const [model] = useState(() => new DrawingModel());
   const canvasRef = useRef<DrawingCanvasHandle>(null);
-  const keyRef = useRef(0);
+  // 복원한 기록의 key와 겹치지 않게 그다음부터 센다
+  const keyRef = useRef(logs.reduce((max, l) => Math.max(max, l.key), 0));
   const bubbleTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryAppliedRef = useRef(false);
 
-  const secondsLeft = useDeadlineSeconds(deadline, phase === "choose" ? DRAWING_CHOOSE_TIME : 0);
+  const secondsLeft = useDeadlineSeconds(deadline, phase === "ready" ? DRAWING_READY_TIME : 0);
 
   // ── 자리·색 ──────────────────────────────────────────────
 
@@ -125,7 +140,7 @@ export default function DrawingRoom() {
     nicknameOfRef.current = nicknameOf;
   }, [colorOf, nicknameOf]);
 
-  const inGame = phase === "choose" || phase === "draw" || phase === "guess" || phase === "reveal";
+  const inGame = phase === "ready" || phase === "draw" || phase === "guess" || phase === "reveal";
   const seats: DrawingSeat[] = useMemo(
     () =>
       order
@@ -200,7 +215,6 @@ export default function DrawingRoom() {
         setPhase(s.phase);
         setDrawerId(s.drawerId);
         setWord(s.word);
-        setChoices(s.choices);
         setHint(s.hint);
         setGuessed(s.guessed);
         setScores(s.scores);
@@ -284,9 +298,8 @@ export default function DrawingRoom() {
           setTurnNumber(e.turnNumber);
           setTotalTurns(e.totalTurns);
           setDrawerId(e.drawerId);
-          setPhase("choose");
+          setPhase("ready");
           setWord(null);
-          setChoices(null);
           setHint([]);
           setGuessed([]);
           setReveal(null);
@@ -295,13 +308,9 @@ export default function DrawingRoom() {
           addLog({ tone: "system", text: `━ ${e.drawerNickname}님 차례 (${e.turnNumber}/${e.totalTurns}) ━` });
           break;
         }
-        case "drawingChoices":
-          setChoices((data as { choices: string[] }).choices);
-          break;
         case "drawingDrawStart": {
           const e = data as { hint: (string | null)[]; timeLimitMs: number };
           setPhase("draw");
-          setChoices(null);
           setHint(e.hint);
           setDeadline(Date.now() + e.timeLimitMs);
           break;
@@ -346,12 +355,9 @@ export default function DrawingRoom() {
           showToast(mine ? `정답! +${e.gained}점` : `${e.nickname}님 정답!`);
           break;
         }
-        case "drawingClose": {
-          const text = (data as { text: string }).text;
-          addLog({ tone: "close", text: `거의 맞았어요: ${text}` });
-          showToast(`거의 맞았어요! (${text})`);
+        case "drawingAnswerOnly":
+          showToast("정답만 입력해야 인정돼요");
           break;
-        }
         case "drawingBlocked":
           showToast("정답이 들어간 말은 보낼 수 없어요");
           break;
@@ -463,9 +469,6 @@ export default function DrawingRoom() {
       }}
       onHelp={() => setShowHelpModal(true)}
       onLeave={leaveRoom}
-      send={send}
-      subscribe={subscribe}
-      playerId={playerId}
       messages={messages}
       inputMessage=""
       isChatOpen={isChatOpen}
@@ -480,7 +483,6 @@ export default function DrawingRoom() {
       onCloseChat={() => setIsChatOpen(false)}
       chatReadOnly
       hideChatToggle={hideChatToggle}
-      toggleStackStyle={{ flexDirection: "row" }}
       modals={<DrawingHelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />}
     >
       <DrawingGameBoard
@@ -506,8 +508,9 @@ export default function DrawingRoom() {
         onInputChange={setInput}
         onSubmit={handleSubmit}
         iGuessed={iGuessed}
-        reserveRight={hideChatToggle ? 48 : 96}
+        reserveRight={hideChatToggle ? 0 : 48}
         wide={wide}
+        readyDeadline={phase === "ready" ? deadline : null}
         firstDrawPanel={
           <DrawingFirstDrawPanel
             seats={seats}
@@ -523,14 +526,6 @@ export default function DrawingRoom() {
           ) : undefined
         }
       />
-
-      {isDrawer && phase === "choose" && choices && (
-        <DrawingChoiceModal
-          choices={choices}
-          secondsLeft={secondsLeft}
-          onChoose={(index) => roomName && send("drawingChoose", { roomName, index })}
-        />
-      )}
 
       {phase === "over" && gameOver && (
         <DrawingResultModal
