@@ -10,6 +10,7 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-11-13 | `Lobby.tsx`: 방 만들기 창의 멀티/싱글 탭을 숨김(`SHOW_SINGLE_GAMES = false`). 싱글 게임 라우트는 그대로 남아 있음 |
 | 2026-11-13 | **백그라운드 복귀 점검(iOS 시뮬레이터, 연결 끊김 재현)** — `utils/useDeadlineSeconds.ts` 신규: 마감 시각 기준 남은 초. Skulking 카드·비드 타이머를 이걸로 교체(`timerDeadline`, 비드 시작·턴 변경·`roomJoined`의 `skulkingTimerTimeLeft`로 설정) — 틱 차감 방식이라 백그라운드 동안 멈춰 복귀 후 서버보다 3~6초 늦게 보였음. 비드 모달의 클라이언트 자동 0 제출 제거(서버가 집행). `WebSocketContext.tsx`: `getSession` 4초 한도(넘으면 마지막 토큰 사용), 소켓 CONNECTING 8초 한도, 화면 복귀 시 멈춘 시도·CONNECTING 소켓을 버리고 새로 연결 — 다른 탭이 열린 상태에서 45초 끊겼다 돌아오면 `연결 중...`에서 영영 멈춰 있었음. `useRoomBase.ts`: 한 번 들어왔던 방에서 재입장이 '이미 게임이 시작된 방'으로 거부되면 "연결이 30초 넘게 끊겨 진행 중인 게임에서 빠졌습니다." 안내 |
 | 2026-11-13 | `skulking/game/SkulkingHandScroller.tsx` 신규: 휴대폰에서 손패가 가로로 넘치면 손패 상자 위쪽 모서리에 `‹ +N` / `+N ›`로 가려진 장수 표시(카드를 덮지 않음, 누르면 그쪽으로 스크롤). 리드 수트를 따라야 하는데 낼 수 있는 카드가 가려진 쪽에만 있으면 노랗게 깜빡임. 카드에 `data-hand-card`·`data-playable` 표시 |
 | 2026-11-11 | `pages/Room/gang/index.tsx`: `gangGameCancelled`(혼자 남음) 수신 시 대기 화면으로 초기화하고 채팅 안내. `SpiceChallengeOverlay.tsx`: 내용 영역에 불투명 배경 — 휴대폰에서 뒤의 선언·더미 카드가 겹쳐 비치던 문제 |

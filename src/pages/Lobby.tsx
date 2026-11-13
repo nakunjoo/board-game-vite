@@ -23,6 +23,9 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
+// 싱글 게임 탭을 잠시 숨긴다 (라우트 /single/* 는 그대로 남아 있음)
+const SHOW_SINGLE_GAMES = false;
+
 const SINGLE_GAMES = [
   { value: "slide-puzzle", label: "슬라이드 퍼즐", icon: "🧩", desc: "타일을 밀어 순서대로 맞추세요" },
   { value: "minesweeper", label: "지뢰찾기", icon: "💣", desc: "지뢰를 피해 모든 칸을 열어보세요" },
@@ -333,10 +336,12 @@ export default function Lobby() {
             <h2>{modalMode === "create" ? "방 만들기" : `${joinTargetRoom} 입장`}</h2>
             {modalMode === "create" && (
               <>
-                <ModalTabs>
-                  <ModalTab $active={createTab === "multi"} onClick={() => setCreateTab("multi")}>멀티</ModalTab>
-                  <ModalTab $active={createTab === "single"} onClick={() => setCreateTab("single")}>싱글</ModalTab>
-                </ModalTabs>
+                {SHOW_SINGLE_GAMES && (
+                  <ModalTabs>
+                    <ModalTab $active={createTab === "multi"} onClick={() => setCreateTab("multi")}>멀티</ModalTab>
+                    <ModalTab $active={createTab === "single"} onClick={() => setCreateTab("single")}>싱글</ModalTab>
+                  </ModalTabs>
+                )}
 
                 {createTab === "multi" && (
                   <>
