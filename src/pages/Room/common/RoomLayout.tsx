@@ -79,6 +79,8 @@ interface Props {
   hideChatToggle?: boolean;
   // 휴대폰에서 오른쪽 아래 음성·채팅 버튼 묶음 위치 (게임 UI와 겹치지 않게)
   toggleStackStyle?: CSSProperties;
+  // 게임이 뒤로가기를 직접 처리하면 true (예: 카지노 미니게임 → 허브). 그때는 나가기 확인창을 띄우지 않는다
+  onBack?: () => boolean;
 }
 
 export default function RoomLayout({
@@ -106,6 +108,7 @@ export default function RoomLayout({
   chatReadOnly = false,
   hideChatToggle = false,
   toggleStackStyle,
+  onBack,
 }: Props) {
   const voiceEnabled = !!(send && subscribe && playerId && roomName);
   const voice = useVoice(
@@ -117,19 +120,34 @@ export default function RoomLayout({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const showLeaveConfirmRef = useRef(false);
   const isLeavingRef = useRef(false);
+  const hasLeftRef = useRef(false);
+  const onLeaveRef = useRef(onLeave);
+  const onBackRef = useRef(onBack);
+  useEffect(() => {
+    onLeaveRef.current = onLeave;
+    onBackRef.current = onBack;
+  }, [onLeave, onBack]);
 
   const closeLeaveConfirm = () => {
     showLeaveConfirmRef.current = false;
     setShowLeaveConfirm(false);
   };
 
+  const leaveOnce = () => {
+    if (hasLeftRef.current) return;
+    hasLeftRef.current = true;
+    onLeaveRef.current();
+  };
+
   const confirmLeave = () => {
     isLeavingRef.current = true;
     if (voice.isConnected) voice.disconnect();
-    // 뒤로가기 차단용으로 추가했던 pushState 엔트리 소비
+    // 확인창용으로 넣은 기록을 먼저 빼고, 그게 끝난 뒤(popstate) 나간다.
+    // 같이 하면 서버 roomLeft의 로비 이동(replace)이 먼저 처리되고 뒤로가기가 그 뒤에 와서 나간 방 화면이 다시 열렸다
     history.back();
-    onLeave();
+    setTimeout(leaveOnce, 500); // popstate가 오지 않는 경우 대비
   };
+
 
   const handleLeave = () => {
     // 나가기 버튼 클릭 시: pushState로 엔트리 추가 후 다이얼로그 표시
@@ -140,7 +158,11 @@ export default function RoomLayout({
 
   useEffect(() => {
     const handlePopState = () => {
-      if (isLeavingRef.current) return;
+      if (isLeavingRef.current) {
+        leaveOnce();
+        return;
+      }
+      if (!showLeaveConfirmRef.current && onBackRef.current?.()) return;
       if (showLeaveConfirmRef.current) {
         // 다이얼로그 열린 상태에서 뒤로가기 = 닫기
         closeLeaveConfirm();

@@ -12,7 +12,8 @@ export interface Stroke {
   points: number[];
 }
 
-export type DrawingPhase = "waiting" | "choose" | "draw" | "reveal" | "over";
+/** guess: 그리기 시간이 끝난 뒤 맞히기만 하는 30초 */
+export type DrawingPhase = "waiting" | "firstDraw" | "choose" | "draw" | "guess" | "reveal" | "over";
 
 export type DrawingViewMode = "bubble" | "chat";
 
@@ -32,9 +33,13 @@ export interface DrawingGameOver {
 export interface DrawingRestoreState {
   totalRounds: number;
   drawTimeSec: number;
-  round: number;
+  turnNumber: number;
+  totalTurns: number;
   turnOrder: string[];
-  phase: "choose" | "draw" | "reveal";
+  phase: "firstDraw" | "choose" | "draw" | "guess" | "reveal";
+  firstDraw: Record<string, number>;
+  firstPlayerId: string | null;
+  nextDrawerId: string | null;
   drawerId: string;
   word: string | null;
   choices: string[] | null;

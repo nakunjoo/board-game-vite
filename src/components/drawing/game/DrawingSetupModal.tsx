@@ -28,7 +28,7 @@ export default function DrawingSetupModal({ isHost, memberCount, onStart }: Prop
         {isHost ? (
           <>
             <div>
-              <ModalLabel>바퀴 수 (모두 한 번씩 그리면 한 바퀴)</ModalLabel>
+              <ModalLabel>바퀴 수 (인원 × 바퀴만큼 그림을 그려요)</ModalLabel>
               <OptionGroup>
                 {DRAWING_ROUND_OPTIONS.map((r) => (
                   <OptionButton key={r} $selected={rounds === r} onClick={() => setRounds(r)}>

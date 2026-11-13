@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation, useNavigationType, useParams } from "react-router-dom";
 import { useWebSocket } from "../../../contexts/WebSocketContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getGameConfig } from "../../../utils/games";
@@ -52,6 +52,12 @@ const ROOM_ACCESS_LOST_ERRORS = [
 
 const MAX_SAVED_MESSAGES = 100;
 
+// 앱을 처음 연 화면의 기록 키. 이 화면으로 처음 열린 방(링크·새로고침)은 뒤로가기로 돌아온 게 아니다
+const BOOT_LOCATION_KEY = (window.history.state as { key?: string } | null)?.key ?? "default";
+// 위 예외는 한 번만. 나간 뒤 뒤로가기로 같은 기록에 다시 오면 뒤로가기로 돌아온 것이다
+let bootEntryUsed = false;
+const inRoomKey = (roomName: string | undefined) => `in-room:${roomName}`;
+
 export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const silentErrors = options.silentErrors;
   const silentErrorsRef = useRef<string[]>(silentErrors ?? []);
@@ -65,6 +71,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const nickname = authNickname ?? user?.email ?? "";
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const locationState = location.state as LocationState | null;
 
   // 새로고침 감지: performance API로 실제 reload 여부 확인
@@ -76,6 +83,31 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     )[0] as PerformanceNavigationTiming | undefined;
     return navEntry?.type === "reload" || !locationState;
   })();
+
+  // 나간 방을 뒤로가기·앞으로가기로 다시 연 경우. 서버에서는 이미 빠졌으므로 화면만 남지 않게 로비로 보낸다.
+  // 방 안에 있는 동안의 기록 이동(나가기 확인창, 카지노 미니게임)은 in-room 표시가 남아 있어 해당하지 않는다
+  const [staleEntry] = useState(() => {
+    const boot = location.key === BOOT_LOCATION_KEY && !bootEntryUsed;
+    bootEntryUsed = true;
+    const stale = navigationType === "POP" && !boot && sessionStorage.getItem(inRoomKey(roomName)) !== "1";
+    // 로비에서 입장한 경우 로비가 이미 서버 입장을 마쳤다
+    if (!stale && !isRefresh) sessionStorage.setItem(inRoomKey(roomName), "1");
+    return stale;
+  });
+  // 뒤로가기 막이 기록을 이 방 화면에서 이미 넣었는지 (개발 모드에서 effect가 두 번 돌아도 한 번만)
+  const guardPushedRef = useRef(false);
+  useEffect(() => {
+    if (staleEntry) {
+      navigate("/", { replace: true });
+      return;
+    }
+    // 방 기록 위에 같은 주소를 하나 더 넣어 둔다. 없으면 뒤로가기가 바로 로비(또는 이전 페이지)로 가서
+    // 확인창 없이 화면만 나가고 서버에는 방에 남는다. 있으면 뒤로가기가 이 방 안에서 끝나 RoomLayout이 확인창을 띄운다
+    if (!guardPushedRef.current) {
+      guardPushedRef.current = true;
+      window.history.pushState(window.history.state, "", window.location.href);
+    }
+  }, [staleEntry, navigate]);
 
   // 이 방에 입장 처리된 연결. 로비에서 들어왔으면 지금 소켓은 이미 입장한 상태다.
   // 연결이 새로 맺어지면(새로고침, 끊긴 뒤 재연결) connectionId가 달라져 다시 joinRoom을 보낸다
@@ -181,6 +213,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
           };
           if (joinData.name === roomName) {
             wasInRoomRef.current = true;
+            sessionStorage.setItem(inRoomKey(roomName), "1");
             setConfirmedConnection(joinedConnectionRef.current);
             if (joinData.gameType) setGameConfig(getGameConfig(joinData.gameType));
             if (joinData.memberCount) setMemberCount(joinData.memberCount);
@@ -296,6 +329,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
           break;
         }
         case "roomLeft":
+          sessionStorage.removeItem(inRoomKey(roomName));
           navigate("/", { replace: true });
           break;
         case "error": {
@@ -311,6 +345,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
           if (ROOM_ACCESS_LOST_ERRORS.some((m) => errorData.message.includes(m))) {
             if (roomName) {
               sessionStorage.removeItem(`joined:${roomName}`);
+              sessionStorage.removeItem(inRoomKey(roomName));
             }
             navigate("/", { replace: true });
           }
@@ -319,6 +354,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
         case "kicked": {
           const kickData = data as { roomName: string; message: string };
           if (kickData.roomName === roomName) {
+            sessionStorage.removeItem(inRoomKey(roomName));
             alert(kickData.message);
             navigate("/", { replace: true });
           }
@@ -330,7 +366,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
   }, [subscribe, roomName, navigate, playerId, isChatOpen]);
 
   useEffect(() => {
-    if (!connected || !roomName || connectionId === 0) return;
+    if (staleEntry || !connected || !roomName || connectionId === 0) return;
     if (joinedConnectionRef.current === connectionId) return;
     // 새로고침 직후 프로필(닉네임)이 도착할 시간을 준다
     const timer = setTimeout(() => {
@@ -338,7 +374,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
       send("joinRoom", { name: roomName, nickname });
     }, 500);
     return () => clearTimeout(timer);
-  }, [connected, connectionId, roomName, send, nickname]);
+  }, [staleEntry, connected, connectionId, roomName, send, nickname]);
 
   const sendMessage = () => {
     if (!inputMessage.trim() || !roomName) return;
@@ -350,6 +386,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
     if (roomName) {
       send("leaveRoom", { name: roomName });
       sessionStorage.removeItem(`joined:${roomName}`);
+      sessionStorage.removeItem(inRoomKey(roomName));
       sessionStorage.removeItem(chatStorageKey);
       sessionStorage.removeItem(resultDismissedKey);
       // 끊긴 상태면 roomLeft가 오지 않는다. 서버는 유예 시간 뒤 알아서 내보낸다

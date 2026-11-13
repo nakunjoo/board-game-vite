@@ -95,6 +95,11 @@ export default function CasinoRoom() {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [players, setPlayers] = useState<CasinoPlayer[]>([]);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
+  // 뒤로가기 순간의 값 (아래 popstate 처리가 바꾸기 전) — RoomLayout이 나가기 확인창을 띄울지 판단한다
+  const currentGameRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentGameRef.current = currentGame;
+  }, [currentGame]);
   const [totalLoan, setTotalLoan] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [deltaFlashes, setDeltaFlashes] = useState<{ id: number; value: number }[]>([]);
@@ -458,6 +463,7 @@ setMessages((prev) => [
       }}
       onHelp={() => setShowHelpModal(true)}
       onLeave={leaveRoom}
+      onBack={() => currentGameRef.current !== null}
       send={send}
       subscribe={subscribe}
       playerId={playerId}

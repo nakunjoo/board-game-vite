@@ -7,6 +7,7 @@ import DrawingHelpModal from "../../../components/drawing/DrawingHelpModal";
 import DrawingSetupModal from "../../../components/drawing/game/DrawingSetupModal";
 import DrawingChoiceModal from "../../../components/drawing/game/DrawingChoiceModal";
 import DrawingResultModal from "../../../components/drawing/game/DrawingResultModal";
+import DrawingFirstDrawPanel from "../../../components/drawing/game/DrawingFirstDrawPanel";
 import type { DrawingCanvasHandle } from "../../../components/drawing/game/DrawingCanvas";
 import { DrawingModel } from "../../../components/drawing/game/drawingModel";
 import type {
@@ -19,6 +20,7 @@ import type {
   StrokeOp,
 } from "../../../components/drawing/types";
 import { useDeadlineSeconds } from "../../../utils/useDeadlineSeconds";
+import { useMediaQuery } from "../../../utils/useMediaQuery";
 import {
   DRAWING_CHOOSE_TIME,
   DRAWING_PLAYER_COLORS,
@@ -70,8 +72,10 @@ export default function DrawingRoom() {
   } = useRoomBase();
 
   const [phase, setPhase] = useState<DrawingPhase>("waiting");
-  const [totalRounds, setTotalRounds] = useState(2);
-  const [round, setRound] = useState(1);
+  const [turnNumber, setTurnNumber] = useState(0);
+  const [totalTurns, setTotalTurns] = useState(0);
+  const [firstDraws, setFirstDraws] = useState<Record<string, number>>({});
+  const [firstPlayerId, setFirstPlayerId] = useState<string | null>(null);
   const [turnOrder, setTurnOrder] = useState<string[]>([]);
   const [drawerId, setDrawerId] = useState("");
   const [word, setWord] = useState<string | null>(null);
@@ -115,11 +119,13 @@ export default function DrawingRoom() {
     [order],
   );
   const colorOfRef = useRef(colorOf);
+  const nicknameOfRef = useRef(nicknameOf);
   useEffect(() => {
     colorOfRef.current = colorOf;
-  }, [colorOf]);
+    nicknameOfRef.current = nicknameOf;
+  }, [colorOf, nicknameOf]);
 
-  const inGame = phase === "choose" || phase === "draw" || phase === "reveal";
+  const inGame = phase === "choose" || phase === "draw" || phase === "guess" || phase === "reveal";
   const seats: DrawingSeat[] = useMemo(
     () =>
       order
@@ -186,8 +192,10 @@ export default function DrawingRoom() {
       if (d.name !== roomName) return;
       const s = d.drawing;
       if (s) {
-        setTotalRounds(s.totalRounds);
-        setRound(s.round);
+        setTurnNumber(s.turnNumber);
+        setTotalTurns(s.totalTurns);
+        setFirstDraws(s.firstDraw);
+        setFirstPlayerId(s.firstPlayerId);
         setTurnOrder(s.turnOrder);
         setPhase(s.phase);
         setDrawerId(s.drawerId);
@@ -198,7 +206,16 @@ export default function DrawingRoom() {
         setScores(s.scores);
         setAway(s.away.filter((pid) => pid !== playerId));
         setDeadline(Date.now() + s.timeLeftMs);
-        setReveal(s.phase === "reveal" ? { word: s.word, reason: "", gains: s.gains ?? {} } : null);
+        setReveal(
+          s.phase === "reveal"
+            ? {
+                word: s.word,
+                winnerNickname: s.guessed[0] ? nicknameOfRef.current(s.guessed[0]) : null,
+                nextDrawerNickname: s.nextDrawerId ? nicknameOfRef.current(s.nextDrawerId) : null,
+                gains: s.gains ?? {},
+              }
+            : null,
+        );
         setGameOver(null);
         model.reset(s.strokes);
         return;
@@ -231,8 +248,9 @@ export default function DrawingRoom() {
 
       switch (event) {
         case "drawingStarted": {
-          const e = data as { totalRounds: number; turnOrder: string[]; scores: Record<string, number> };
-          setTotalRounds(e.totalRounds);
+          const e = data as { totalRounds: number; totalTurns: number; turnOrder: string[]; scores: Record<string, number> };
+          setTurnNumber(0);
+          setTotalTurns(e.totalTurns);
           setTurnOrder(e.turnOrder);
           setScores(e.scores);
           setGuessed([]);
@@ -240,12 +258,31 @@ export default function DrawingRoom() {
           setGameOver(null);
           model.reset([]);
           setResultDismissed(false);
-          addLog({ tone: "system", text: `🎨 끄적끄적 시작! (${e.totalRounds}바퀴)` });
+          addLog({ tone: "system", text: `🎨 끄적끄적 시작! (그림 ${e.totalTurns}개)` });
+          break;
+        }
+        case "drawingFirstDrawStarted": {
+          setPhase("firstDraw");
+          setFirstDraws({});
+          setFirstPlayerId(null);
+          setDeadline(Date.now() + (data as { timeLimitMs: number }).timeLimitMs);
+          break;
+        }
+        case "drawingFirstDrawUpdate":
+          setFirstDraws((data as { draws: Record<string, number> }).draws);
+          break;
+        case "drawingFirstDrawFinished": {
+          const e = data as { draws: Record<string, number>; firstPlayerId: string; firstNickname: string };
+          setFirstDraws(e.draws);
+          setFirstPlayerId(e.firstPlayerId);
+          setDeadline(null);
+          addLog({ tone: "system", text: `🎴 선뽑기 — ${e.firstNickname}님이 먼저 그려요` });
           break;
         }
         case "drawingTurn": {
-          const e = data as { round: number; drawerId: string; drawerNickname: string; timeLimitMs: number };
-          setRound(e.round);
+          const e = data as { turnNumber: number; totalTurns: number; drawerId: string; drawerNickname: string; timeLimitMs: number };
+          setTurnNumber(e.turnNumber);
+          setTotalTurns(e.totalTurns);
           setDrawerId(e.drawerId);
           setPhase("choose");
           setWord(null);
@@ -255,7 +292,7 @@ export default function DrawingRoom() {
           setReveal(null);
           setDeadline(Date.now() + e.timeLimitMs);
           model.reset([]);
-          addLog({ tone: "system", text: `━ ${e.drawerNickname}님 차례 (${e.round}바퀴) ━` });
+          addLog({ tone: "system", text: `━ ${e.drawerNickname}님 차례 (${e.turnNumber}/${e.totalTurns}) ━` });
           break;
         }
         case "drawingChoices":
@@ -267,6 +304,14 @@ export default function DrawingRoom() {
           setChoices(null);
           setHint(e.hint);
           setDeadline(Date.now() + e.timeLimitMs);
+          break;
+        }
+        case "drawingGuessTime": {
+          const e = data as { hint: (string | null)[]; timeLimitMs: number };
+          setPhase("guess");
+          setHint(e.hint);
+          setDeadline(Date.now() + e.timeLimitMs);
+          addLog({ tone: "system", text: "그리기 끝! 30초 안에 맞혀 보세요" });
           break;
         }
         case "drawingWord":
@@ -290,9 +335,7 @@ export default function DrawingRoom() {
             playerId: string;
             nickname: string;
             gained: number;
-            order: number;
             guessed: string[];
-            totalGuessers: number;
             scores: Record<string, number>;
           };
           setGuessed(e.guessed);
@@ -300,7 +343,7 @@ export default function DrawingRoom() {
           showBubble(e.playerId, "정답! 🎉", "correct");
           const mine = e.playerId === playerId;
           addLog({ tone: "success", text: mine ? `🎉 정답! +${e.gained}점` : `🎉 ${e.nickname}님 정답! (+${e.gained})` });
-          showToast(mine ? `정답! +${e.gained}점` : `${e.nickname}님 정답! (${e.order}/${e.totalGuessers})`);
+          showToast(mine ? `정답! +${e.gained}점` : `${e.nickname}님 정답!`);
           break;
         }
         case "drawingClose": {
@@ -313,12 +356,30 @@ export default function DrawingRoom() {
           showToast("정답이 들어간 말은 보낼 수 없어요");
           break;
         case "drawingTurnEnd": {
-          const e = data as { reason: string; word: string | null; gains: Record<string, number>; scores: Record<string, number>; timeLimitMs: number };
-          setPhase("reveal");
-          setReveal({ word: e.word, reason: e.reason, gains: e.gains });
+          const e = data as {
+            reason: string;
+            word: string | null;
+            gains: Record<string, number>;
+            scores: Record<string, number>;
+            winnerNickname: string | null;
+            nextDrawerNickname: string | null;
+            timeLimitMs: number;
+          };
           setScores(e.scores);
-          setDeadline(Date.now() + e.timeLimitMs);
-          addLog({ tone: "system", text: e.word ? `정답은 '${e.word}'` : "제시어를 고르지 않고 넘어갔습니다" });
+          if (e.winnerNickname) {
+            // 정답이 나왔으면 그림을 잠깐 보여준다
+            setPhase("reveal");
+            setReveal({ word: e.word, winnerNickname: e.winnerNickname, nextDrawerNickname: e.nextDrawerNickname, gains: e.gains });
+            setDeadline(Date.now() + e.timeLimitMs);
+            addLog({ tone: "system", text: `정답은 '${e.word}'` });
+            break;
+          }
+          // 아무도 못 맞혔으면 서버가 바로 다음 턴을 시작한다
+          const why =
+            e.reason === "drawerAway" ? "그리던 사람의 연결이 끊겨 넘어갑니다" : e.reason === "drawerLeft" ? "그리던 사람이 나가서 넘어갑니다" : "아무도 못 맞혔어요";
+          const text = e.word ? `${why} — 정답은 '${e.word}'` : why;
+          addLog({ tone: "system", text });
+          showToast(text);
           break;
         }
         case "drawingPresence": {
@@ -384,9 +445,11 @@ export default function DrawingRoom() {
   };
 
   const isDrawer = inGame && drawerId === playerId;
+  // 폴드를 펼치거나 휴대폰을 눕혀 가로로 넓으면 말풍선 없이 채팅 기록을 옆에 둔다 (PC는 오른쪽에 채팅 기록이 따로 있다)
+  const wide = useMediaQuery("(max-width: 1080px) and (orientation: landscape)");
   const iGuessed = guessed.includes(playerId);
   // 채팅창 모드면 게임 화면에 기록이 보이니 채팅 버튼을 숨긴다
-  const hideChatToggle = !isDrawer && viewMode === "chat";
+  const hideChatToggle = wide || (!isDrawer && viewMode === "chat");
 
   return (
     <RoomLayout
@@ -431,8 +494,8 @@ export default function DrawingRoom() {
         word={word}
         hint={hint}
         secondsLeft={secondsLeft}
-        round={round}
-        totalRounds={totalRounds}
+        turnNumber={turnNumber}
+        totalTurns={totalTurns}
         reveal={reveal}
         toast={toast}
         logs={logs}
@@ -444,6 +507,16 @@ export default function DrawingRoom() {
         onSubmit={handleSubmit}
         iGuessed={iGuessed}
         reserveRight={hideChatToggle ? 48 : 96}
+        wide={wide}
+        firstDrawPanel={
+          <DrawingFirstDrawPanel
+            seats={seats}
+            draws={firstDraws}
+            firstPlayerId={firstPlayerId}
+            myPlayerId={playerId}
+            onDraw={() => roomName && send("drawingFirstDraw", { roomName })}
+          />
+        }
         waitingPanel={
           phase === "waiting" ? (
             <DrawingSetupModal isHost={isHost} memberCount={memberCount} onStart={handleStart} />

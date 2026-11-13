@@ -51,7 +51,15 @@ export const ModeToggle = styled.button`
   white-space: nowrap;
 `;
 
+/** 그림판 오른쪽 위에 겹쳐 띄우는 제시어 (터치는 통과해 그 아래도 그릴 수 있다) */
 export const WordChip = styled.span`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.92;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   padding: 2px 10px;
   border-radius: 6px;
   background: #f1c40f;
@@ -59,6 +67,11 @@ export const WordChip = styled.span`
   font-size: 1rem;
   font-weight: 700;
   white-space: nowrap;
+
+  small {
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
 `;
 
 // ── 좌석 (말풍선 모드) ─────────────────────────────────────
@@ -215,9 +228,40 @@ export const CanvasOverlay = styled.div`
 `;
 
 export const RevealWord = styled.div`
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #f1c40f;
+`;
+
+/** 정답이 나온 뒤 그림을 가리지 않게 아래쪽에만 띄우는 안내 */
+export const RevealBanner = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 0.85rem;
+  text-align: center;
+  z-index: 2;
+`;
+
+export const DrawerNote = styled.div`
+  flex: 1;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #bbb;
+  font-size: 0.82rem;
+  text-align: center;
 `;
 
 export const GainList = styled.div`
@@ -251,18 +295,9 @@ export const Toast = styled.div`
   animation: ${toastIn} 0.15s ease-out;
 `;
 
-export const HintLine = styled.div`
-  text-align: center;
-  font-size: 1rem;
-  letter-spacing: 0.35em;
-  color: #e0e0e0;
-  min-height: 22px;
-
-  small {
-    letter-spacing: 0;
-    font-size: 0.72rem;
-    color: #999;
-  }
+/** 힌트 글자 (_ _ _, ㄱ ㅇ ㅇ) 사이를 띄운다 */
+export const HintLetters = styled.span`
+  letter-spacing: 0.3em;
 `;
 
 // ── 입력·기록 ──────────────────────────────────────────────
@@ -310,9 +345,10 @@ export const SendButton = styled.button`
   }
 `;
 
-export const ChatLog = styled.div`
-  flex: 0 0 auto;
-  height: 130px;
+export const ChatLog = styled.div<{ $fill?: boolean }>`
+  flex: ${({ $fill }) => ($fill ? "1 1 auto" : "0 0 auto")};
+  height: ${({ $fill }) => ($fill ? "auto" : "130px")};
+  min-height: 60px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -397,4 +433,31 @@ export const SizeDot = styled.span<{ $px: number }>`
   height: ${({ $px }) => $px}px;
   border-radius: 50%;
   background: currentColor;
+`;
+
+// ── 가로로 넓은 화면 (폴드 펼침·가로 모드): 그림판 왼쪽, 나머지 오른쪽 ──
+
+export const WideWrap = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+  color: #e0e0e0;
+`;
+
+export const WideCanvasCol = styled.div`
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+`;
+
+export const WideSide = styled.div`
+  flex: 0 0 min(42%, 340px);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 `;

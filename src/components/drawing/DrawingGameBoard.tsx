@@ -23,9 +23,11 @@ import {
   AwayIcon,
   CanvasOverlay,
   RevealWord,
+  RevealBanner,
+  DrawerNote,
   GainList,
   Toast,
-  HintLine,
+  HintLetters,
   InputBar,
   GuessInput,
   SendButton,
@@ -37,6 +39,9 @@ import {
   ToolRow,
   ToolButton,
   SizeDot,
+  WideWrap,
+  WideCanvasCol,
+  WideSide,
 } from "../../styles/game/drawing/board";
 import {
   DRAWING_COLORS,
@@ -53,9 +58,11 @@ export interface DrawingLogEntry {
   text: string;
 }
 
+/** 정답이 나와서 그림을 잠깐 보여주는 동안의 정보 */
 export interface DrawingReveal {
   word: string | null;
-  reason: string;
+  winnerNickname: string | null;
+  nextDrawerNickname: string | null;
   gains: Record<string, number>;
 }
 
@@ -70,8 +77,8 @@ interface Props {
   word: string | null;
   hint: (string | null)[];
   secondsLeft: number;
-  round: number;
-  totalRounds: number;
+  turnNumber: number;
+  totalTurns: number;
   reveal: DrawingReveal | null;
   toast: string | null;
   logs: DrawingLogEntry[];
@@ -86,22 +93,19 @@ interface Props {
   reserveRight: number;
   /** 시작 전 그림판 위에 띄울 설정·대기 안내 */
   waitingPanel?: ReactNode;
+  /** 선뽑기 화면 */
+  firstDrawPanel?: ReactNode;
+  /** 가로로 넓은 휴대폰·태블릿 화면 (말풍선 없이 채팅 기록을 옆에) */
+  wide: boolean;
 }
 
-const REVEAL_REASON: Record<string, string> = {
-  allGuessed: "모두 맞혔습니다!",
-  time: "시간 종료",
-  drawerLeft: "그리던 사람이 나갔습니다",
-  drawerAway: "그리던 사람의 연결이 끊겼습니다",
-};
-
-function HintText({ hint }: { hint: (string | null)[] }) {
-  if (hint.length === 0) return <HintLine />;
+/** 맞히는 사람에게 보이는 힌트: 가린 글자는 _, 공개된 초성·글자는 그대로 */
+function hintLabel(hint: (string | null)[]) {
   const letters = hint.filter((h) => h !== " ").length;
   return (
-    <HintLine>
-      {hint.map((h) => (h === null ? "_" : h)).join("")} <small>({letters}글자)</small>
-    </HintLine>
+    <>
+      <HintLetters>{hint.map((h) => (h === null ? "_" : h)).join("")}</HintLetters> <small>({letters}글자)</small>
+    </>
   );
 }
 
@@ -128,8 +132,8 @@ export default function DrawingGameBoard(props: Props) {
     word,
     hint,
     secondsLeft,
-    round,
-    totalRounds,
+    turnNumber,
+    totalTurns,
     reveal,
     toast,
     logs,
@@ -142,6 +146,8 @@ export default function DrawingGameBoard(props: Props) {
     iGuessed,
     reserveRight,
     waitingPanel,
+    firstDrawPanel,
+    wide,
   } = props;
 
   const [color, setColor] = useState(DRAWING_COLORS[0]);
@@ -150,7 +156,7 @@ export default function DrawingGameBoard(props: Props) {
   const logRef = useRef<HTMLDivElement>(null);
 
   const drawing = isDrawer && phase === "draw";
-  const showChatLog = !isDrawer && viewMode === "chat";
+  const showChatLog = wide || (!isDrawer && viewMode === "chat");
 
   useEffect(() => {
     const el = logRef.current;
@@ -162,38 +168,37 @@ export default function DrawingGameBoard(props: Props) {
     onSubmit();
   };
 
-  const inGame = phase === "choose" || phase === "draw" || phase === "reveal";
-  const urgent = phase === "draw" && secondsLeft <= 10;
+  const inGame = phase === "choose" || phase === "draw" || phase === "guess" || phase === "reveal";
+  const guessing = phase === "draw" || phase === "guess";
+  const urgent = guessing && secondsLeft <= 10;
+  const time = (
+    <TimeText $urgent={urgent}>
+      <span aria-hidden="true">⏳</span> {secondsLeft}초
+    </TimeText>
+  );
 
   const topBar = (
     <TopBar>
       <TopInfo>
-        {isDrawer && phase === "draw" ? (
-          <>
-            내 차례 · <TimeText $urgent={urgent}>{secondsLeft}초</TimeText>
-          </>
+        {phase === "firstDraw" ? (
+          <>선뽑기 · {time}</>
+        ) : phase === "guess" ? (
+          <>맞히기 시간 · {time}</>
+        ) : isDrawer && phase === "draw" ? (
+          <>내 차례 · {time}</>
         ) : inGame ? (
           <>
-            {round}/{totalRounds}바퀴
-            {phase !== "reveal" && (
-              <>
-                {" · "}
-                <TimeText $urgent={urgent}>{secondsLeft}초</TimeText>
-              </>
-            )}
+            {turnNumber}/{totalTurns}번째 그림
+            {phase !== "reveal" && <> · {time}</>}
           </>
         ) : (
           "끄적끄적"
         )}
       </TopInfo>
-      {isDrawer && phase === "draw" && word ? (
-        <WordChip>{word}</WordChip>
-      ) : (
-        !isDrawer && (
-          <ModeToggle type="button" onClick={onToggleMode}>
-            {viewMode === "bubble" ? "💬 채팅창 모드" : "🗨️ 말풍선 모드"}
-          </ModeToggle>
-        )
+      {!isDrawer && !wide && (
+        <ModeToggle type="button" onClick={onToggleMode}>
+          {viewMode === "bubble" ? "💬 채팅창 모드" : "🗨️ 말풍선 모드"}
+        </ModeToggle>
       )}
     </TopBar>
   );
@@ -242,17 +247,12 @@ export default function DrawingGameBoard(props: Props) {
           <span>✏️ {drawerNickname}님이 제시어를 고르는 중…</span>
         </CanvasOverlay>
       )}
+      {phase === "firstDraw" && firstDrawPanel && <CanvasOverlay>{firstDrawPanel}</CanvasOverlay>}
       {phase === "reveal" && reveal && (
-        <CanvasOverlay>
-          <span>{REVEAL_REASON[reveal.reason] ?? ""}</span>
-          {reveal.word ? (
-            <>
-              <span>정답은</span>
-              <RevealWord>{reveal.word}</RevealWord>
-            </>
-          ) : (
-            <span>제시어를 고르지 않았어요</span>
-          )}
+        // 그림이 보이도록 아래쪽에만 띄운다
+        <RevealBanner>
+          <span>🎉 {reveal.winnerNickname}님 정답!</span>
+          <RevealWord>{reveal.word}</RevealWord>
           <GainList>
             {seats
               .filter((s) => reveal.gains[s.playerId])
@@ -262,8 +262,15 @@ export default function DrawingGameBoard(props: Props) {
                 </span>
               ))}
           </GainList>
-        </CanvasOverlay>
+          <span>
+            {reveal.nextDrawerNickname ? `다음은 ${reveal.nextDrawerNickname}님 차례` : "마지막 그림이었어요"} ·{" "}
+            <TimeText>{secondsLeft}초</TimeText>
+          </span>
+        </RevealBanner>
       )}
+      {/* 제시어(그리는 사람)·힌트(맞히는 사람)는 모두 그림판 오른쪽 위에 */}
+      {guessing && isDrawer && word && <WordChip>{word}</WordChip>}
+      {guessing && !isDrawer && hint.length > 0 && <WordChip>{hintLabel(hint)}</WordChip>}
       {toast && <Toast>{toast}</Toast>}
     </>
   );
@@ -281,21 +288,21 @@ export default function DrawingGameBoard(props: Props) {
     </DrawingCanvas>
   );
 
-  // ── 그리는 사람 ─────────────────────────────────────────
-  if (isDrawer && inGame) {
-    const lastChat = [...logs].reverse().find((l) => l.tone === "chat" || l.tone === "insider");
-    return (
-      <BoardWrap>
-        {topBar}
-        {chips(seats.filter((s) => !s.isMe))}
-        {canvas}
-        <LastLine>
-          {lastChat && (
-            <>
-              <b style={{ color: lastChat.color }}>{lastChat.nickname}</b> {lastChat.text}
-            </>
-          )}
-        </LastLine>
+  const drawerInGame = isDrawer && inGame;
+
+  const drawerTools =
+    phase !== "draw" ? (
+      <ToolRow $reserve={reserveRight}>
+        <DrawerNote>
+          {phase === "guess"
+            ? "그리기 시간이 끝났어요. 다른 사람들이 맞히는 중…"
+            : phase === "reveal"
+              ? "곧 다음 그림이 시작돼요"
+              : "제시어를 고르세요"}
+        </DrawerNote>
+      </ToolRow>
+    ) : (
+      <>
         <ColorRow>
           {DRAWING_COLORS.map((c) => (
             <ColorSwatch
@@ -345,16 +352,15 @@ export default function DrawingGameBoard(props: Props) {
             </svg>
           </ToolButton>
         </ToolRow>
-      </BoardWrap>
+      </>
     );
-  }
 
   const inputBar = (
     <InputBar $reserve={reserveRight} onSubmit={submit}>
       <GuessInput
         value={input}
         onChange={(e) => onInputChange(e.target.value)}
-        placeholder={phase === "draw" ? (iGuessed ? "맞힌 사람끼리만 보여요" : "정답 또는 채팅") : "채팅"}
+        placeholder={guessing ? (iGuessed ? "맞힌 사람끼리만 보여요" : "정답 또는 채팅") : "채팅"}
         maxLength={100}
         enterKeyHint="send"
         autoComplete="off"
@@ -365,6 +371,52 @@ export default function DrawingGameBoard(props: Props) {
     </InputBar>
   );
 
+  const chatLog = (fill: boolean) => (
+    <ChatLog ref={logRef} $fill={fill}>
+      {logs.map((l) => (
+        <LogLine key={l.key} $tone={l.tone === "chat" ? undefined : l.tone}>
+          {l.nickname && <b style={{ color: l.color }}>{l.nickname} </b>}
+          {l.text}
+        </LogLine>
+      ))}
+    </ChatLog>
+  );
+
+  // ── 가로로 넓은 화면: 그림판 왼쪽, 이름표·채팅 기록·입력(또는 도구) 오른쪽 ──
+  if (wide) {
+    return (
+      <WideWrap>
+        <WideCanvasCol>{canvas}</WideCanvasCol>
+        <WideSide>
+          {topBar}
+          {chips(drawerInGame ? seats.filter((s) => !s.isMe) : seats)}
+          {chatLog(true)}
+          {drawerInGame ? drawerTools : inputBar}
+        </WideSide>
+      </WideWrap>
+    );
+  }
+
+  // ── 그리는 사람 ─────────────────────────────────────────
+  if (drawerInGame) {
+    const lastChat = [...logs].reverse().find((l) => l.tone === "chat" || l.tone === "insider");
+    return (
+      <BoardWrap>
+        {topBar}
+        {chips(seats.filter((s) => !s.isMe))}
+        {canvas}
+        <LastLine>
+          {lastChat && (
+            <>
+              <b style={{ color: lastChat.color }}>{lastChat.nickname}</b> {lastChat.text}
+            </>
+          )}
+        </LastLine>
+        {drawerTools}
+      </BoardWrap>
+    );
+  }
+
   // ── 채팅창 모드 ─────────────────────────────────────────
   if (showChatLog) {
     return (
@@ -372,15 +424,7 @@ export default function DrawingGameBoard(props: Props) {
         {topBar}
         {chips(seats)}
         {canvas}
-        <HintText hint={phase === "draw" ? hint : []} />
-        <ChatLog ref={logRef}>
-          {logs.map((l) => (
-            <LogLine key={l.key} $tone={l.tone === "chat" ? undefined : l.tone}>
-              {l.nickname && <b style={{ color: l.color }}>{l.nickname} </b>}
-              {l.text}
-            </LogLine>
-          ))}
-        </ChatLog>
+        {chatLog(false)}
         {inputBar}
       </BoardWrap>
     );
@@ -395,7 +439,6 @@ export default function DrawingGameBoard(props: Props) {
       <SeatRow>{top}</SeatRow>
       {canvas}
       {bottom && <SeatRow>{bottom}</SeatRow>}
-      <HintText hint={phase === "draw" ? hint : []} />
       {inputBar}
     </BoardWrap>
   );
