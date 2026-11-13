@@ -1,4 +1,3 @@
-import React, { useEffect, useRef } from "react";
 import {
   TURN_TIME,
   BoardCenterBadge,
@@ -17,6 +16,7 @@ import {
 } from "../../../utils/games/skulking";
 import type { SkulkingPlayer } from "../types";
 import type { TrickEntry } from "../types";
+import { useDeadlineSeconds } from "../../../utils/useDeadlineSeconds";
 
 interface Props {
   round: number;
@@ -28,8 +28,8 @@ interface Props {
   isMyPlayTurn: boolean;
   players: SkulkingPlayer[];
   currentTrick: TrickEntry[];
-  initialTimerTimeLeft?: number | null;
-  trickKey?: number;
+  /** 지금 차례의 마감 시각(ms). 서버 타이머와 같은 시점에 0이 된다 */
+  turnDeadline: number | null;
 }
 
 export default function SkulkingBoardCenter({
@@ -42,30 +42,13 @@ export default function SkulkingBoardCenter({
   isMyPlayTurn,
   players,
   currentTrick,
-  initialTimerTimeLeft,
-  trickKey,
+  turnDeadline,
 }: Props) {
   const leadCard = currentTrick.find((e) => !isSpecialCard(e.card.type))?.card ?? null;
-  const [timeLeft, setTimeLeft] = React.useState(TURN_TIME);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // 새로고침 시 서버에서 받은 남은 시간을 한 번만 적용하기 위한 ref
-  const pendingInitialTime = useRef<number | null>(initialTimerTimeLeft ?? null);
-
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (phase === "play" && currentPlayerId) {
-      // 새로고침 직후라면 서버에서 받은 남은 시간으로 시작, 아니면 풀타임으로 시작
-      const startTime = pendingInitialTime.current ?? TURN_TIME;
-      pendingInitialTime.current = null;
-      setTimeLeft(startTime);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((t) => (t > 0 ? t - 1 : 0));
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [currentPlayerId, phase, trickKey]);
+  const timeLeft = useDeadlineSeconds(
+    phase === "play" && currentPlayerId ? turnDeadline : null,
+    TURN_TIME,
+  );
 
   return (
     <BoardCenterBadge>

@@ -14,6 +14,7 @@ import {
   BidConfirmButton,
 } from "../../../styles/game/skulking/bidModal";
 import { SkCard, SkCardLabel, SkCardValue } from "../../../styles/game/skulking/card";
+import { useDeadlineSeconds } from "../../../utils/useDeadlineSeconds";
 
 const BID_TIME_LIMIT = 20;
 
@@ -24,38 +25,14 @@ interface Props {
   submitted: boolean;
   bidCount: number;
   totalPlayers: number;
-  initialTimerTimeLeft?: number | null;
+  /** 비드 마감 시각(ms). 시간이 지나면 서버가 0으로 제출한다 */
+  bidDeadline: number | null;
 }
 
-export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidCount, totalPlayers, initialTimerTimeLeft }: Props) {
+export default function SkulkingBidModal({ round, myHand, onBid, submitted, bidCount, totalPlayers, bidDeadline }: Props) {
   const [selectedBid, setSelectedBid] = React.useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = React.useState(initialTimerTimeLeft ?? BID_TIME_LIMIT);
+  const timeLeft = useDeadlineSeconds(bidDeadline, BID_TIME_LIMIT);
   const submittedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    submittedRef.current = false;
-    setTimeLeft(initialTimerTimeLeft ?? BID_TIME_LIMIT);
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // 타이머 0 되면 자동 제출
-  React.useEffect(() => {
-    if (timeLeft === 0 && !submittedRef.current && !submitted) {
-      submittedRef.current = true;
-      onBid(0);
-    }
-  }, [timeLeft, onBid, submitted]);
 
   // 외부에서 submitted가 true가 되면 ref도 동기화
   React.useEffect(() => {

@@ -13,6 +13,10 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 10000; // 서버 재연결 유예(30초) 안에 여러 번 시도하도록 짧게 둔다
 const MAX_AUTH_RETRIES = 5; // 토큰 검증의 일시적 실패를 재시도하는 횟수 (백오프 합계 약 25초)
 const AUTH_FAILED_MESSAGE = "인증에 실패했습니다";
+// 백그라운드에서 돌아온 직후 getSession·소켓 연결이 멈춰 있는 경우가 있어 기다리는 한도를 둔다
+// (다른 탭이 세션 잠금을 쥔 채 멈추거나, 멈춘 동안 만든 소켓이 CONNECTING에 묶임)
+const GET_SESSION_TIMEOUT_MS = 4000;
+const CONNECT_TIMEOUT_MS = 8000;
 
 interface WebSocketContextType {
   connected: boolean;
@@ -27,6 +31,11 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   const userId = session?.user.id;
+  // getSession이 늦을 때 쓸 마지막 토큰
+  const lastTokenRef = useRef<string | undefined>(session?.access_token);
+  useEffect(() => {
+    if (session?.access_token) lastTokenRef.current = session.access_token;
+  }, [session?.access_token]);
   const [connected, setConnected] = useState(false);
   const [connectionId, setConnectionId] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
@@ -54,6 +63,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     let disposed = false;
     let connecting = false;
+    let connectingSince = 0;
     let authRejected = false;
     let authFailures = 0;
     let attempts = 0;
@@ -79,11 +89,20 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
       clearTimeout(retryTimer);
       connecting = true;
-      // getSession은 만료된 토큰을 갱신해서 돌려준다
-      const token = await supabase.auth
-        .getSession()
-        .then(({ data }) => data.session?.access_token)
-        .catch(() => undefined);
+      const startedAt = Date.now();
+      connectingSince = startedAt;
+      // getSession은 만료된 토큰을 갱신해서 돌려준다. 멈춰 있으면 마지막 토큰으로 접속한다
+      const token = await Promise.race([
+        supabase.auth
+          .getSession()
+          .then(({ data }) => data.session?.access_token)
+          .catch(() => undefined),
+        new Promise<undefined>((resolve) =>
+          setTimeout(() => resolve(undefined), GET_SESSION_TIMEOUT_MS),
+        ),
+      ]).then((t) => t ?? lastTokenRef.current);
+      // 기다리는 사이 화면 복귀로 새 시도가 시작됐으면 이 시도는 버린다
+      if (connectingSince !== startedAt) return;
       connecting = false;
       if (disposed) return;
       if (!token) {
@@ -95,7 +114,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       const ws = new WebSocket(`${wsBase}?token=${encodeURIComponent(token)}`);
       wsRef.current = ws;
 
+      const connectTimer = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) ws.close();
+      }, CONNECT_TIMEOUT_MS);
+
       ws.onopen = () => {
+        clearTimeout(connectTimer);
         setConnected(true);
       };
 
@@ -118,6 +142,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       };
 
       ws.onclose = () => {
+        clearTimeout(connectTimer);
         if (wsRef.current === ws) {
           wsRef.current = null;
           setConnected(false);
@@ -132,6 +157,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       authRejected = false;
       authFailures = 0;
       attempts = 0;
+      // 멈춰 있던 시도는 기다리지 않고 새로 시작한다
+      if (connecting && Date.now() - connectingSince > GET_SESSION_TIMEOUT_MS) {
+        connecting = false;
+        connectingSince = 0;
+      }
+      const current = wsRef.current;
+      if (current?.readyState === WebSocket.CONNECTING) {
+        wsRef.current = null;
+        current.onclose = null;
+        current.close();
+      }
       void connect();
     };
 

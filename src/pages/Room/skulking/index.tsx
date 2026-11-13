@@ -11,6 +11,7 @@ import type {
 } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+import { TURN_TIME } from "../../../styles/game/skulking/boardCenter";
 import SkulkingTestPanel from "../../../components/skulking/SkulkingTestPanel";
 import {
   SKULKING_SUIT_LABELS,
@@ -138,10 +139,8 @@ export default function SkulkingRoom() {
   );
   const roundEndTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null);
-  const [trickKey, setTrickKey] = useState(0);
-  const [initialTimerTimeLeft, setInitialTimerTimeLeft] = useState<
-    number | null
-  >(null);
+  // 비드·카드 차례의 마감 시각(ms). 서버 타이머(20초)와 같은 기준으로 센다
+  const [timerDeadline, setTimerDeadline] = useState<number | null>(null);
   const [roundHistory, setRoundHistory] = useState<
     Array<{
       round: number;
@@ -246,7 +245,11 @@ export default function SkulkingRoom() {
             setTrickLeadPlayerId(d.skulkingLeadPlayerId);
           if (d.skulkingTrickOrder?.length) setTrickOrder(d.skulkingTrickOrder);
           if (d.skulkingTimerTimeLeft !== undefined)
-            setInitialTimerTimeLeft(d.skulkingTimerTimeLeft);
+            setTimerDeadline(
+              d.skulkingTimerTimeLeft === null
+                ? null
+                : Date.now() + d.skulkingTimerTimeLeft * 1000,
+            );
           if (d.currentTrick) setCurrentTrick(d.currentTrick);
           break;
         }
@@ -266,7 +269,7 @@ export default function SkulkingRoom() {
           setFirstDrawWinnerNickname(null);
           setFirstDrawCount(0);
           setGameStarted(true);
-          setInitialTimerTimeLeft(null); // 재연결 때 받은 남은 시간은 그 라운드에만 쓴다
+          setTimerDeadline(null);
           setRound(d.round);
           setMyHand(d.myHand);
           setPlayerHands(d.playerHands);
@@ -333,9 +336,14 @@ export default function SkulkingRoom() {
           break;
         }
         case "skulkingBidPhase": {
-          const d = data as { round: number; bids: Record<string, number> };
+          const d = data as {
+            round: number;
+            bids: Record<string, number>;
+            timeLimit?: number;
+          };
           setRound(d.round);
           setPhase("bid");
+          setTimerDeadline(Date.now() + (d.timeLimit ?? TURN_TIME) * 1000);
           setCurrentBidPlayerId(null);
           setBids(d.bids);
           break;
@@ -352,6 +360,7 @@ export default function SkulkingRoom() {
             trickOrder?: string[];
           };
           setPhase("play");
+          setTimerDeadline(Date.now() + TURN_TIME * 1000);
           setCurrentPlayerId(d.leadPlayerId);
           setTrickLeadPlayerId(d.leadPlayerId);
           if (d.trickOrder) setTrickOrder(d.trickOrder);
@@ -390,8 +399,8 @@ export default function SkulkingRoom() {
             setTrickWinnerId(null);
             setTrickLeadPlayerId(d.currentPlayerId);
             if (d.trickOrder) setTrickOrder(d.trickOrder);
-            setTrickKey((k) => k + 1);
           }
+          setTimerDeadline(Date.now() + TURN_TIME * 1000);
           setCurrentPlayerId(d.currentPlayerId);
           break;
         }
@@ -579,8 +588,7 @@ export default function SkulkingRoom() {
         firstDrawWinnerNickname={firstDrawWinnerNickname}
         firstDrawCount={firstDrawCount}
         roundHistory={roundHistory}
-        initialTimerTimeLeft={initialTimerTimeLeft}
-        trickKey={trickKey}
+        timerDeadline={timerDeadline}
         isAdmin={isAdmin}
         onStartGame={handleStartGame}
         onBid={handleBid}

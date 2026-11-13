@@ -75,8 +75,8 @@ interface Props {
   onDrawFirstCard: () => void;
   onKickPlayer?: (targetPlayerId: string) => void;
   roundHistory: Array<{ round: number; bids: Record<string, number>; tricks: Record<string, number> }>;
-  initialTimerTimeLeft?: number | null;
-  trickKey?: number;
+  /** 현재 비드/카드 차례의 마감 시각(ms) */
+  timerDeadline: number | null;
   isAdmin?: boolean;
 }
 
@@ -113,8 +113,7 @@ export default function SkulkingGameBoard({
   onPlayCard,
   onKickPlayer,
   roundHistory,
-  initialTimerTimeLeft,
-  trickKey,
+  timerDeadline,
   isAdmin = false,
 }: Props) {
   const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
@@ -182,8 +181,7 @@ export default function SkulkingGameBoard({
           isMyPlayTurn={isMyPlayTurn}
           players={players}
           currentTrick={currentTrick}
-          initialTimerTimeLeft={phase === "play" ? initialTimerTimeLeft : null}
-          trickKey={trickKey}
+          turnDeadline={phase === "play" ? timerDeadline : null}
         />
       )}
 
@@ -485,7 +483,7 @@ export default function SkulkingGameBoard({
           submitted={!isMyBidTurn}
           bidCount={Object.keys(bids).length}
           totalPlayers={memberCount}
-          initialTimerTimeLeft={initialTimerTimeLeft}
+          bidDeadline={timerDeadline}
         />
       )}
 

@@ -82,6 +82,8 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
   const joinedConnectionRef = useRef(isRefresh ? 0 : connectionId);
   // 서버가 roomJoined로 입장을 확인해 준 연결. 현재 연결과 다르면 아직 복원 중이다
   const [confirmedConnection, setConfirmedConnection] = useState(isRefresh ? -1 : connectionId);
+  // 이 방에 한 번이라도 입장한 적이 있는지. 재입장 거부 안내 문구를 고르는 데 쓴다
+  const wasInRoomRef = useRef(!isRefresh);
 
   const chatStorageKey = `chat:${roomName}`;
   const [messages, setMessages] = useState<ChatMessageData[]>(() => {
@@ -178,6 +180,7 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
             hostNickname?: string;
           };
           if (joinData.name === roomName) {
+            wasInRoomRef.current = true;
             setConfirmedConnection(joinedConnectionRef.current);
             if (joinData.gameType) setGameConfig(getGameConfig(joinData.gameType));
             if (joinData.memberCount) setMemberCount(joinData.memberCount);
@@ -298,7 +301,13 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
         case "error": {
           const errorData = data as { message: string };
           if (silentErrorsRef.current.includes(errorData.message)) break;
-          alert(errorData.message);
+          // 게임 중에 연결이 유예 시간(30초)보다 오래 끊기면 서버가 방에서 뺀다.
+          // 그 뒤 재입장은 '이미 게임이 시작된 방'으로 거부되는데, 그대로 보여주면 무슨 일인지 알 수 없다
+          alert(
+            wasInRoomRef.current && errorData.message.includes("이미 게임이 시작된 방입니다")
+              ? "연결이 30초 넘게 끊겨 진행 중인 게임에서 빠졌습니다."
+              : errorData.message,
+          );
           if (ROOM_ACCESS_LOST_ERRORS.some((m) => errorData.message.includes(m))) {
             if (roomName) {
               sessionStorage.removeItem(`joined:${roomName}`);
