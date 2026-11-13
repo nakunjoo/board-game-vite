@@ -10,6 +10,7 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-11-13 | `skulking/game/SkulkingHandScroller.tsx` 신규: 휴대폰에서 손패가 가로로 넘치면 손패 상자 위쪽 모서리에 `‹ +N` / `+N ›`로 가려진 장수 표시(카드를 덮지 않음, 누르면 그쪽으로 스크롤). 리드 수트를 따라야 하는데 낼 수 있는 카드가 가려진 쪽에만 있으면 노랗게 깜빡임. 카드에 `data-hand-card`·`data-playable` 표시 |
 | 2026-11-11 | `pages/Room/gang/index.tsx`: `gangGameCancelled`(혼자 남음) 수신 시 대기 화면으로 초기화하고 채팅 안내. `SpiceChallengeOverlay.tsx`: 내용 영역에 불투명 배경 — 휴대폰에서 뒤의 선언·더미 카드가 겹쳐 비치던 문제 |
 | 2026-11-09 | `useRoomBase.ts`: `userLeft`의 `hostPlayerId`로 방장 갱신, 위임 시 채팅 안내. `utils/poker.ts`: 스트레이트를 중복 숫자를 합쳐 가장 높은 5연속으로 판정(서버와 동일). 재연결 시 Gang 다음 라운드 준비 상태 복원 |
 | 2026-11-09 | Spice: 턴을 잃으면 선언 진행 상태 초기화, 종료 결과(`spiceGameOverMeta`) 복원. Skulking: 다음 라운드는 서버가 시작(`skulkingNextRound` 전송 제거), 재연결 남은 시간은 그 라운드에만 사용, 결과 화면 재시작 버튼 연결, 종료 결과 복원, 새 트릭 카드를 지우던 2초 정리 타이머 취소. **서버 먼저 배포할 것** |

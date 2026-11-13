@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { MyHandArea } from "..";
 import { getSeatPosition } from "../../pages/Room";
 
 export const DeckDisplay = styled.div`
@@ -121,5 +122,57 @@ export const ConfirmCardButton = styled.button`
     bottom: 140px;
     font-size: 0.8rem;
     padding: 6px 18px;
+  }
+`;
+
+// 휴대폰 손패가 가로로 넘칠 때 가려진 쪽에 남은 장수를 띄운다.
+// 카드를 덮지 않도록 손패 상자 바깥 위쪽 모서리에 붙인다.
+export const HandScrollWrap = styled.div`
+  position: absolute;
+  bottom: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+
+  @media (max-width: 768px) {
+    bottom: 50px;
+  }
+`;
+
+export const HandScrollArea = styled(MyHandArea)`
+  position: relative;
+  bottom: auto;
+  left: auto;
+  transform: none;
+
+  @media (max-width: 768px) {
+    bottom: auto;
+  }
+`;
+
+export const HandMoreHintBadge = styled.button<{
+  $side: "left" | "right";
+  $highlight: boolean;
+}>`
+  position: absolute;
+  bottom: calc(100% + 4px);
+  ${({ $side }) => ($side === "left" ? "left: 0;" : "right: 0;")}
+  padding: 2px 8px;
+  border: 1px solid
+    ${({ $highlight }) => ($highlight ? "#f1c40f" : "rgba(255, 255, 255, 0.35)")};
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: ${({ $highlight }) => ($highlight ? "#f1c40f" : "#fff")};
+  font-size: 0.72rem;
+  font-weight: bold;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  ${({ $highlight }) => ($highlight ? "animation: handHintPulse 1s ease-in-out infinite;" : "")}
+
+  @keyframes handHintPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 `;

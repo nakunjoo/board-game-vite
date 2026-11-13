@@ -2,7 +2,6 @@ import React from "react";
 import {
   GameBoard,
   PlayerCircle,
-  MyHandArea,
   HandCard,
   StartGameButton,
 } from "../../styles/game";
@@ -38,6 +37,7 @@ import SkulkingBidModal from "./game/SkulkingBidModal";
 import SkulkingTigressModal from "./game/SkulkingTigressModal";
 import SkulkingFirstDrawOverlay from "./game/SkulkingFirstDrawOverlay";
 import SkulkingStatsModal from "./game/SkulkingStatsModal";
+import SkulkingHandScroller from "./game/SkulkingHandScroller";
 
 // ── 인터페이스 ─────────────────────────────────────────────────
 
@@ -428,12 +428,16 @@ export default function SkulkingGameBoard({
       {/* 내 손패 */}
       {gameStarted &&
         myHand.length > 0 && (
-          <MyHandArea>
+          <SkulkingHandScroller
+            contentKey={`${myHand.map((c) => c.name).join(",")}|${isMyPlayTurn}|${leadSuit}`}
+          >
             {myHand.map((card, i) => {
               const disabled = isCardDisabled(card);
               return (
                 <HandCard
                   key={card.name}
+                  data-hand-card
+                  data-playable={isMyPlayTurn && hasLeadSuit && !disabled ? "1" : undefined}
                   {...pressable(() => handleCardClick(i))}
                   style={{
                     cursor: isMyPlayTurn && !disabled
@@ -460,7 +464,7 @@ export default function SkulkingGameBoard({
                 </HandCard>
               );
             })}
-          </MyHandArea>
+          </SkulkingHandScroller>
         )}
 
       {/* 카드 확정 버튼 */}
