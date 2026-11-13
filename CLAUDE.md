@@ -10,6 +10,7 @@ DB 스키마, RLS 정책, 트리거 SQL → [SUPABASE_SCHEMA.md](../SUPABASE_SCH
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-11-13 | **그림 맞히기(`drawing`) 추가** — `components/drawing/`(`DrawingGameBoard`, `game/DrawingCanvas`·`drawingModel`·설정/제시어/결과 모달, `DrawingHelpModal`), `pages/Room/drawing/`, `styles/game/drawing/`, `utils/games/drawing.ts`. 아래 "그림 맞히기" 섹션 참조. `RoomLayout`: `chatReadOnly`(채팅창을 기록 보기 전용으로), `hideChatToggle`, `toggleStackStyle` prop 추가. `MyPage` 라벨 추가. 로비 노출은 DB `game_types` 행이 필요(SUPABASE_SCHEMA.md 마이그레이션). **서버 먼저 배포할 것** |
 | 2026-11-13 | `Lobby.tsx`: 방 만들기 창의 멀티/싱글 탭을 숨김(`SHOW_SINGLE_GAMES = false`). 싱글 게임 라우트는 그대로 남아 있음 |
 | 2026-11-13 | **백그라운드 복귀 점검(iOS 시뮬레이터, 연결 끊김 재현)** — `utils/useDeadlineSeconds.ts` 신규: 마감 시각 기준 남은 초. Skulking 카드·비드 타이머를 이걸로 교체(`timerDeadline`, 비드 시작·턴 변경·`roomJoined`의 `skulkingTimerTimeLeft`로 설정) — 틱 차감 방식이라 백그라운드 동안 멈춰 복귀 후 서버보다 3~6초 늦게 보였음. 비드 모달의 클라이언트 자동 0 제출 제거(서버가 집행). `WebSocketContext.tsx`: `getSession` 4초 한도(넘으면 마지막 토큰 사용), 소켓 CONNECTING 8초 한도, 화면 복귀 시 멈춘 시도·CONNECTING 소켓을 버리고 새로 연결 — 다른 탭이 열린 상태에서 45초 끊겼다 돌아오면 `연결 중...`에서 영영 멈춰 있었음. `useRoomBase.ts`: 한 번 들어왔던 방에서 재입장이 '이미 게임이 시작된 방'으로 거부되면 "연결이 30초 넘게 끊겨 진행 중인 게임에서 빠졌습니다." 안내 |
 | 2026-11-13 | `skulking/game/SkulkingHandScroller.tsx` 신규: 휴대폰에서 손패가 가로로 넘치면 손패 상자 위쪽 모서리에 `‹ +N` / `+N ›`로 가려진 장수 표시(카드를 덮지 않음, 누르면 그쪽으로 스크롤). 리드 수트를 따라야 하는데 낼 수 있는 카드가 가려진 쪽에만 있으면 노랗게 깜빡임. 카드에 `data-hand-card`·`data-playable` 표시 |
@@ -640,6 +641,25 @@ const isRefresh = (() => {
 - Spice 진행 상태: `currentTurnPlayerId`, `currentSuit`, `currentNumber`, `tableStackSize`, `trophies`, `wonCardCounts`, `challengePhase`
 - 타이머 복원: `turnTimeLeft` → `reconnectTurnTimeLeft` state, `challengeTimeLeft` → `reconnectChallengeTimeLeft` state
 - 선뽑기 상태: `isFirstDraw`, `myDrawnNumber`, `drawnCount`, `firstDrawFinished`, `firstDrawResults`, `firstPlayerId`, `firstNickname`
+
+## 그림 맞히기 (drawing)
+
+규칙·서버 이벤트는 `gang-server/CLAUDE.md`의 "그림 맞히기" 참조. 진행·정답 판정·점수·타이머는 모두 서버가 하고 클라이언트 타이머는 `useDeadlineSeconds`로 표시만 한다.
+
+**화면 (`DrawingGameBoard`)** — 휴대폰 세로 기준, 세 가지 배치
+- **말풍선 모드**(기본): 그림판 위에 3명, 아래에 3명 직사각형 뱃지(닉네임 6자 + 점수 + 상태). 말은 자기 뱃지 폭 안에서 그림판 쪽으로 말풍선(최대 2줄, 3초). 사람마다 고유 색(`DRAWING_PLAYER_COLORS`, 그리는 순서 기준)
+- **채팅창 모드**: 작은 이름표 + 그림판 + 채팅 기록 + 입력칸. 이때는 `RoomLayout` 채팅 버튼을 숨긴다
+- **그리는 사람**: 모드와 무관하게 제시어·이름표·최대 크기 그림판·최근 채팅 1줄·도구(색 8, 굵기 3, 지우개, 되돌리기, 전체 지우기). 입력칸 없음
+- 모드는 오른쪽 위 버튼으로 바꾸고 `localStorage['drawing:viewMode']`에 기억
+- 입력칸은 게임 화면 아래. 채팅 버튼은 기록 보기 전용(`chatReadOnly`). 휴대폰 키보드가 올라오면 그대로 밀려 올라가게 둔다
+- 시작 전 설정(방장)·대기 안내는 모달이 아니라 그림판 위에 띄워 채팅을 계속 칠 수 있다
+
+**그림판 (`DrawingCanvas`)**
+- 세로 3:4 고정(기기마다 같아야 그림이 안 찌그러짐), 자리에 맞는 가장 큰 크기. 좌표는 0~1000, 굵기는 가로 기준
+- 내가 그린 점은 바로 그리고 50ms마다 묶어 보낸다. 받은 조각은 0.1초쯤 늦춰 원래 속도로 이어 그리고(점 사이는 곡선), 400개 넘게 밀리면 한 번에 따라잡는다
+- 그림 데이터는 그림판 밖 `DrawingModel`(방 페이지 소유)에 둔다 — 모드 전환·그리는 사람 화면 전환으로 그림판이 새로 만들어져도 유지. 화면 복귀(`visibilitychange`) 때 다시 그린다(휴대폰이 백그라운드에서 내용을 버릴 수 있음)
+- 그리기 시작 직후 0.4초는 터치를 무시 — 제시어를 고른 터치가 점으로 찍히던 문제
+- 재연결·새로고침은 `roomJoined.drawing.strokes`로 복원
 
 ## SpiceSuitIcon 공유
 

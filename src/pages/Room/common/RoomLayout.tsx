@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import {
   RoomPage,
   RoomHeader,
@@ -73,6 +73,12 @@ interface Props {
   send?: (event: string, data: unknown) => void;
   subscribe?: (handler: (event: string, data: unknown) => void) => () => void;
   playerId?: string;
+  // 채팅을 게임 화면에서 입력하는 게임(그림 맞히기)은 채팅창을 기록 보기 전용으로 쓴다
+  chatReadOnly?: boolean;
+  // 게임 화면에 채팅 기록이 이미 보이면 채팅 버튼을 숨긴다
+  hideChatToggle?: boolean;
+  // 휴대폰에서 오른쪽 아래 음성·채팅 버튼 묶음 위치 (게임 UI와 겹치지 않게)
+  toggleStackStyle?: CSSProperties;
 }
 
 export default function RoomLayout({
@@ -97,6 +103,9 @@ export default function RoomLayout({
   send,
   subscribe,
   playerId,
+  chatReadOnly = false,
+  hideChatToggle = false,
+  toggleStackStyle,
 }: Props) {
   const voiceEnabled = !!(send && subscribe && playerId && roomName);
   const voice = useVoice(
@@ -212,7 +221,7 @@ export default function RoomLayout({
         <GameArea>
           {children}
 
-          <ToggleButtonStack>
+          <ToggleButtonStack style={toggleStackStyle}>
             {voiceEnabled && (
               <VoiceToggleButtonWrapper>
                 <VoiceToggleButton
@@ -236,21 +245,23 @@ export default function RoomLayout({
               </VoiceToggleButtonWrapper>
             )}
 
-            <ChatToggleButtonWrapper>
-              <ChatToggleButton onClick={onToggleChat} aria-label="채팅">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </ChatToggleButton>
-              {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
-            </ChatToggleButtonWrapper>
+            {!hideChatToggle && (
+              <ChatToggleButtonWrapper>
+                <ChatToggleButton onClick={onToggleChat} aria-label="채팅">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </ChatToggleButton>
+                {hasUnreadMessages && !isChatOpen && <ChatNotificationBadge />}
+              </ChatToggleButtonWrapper>
+            )}
           </ToggleButtonStack>
         </GameArea>
 
@@ -258,7 +269,7 @@ export default function RoomLayout({
 
         <ChatArea $isOpen={isChatOpen}>
           <ChatHeaderMobile>
-            <span>채팅</span>
+            <span>{chatReadOnly ? "채팅 기록" : "채팅"}</span>
             <ChatCloseButton onClick={onCloseChat}>
               <svg
                 width="20"
@@ -287,18 +298,20 @@ export default function RoomLayout({
             )}
             <div ref={messagesEndRef} />
           </ChatMessages>
-          <ChatInputArea>
-            <ChatInput
-              type="text"
-              value={inputMessage}
-              onChange={(e) => onInputChange(e.target.value)}
-              placeholder="메시지 입력..."
-              onKeyDown={(e) => e.key === "Enter" && onSendMessage()}
-            />
-            <ChatSendButton onClick={onSendMessage} disabled={!inputMessage.trim()}>
-              전송
-            </ChatSendButton>
-          </ChatInputArea>
+          {!chatReadOnly && (
+            <ChatInputArea>
+              <ChatInput
+                type="text"
+                value={inputMessage}
+                onChange={(e) => onInputChange(e.target.value)}
+                placeholder="메시지 입력..."
+                onKeyDown={(e) => e.key === "Enter" && onSendMessage()}
+              />
+              <ChatSendButton onClick={onSendMessage} disabled={!inputMessage.trim()}>
+                전송
+              </ChatSendButton>
+            </ChatInputArea>
+          )}
         </ChatArea>
       </RoomContent>
 
