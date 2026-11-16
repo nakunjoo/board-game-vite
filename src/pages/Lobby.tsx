@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useAuth } from "../contexts/AuthContext";
+import { getGameConfig } from "../utils/games";
 import {
   LobbyHeader,
   ProfileButton,
@@ -313,7 +314,7 @@ export default function Lobby() {
                   </span>
                   {room.gameStarted && <span style={{ marginLeft: '6px', fontSize: '0.85em', color: '#ff6b6b' }}>[진행중]</span>}
                 </span>
-                <span className="room-players">{room.memberCount}명</span>
+                <span className="room-players">{room.memberCount}/{getGameConfig(room.gameType ?? "gang").maxPlayers}명</span>
                 <button
                   className="join-btn"
                   onClick={() => openJoinModal(room.name, room.gameStarted, room.isPrivate)}
