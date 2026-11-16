@@ -6,6 +6,7 @@ import SpiceResultModal from "../../../components/spice/SpiceResultModal";
 import SpiceHelpModal from "../../../components/spice/SpiceHelpModal";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+import BotControls from "../../../components/BotControls";
 
 // 다른 사람이 먼저 도전해 페이즈가 닫힌 뒤 내 도전이 도착한 경우.
 // 경합에서 진 것뿐이라 alert를 띄울 이유가 없다.
@@ -634,6 +635,12 @@ export default function SpiceRoom() {
 
   return (
     <RoomLayout
+      overlay={
+        // 방장·시작 전에만 봇을 넣고 뺀다
+        isHost && !gameStarted && !isFirstDraw && roomName ? (
+          <BotControls roomName={roomName} players={players} maxPlayers={gameConfig.maxPlayers} send={send} />
+        ) : undefined
+      }
       reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}

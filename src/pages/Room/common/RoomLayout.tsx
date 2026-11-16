@@ -64,6 +64,8 @@ interface Props {
   hideChatToggle?: boolean;
   // 게임이 뒤로가기를 직접 처리하면 true (예: 카지노 미니게임 → 허브). 그때는 나가기 확인창을 띄우지 않는다
   onBack?: () => boolean;
+  // 헤더와 게임판 사이 한 줄 (봇 넣기/빼기 등)
+  overlay?: ReactNode;
 }
 
 export default function RoomLayout({
@@ -88,6 +90,7 @@ export default function RoomLayout({
   chatReadOnly = false,
   hideChatToggle = false,
   onBack,
+  overlay,
 }: Props) {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const showLeaveConfirmRef = useRef(false);
@@ -209,6 +212,9 @@ export default function RoomLayout({
           </LeaveButton>
         </RoomInfo>
       </RoomHeader>
+
+      {/* 게임판 위에 겹치면 자리(위쪽 가운데 플레이어 등)를 가려서 헤더와 게임판 사이에 한 줄로 둔다 */}
+      {overlay}
 
       <RoomContent>
         <GameArea>

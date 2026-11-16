@@ -11,6 +11,7 @@ import type {
 } from "../../../components/skulking/types";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+import BotControls from "../../../components/BotControls";
 import { TURN_TIME } from "../../../styles/game/skulking/boardCenter";
 import SkulkingTestPanel from "../../../components/skulking/SkulkingTestPanel";
 import {
@@ -516,6 +517,12 @@ export default function SkulkingRoom() {
 
   return (
     <RoomLayout
+      overlay={
+        // 방장·시작 전에만 봇을 넣고 뺀다
+        isHost && !gameStarted && !isFirstDraw && roomName ? (
+          <BotControls roomName={roomName} players={players} maxPlayers={gameConfig.maxPlayers} send={send} />
+        ) : undefined
+      }
       reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}

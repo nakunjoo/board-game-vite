@@ -12,6 +12,7 @@ import {
 } from "../../../components/gang";
 import { useRoomBase, type LocationState } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
+import BotControls from "../../../components/BotControls";
 
 export default function GangRoom() {
   const {
@@ -336,6 +337,12 @@ export default function GangRoom() {
 
   return (
     <RoomLayout
+      overlay={
+        // 방장·시작 전에만 봇을 넣고 뺀다
+        isHost && !gameStarted && roomName ? (
+          <BotControls roomName={roomName} players={players} maxPlayers={gameConfig.maxPlayers} send={send} />
+        ) : undefined
+      }
       reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
