@@ -389,6 +389,8 @@ export function useRoomBase(options: UseRoomBaseOptions = {}) {
       sessionStorage.removeItem(inRoomKey(roomName));
       sessionStorage.removeItem(chatStorageKey);
       sessionStorage.removeItem(resultDismissedKey);
+      // 게임 화면 기록(라이어·마피아·끄적끄적)도 — 같은 이름의 방에 다시 들어가면 지난 기록이 보일 수 있었다
+      for (const prefix of ["liar-log", "mafia-log", "drawing-log"]) sessionStorage.removeItem(`${prefix}:${roomName}`);
       // 끊긴 상태면 roomLeft가 오지 않는다. 서버는 유예 시간 뒤 알아서 내보낸다
       if (!connected) navigate("/", { replace: true });
     }

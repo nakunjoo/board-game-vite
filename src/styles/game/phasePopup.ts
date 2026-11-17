@@ -108,7 +108,7 @@ export const PopupRows = styled.div`
 export const PopupCount = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
   margin-top: 4px;
   font-size: 0.85rem;
   color: #bbb;
@@ -118,6 +118,12 @@ export const PopupCount = styled.div`
     font-weight: 800;
     color: #fff;
     font-variant-numeric: tabular-nums;
+
+    small {
+      margin-left: 1px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
   }
 `;
 

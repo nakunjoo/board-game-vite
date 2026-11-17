@@ -147,6 +147,17 @@ export const Seat = styled.button<{
   padding: 5px 2px 4px;
   border-radius: 8px;
   border: 2px solid ${({ $color, $myVote, $speaking }) => ($myVote ? "#ff4d3d" : $speaking ? "#f1c40f" : $color)};
+  /* index.css의 button:hover(파란 테두리)·포커스 테두리가 덮어써서, 휴대폰에선 누른 칸이 내 표(빨강) 대신 파랑·노랑으로 보였다 */
+  &:hover {
+    border-color: ${({ $color, $myVote, $speaking }) => ($myVote ? "#ff4d3d" : $speaking ? "#f1c40f" : $color)};
+  }
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+  }
   background: ${({ $myVote, $isMe }) =>
     $myVote ? "rgba(231, 76, 60, 0.38)" : $isMe ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)"};
   ${({ $myVote }) =>
@@ -188,9 +199,10 @@ export const SeatName = styled.span`
   overflow: hidden;
 `;
 
-export const SeatSub = styled.span`
+export const SeatSub = styled.span<{ $done?: boolean }>`
   font-size: 0.7rem;
-  color: #aaa;
+  color: ${({ $done }) => ($done ? "#4ee08a" : "#aaa")};
+  font-weight: ${({ $done }) => ($done ? 700 : 400)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 `;

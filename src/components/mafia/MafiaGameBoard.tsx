@@ -168,8 +168,6 @@ export default function MafiaGameBoard(props: Props) {
           tag = <SeatTag $tone={pr.isMafia ? "liar" : "vote"}>{pr.isMafia ? "마피아" : "시민"}</SeatTag>;
         } else if (night && role === "mafia" && killCount(s.playerId) > 0) {
           tag = <SeatTag $tone="liar">🔪{killCount(s.playerId) > 1 ? killCount(s.playerId) : ""}</SeatTag>;
-        } else if (voting && s.voted) {
-          tag = <SeatTag $tone="done">✓ 투표</SeatTag>;
         }
         return (
           <Seat
@@ -194,7 +192,9 @@ export default function MafiaGameBoard(props: Props) {
             {tag}
             {voting && chosen && <MyVoteTag>내 표</MyVoteTag>}
             <SeatName style={{ color: s.color, textDecoration: s.alive ? undefined : "line-through" }}>{s.nickname}</SeatName>
-            <SeatSub>{s.left ? "🚪 나감" : s.away ? "⚠︎ 끊김" : !inGame ? " " : s.alive ? "생존" : "💀 사망"}</SeatSub>
+            <SeatSub $done={voting && s.alive && s.voted}>
+              {s.left ? "🚪 나감" : s.away ? "⚠︎ 끊김" : !inGame ? " " : !s.alive ? "💀 사망" : voting && s.voted ? "✓ 투표함" : "생존"}
+            </SeatSub>
           </Seat>
         );
       })}

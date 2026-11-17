@@ -205,8 +205,6 @@ export default function LiarGameBoard(props: Props) {
           else if (tally > 0) tag = <SeatTag $tone="count">{tally}표</SeatTag>;
         } else if (phase === "liarGuess" && s.playerId === accusedId) {
           tag = <SeatTag $tone="liar">라이어</SeatTag>;
-        } else if (phase === "discuss" && s.voted) {
-          tag = <SeatTag $tone="done">✓ 투표</SeatTag>;
         }
         return (
           <Seat
@@ -228,8 +226,8 @@ export default function LiarGameBoard(props: Props) {
             {isMyVote && <MyVoteTag>내 표</MyVoteTag>}
             {phase === "describe" && speakerId === s.playerId && <SpeakDot aria-label="설명 차례" />}
             <SeatName style={{ color: s.color }}>{s.nickname}</SeatName>
-            <SeatSub>
-              {s.away ? "⚠︎ 끊김" : `${s.score}점`}
+            <SeatSub $done={phase === "discuss" && s.voted}>
+              {s.away ? "⚠︎ 끊김" : phase === "discuss" && s.voted ? "✓ 투표함" : `${s.score}점`}
               {gain ? ` +${gain}` : ""}
             </SeatSub>
           </Seat>
@@ -258,7 +256,7 @@ export default function LiarGameBoard(props: Props) {
       <StagePanel>
         🗳️ 라이어로 의심되는 사람을 눌러 투표하세요 · {time}
         <br />
-        <small>{votedCount}/{voterCount}명 투표했어요 (✓ 투표 = 투표를 마친 사람)</small>
+        <small>{votedCount}/{voterCount}명 투표했어요</small>
         <VoteStatus $done={!!myVote}>
           {myVote ? (
             <>

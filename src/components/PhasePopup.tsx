@@ -51,7 +51,11 @@ export default function PhasePopup({ content }: { content: PhasePopupContent | n
         {content.body && <PopupBody>{content.body}</PopupBody>}
         {content.countdown && (
           <PopupCount>
-            <strong>{content.countdown.seconds}</strong>초 {content.countdown.label}
+            <strong>
+              {content.countdown.seconds}
+              <small>초</small>
+            </strong>
+            {content.countdown.label}
           </PopupCount>
         )}
         <PopupHint>눌러서 닫기</PopupHint>

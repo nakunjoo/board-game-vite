@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoomBase } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
-import BotControls from "../../../components/BotControls";
 import LiarGameBoard, { resultSummary } from "../../../components/liar/LiarGameBoard";
 import LiarHelpModal from "../../../components/liar/LiarHelpModal";
 import LiarSetupPanel from "../../../components/liar/game/LiarSetupPanel";
@@ -282,6 +281,10 @@ export default function LiarRoom() {
           setAway([]);
           setGameOver(null);
           setResultDismissed(false);
+          // 이전 게임 기록은 지운다 (마피아는 지난 판 속삭임·조사 결과가 남아 있었다).
+          // 넓은 화면 오른쪽 채팅창(같은 기록을 따로 들고 있다)도 같이
+          setLogs([]);
+          setMessages([]);
           addLog({ tone: "system", text: `🤥 라이어 시작! (${e.totalRounds}판)` });
           break;
         }
@@ -432,12 +435,6 @@ export default function LiarRoom() {
 
   return (
     <RoomLayout
-      overlay={
-        // 방장·대기 중에만 봇을 넣고 뺀다 (라이어 봇은 서버에서 LLM으로 말한다)
-        isHost && (phase === "waiting" || phase === "over") && roomName ? (
-          <BotControls roomName={roomName} players={players} maxPlayers={gameConfig.maxPlayers} send={send} />
-        ) : undefined
-      }
       reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}

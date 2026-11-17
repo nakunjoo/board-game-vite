@@ -272,6 +272,10 @@ export default function DrawingRoom() {
           setGameOver(null);
           model.reset([]);
           setResultDismissed(false);
+          // 이전 게임 기록은 지운다 (마피아는 지난 판 속삭임·조사 결과가 남아 있었다).
+          // 넓은 화면 오른쪽 채팅창(같은 기록을 따로 들고 있다)도 같이
+          setLogs([]);
+          setMessages([]);
           addLog({ tone: "system", text: `🎨 끄적끄적 시작! (그림 ${e.totalTurns}개)` });
           break;
         }
@@ -408,7 +412,7 @@ export default function DrawingRoom() {
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, playerId, entryState, model, addLog, showBubble, showToast, resultDismissedRef, setResultDismissed]);
+  }, [subscribe, roomName, playerId, entryState, model, addLog, showBubble, showToast, resultDismissedRef, setResultDismissed, setMessages]);
 
   // ── 보내기 ───────────────────────────────────────────────
 

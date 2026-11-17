@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoomBase } from "../common/useRoomBase";
 import RoomLayout from "../common/RoomLayout";
-import BotControls from "../../../components/BotControls";
 import MafiaGameBoard from "../../../components/mafia/MafiaGameBoard";
 import type { MafiaExecution } from "../../../components/mafia/MafiaGameBoard";
 import MafiaHelpModal from "../../../components/mafia/MafiaHelpModal";
@@ -315,6 +314,10 @@ export default function MafiaRoom() {
           setAlive(e.players);
           setGameOver(null);
           setResultDismissed(false);
+          // 이전 게임 기록은 지운다 (마피아는 지난 판 속삭임·조사 결과가 남아 있었다).
+          // 넓은 화면 오른쪽 채팅창(같은 기록을 따로 들고 있다)도 같이
+          setLogs([]);
+          setMessages([]);
           addLog({ tone: "system", text: `🔪 마피아 시작! (${e.players.length}명 · 마피아 ${e.mafiaCount}명)` });
           break;
         }
@@ -324,6 +327,11 @@ export default function MafiaRoom() {
           setMafiaTeam(e.mafiaTeam);
           setPhase("role");
           startClock(e.timeLimitMs);
+          break;
+        }
+        case "mafiaTimer": {
+          // 밤 할 일이 일찍 끝나 서버가 남은 시간을 줄였다
+          startClock((data as { timeLimitMs: number }).timeLimitMs);
           break;
         }
         case "mafiaNight": {
@@ -438,7 +446,7 @@ export default function MafiaRoom() {
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, playerId, entryState, addLog, showToast, resultDismissedRef, setResultDismissed, startClock, logOnly, rememberNames]);
+  }, [subscribe, roomName, playerId, entryState, addLog, showToast, resultDismissedRef, setResultDismissed, setMessages, startClock, logOnly, rememberNames]);
 
   // ── 보내기 ───────────────────────────────────────────────
 
@@ -490,11 +498,6 @@ export default function MafiaRoom() {
 
   return (
     <RoomLayout
-      overlay={
-        isHost && (phase === "waiting" || phase === "over") && roomName ? (
-          <BotControls roomName={roomName} players={players} maxPlayers={gameConfig.maxPlayers} send={send} />
-        ) : undefined
-      }
       reconnecting={reconnecting}
       roomName={roomName ?? ""}
       displayName={gameConfig.displayName}
