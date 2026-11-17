@@ -176,7 +176,7 @@ export default function MafiaGameBoard(props: Props) {
             $myVote={chosen}
             $clickable={clickable}
             $isMe={s.isMe}
-            $dim={!s.alive || s.away}
+            $dim={!s.alive || s.away || s.left}
             aria-disabled={!clickable}
             tabIndex={clickable ? 0 : -1}
             onClick={() => {
@@ -189,7 +189,7 @@ export default function MafiaGameBoard(props: Props) {
           >
             {tag}
             <SeatName style={{ color: s.color, textDecoration: s.alive ? undefined : "line-through" }}>{s.nickname}</SeatName>
-            <SeatSub>{s.away ? "⚠︎ 끊김" : !inGame ? " " : s.alive ? "생존" : "💀 사망"}</SeatSub>
+            <SeatSub>{s.left ? "🚪 나감" : s.away ? "⚠︎ 끊김" : !inGame ? " " : s.alive ? "생존" : "💀 사망"}</SeatSub>
           </Seat>
         );
       })}

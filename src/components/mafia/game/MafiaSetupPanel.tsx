@@ -20,10 +20,12 @@ interface Props {
 export default function MafiaSetupPanel({ isHost, memberCount, onStart }: Props) {
   const [discussTimeSec, setDiscussTimeSec] = useState(120);
   const minPlayers = MAFIA_CONFIG.minPlayers ?? 4;
+  // 서버 MafiaHandler.mafiaCount / doctorCount와 같게
   const mafias = memberCount >= 6 ? 2 : 1;
+  const doctors = memberCount >= 6 ? 1 : 0;
   const roles =
     memberCount >= minPlayers
-      ? `마피아 ${mafias} · 경찰 1 · 의사 1 · 시민 ${memberCount - mafias - 2}`
+      ? `마피아 ${mafias} · 경찰 1${doctors ? " · 의사 1" : ""} · 시민 ${memberCount - mafias - 1 - doctors}`
       : `최소 ${minPlayers}명이 필요합니다`;
 
   if (!isHost) {

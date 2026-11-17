@@ -70,6 +70,8 @@ export default function MafiaRoom() {
   const [lastNight, setLastNight] = useState<{ killedId: string | null; killedNickname: string | null } | null>(null);
   const [execution, setExecution] = useState<MafiaExecution | null>(null);
   const [away, setAway] = useState<string[]>([]);
+  /** 이번 게임 참가자 닉네임 — 게임 중에 나간 사람도 자리에 이름을 남긴다 */
+  const [gameNames, setGameNames] = useState<Record<string, string>>({});
   const [clock, setClock] = useState<{ deadline: number | null; startSec: number }>({ deadline: null, startSec: 0 });
   const startClock = useCallback((ms: number | null) => {
     setClock(ms === null ? { deadline: null, startSec: 0 } : { deadline: Date.now() + ms, startSec: Math.ceil(ms / 1000) });
@@ -140,18 +142,21 @@ export default function MafiaRoom() {
 
   /** 자리는 입장 순서로 고정 (죽어도 자리를 옮기지 않는다 — 옮기면 누가 누군지 헷갈렸다) */
   const seats: MafiaSeat[] = useMemo(() => {
-    const ids = joinOrder.filter((pid) => players.some((p) => p.playerId === pid));
+    const present = joinOrder.filter((pid) => players.some((p) => p.playerId === pid));
+    // 게임 중에는 나간 참가자 자리도 남긴다. 참가자 목록은 서버가 입장 순서로 주고, 중간에 들어온 사람은 뒤에
+    const ids = inGame ? [...gamePlayers, ...present.filter((pid) => !gamePlayers.includes(pid))] : present;
     return ids.map((pid) => ({
       playerId: pid,
-      nickname: nicknameOf(pid),
+      nickname: nicknameOf(pid) || gameNames[pid] || "",
       color: colorOf(pid),
       isMe: pid === playerId,
       alive: !inGame || aliveNow.includes(pid),
       away: away.includes(pid),
+      left: inGame && !present.includes(pid),
       teammate: role === "mafia" && mafiaTeam.includes(pid),
       voted: voted.includes(pid),
     }));
-  }, [joinOrder, players, inGame, aliveNow, nicknameOf, colorOf, playerId, away, role, mafiaTeam, voted]);
+  }, [joinOrder, players, inGame, gamePlayers, gameNames, aliveNow, nicknameOf, colorOf, playerId, away, role, mafiaTeam, voted]);
 
   const voterCount = aliveNow.filter((pid) => !away.includes(pid)).length;
 
@@ -175,6 +180,17 @@ export default function MafiaRoom() {
   /** 게임 기록에만 (채팅 패널에는 useRoomBase가 이미 남긴 안내) */
   const logOnly = useCallback((text: string) => {
     setLogs((prev) => [...prev.slice(-(MAX_LOGS - 1)), { tone: "system", text, key: ++keyRef.current }]);
+  }, []);
+
+  const playersRef = useRef(players);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+  /** 게임 참가자 닉네임을 잡아 둔다 (나간 뒤에도 자리에 이름을 보이려고) */
+  const rememberNames = useCallback((ids: string[], names?: Record<string, string>) => {
+    const map: Record<string, string> = { ...(names ?? {}) };
+    for (const p of playersRef.current) if (ids.includes(p.playerId)) map[p.playerId] = p.nickname;
+    setGameNames(map);
   }, []);
 
   const hostIdRef = useRef(hostPlayerId);
@@ -211,6 +227,7 @@ export default function MafiaRoom() {
       setLastNight(null);
       setExecution(null);
       setAway([]);
+      setGameNames({});
     };
 
     const applyJoin = (d: JoinData) => {
@@ -222,6 +239,7 @@ export default function MafiaRoom() {
         setRole(s.role);
         setMafiaTeam(s.mafiaTeam);
         setGamePlayers(s.players);
+        rememberNames(s.players, s.nicknames);
         setAlive(s.alive);
         setKills(s.kills);
         setPoliceLog(s.policeLog);
@@ -293,6 +311,7 @@ export default function MafiaRoom() {
           setDay(1);
           setPhase("role");
           setGamePlayers(e.players);
+          rememberNames(e.players);
           setAlive(e.players);
           setGameOver(null);
           setResultDismissed(false);
@@ -405,7 +424,10 @@ export default function MafiaRoom() {
           setExecution(null);
           setMyTarget(null);
           setVoted([]);
-          addLog({ tone: "system", text: `🏁 ${winnerText(e.winner)}` });
+          addLog({
+            tone: "system",
+            text: `🏁 ${winnerText(e.winner)}${e.winner === "none" ? " — 인원이 부족해 일찍 끝났어요" : ""}`,
+          });
           const roles = Object.entries(e.roles)
             .filter(([, r]) => r !== "citizen")
             .map(([pid, r]) => `${MAFIA_ROLE_EMOJI[r]} ${MAFIA_ROLE_LABEL[r]} ${e.nicknames[pid] ?? "?"}`)
@@ -416,7 +438,7 @@ export default function MafiaRoom() {
       }
     });
     return unsubscribe;
-  }, [subscribe, roomName, playerId, entryState, addLog, showToast, resultDismissedRef, setResultDismissed, startClock, logOnly]);
+  }, [subscribe, roomName, playerId, entryState, addLog, showToast, resultDismissedRef, setResultDismissed, startClock, logOnly, rememberNames]);
 
   // ── 보내기 ───────────────────────────────────────────────
 

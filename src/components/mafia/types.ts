@@ -36,6 +36,8 @@ export interface MafiaRestoreState {
   lastExecution: { executedId: string | null; day: number; tally: Record<string, number> } | null;
   timeLeftMs: number;
   away: string[];
+  /** 이번 게임 참가자 닉네임 (나간 사람 자리 표시용, 예전 서버는 없음) */
+  nicknames?: Record<string, string>;
 }
 
 export interface MafiaSeat {
@@ -45,6 +47,8 @@ export interface MafiaSeat {
   isMe: boolean;
   alive: boolean;
   away: boolean;
+  /** 게임 중에 방을 나감 (자리는 그대로 두고 표시만) */
+  left: boolean;
   /** 마피아에게만: 동료 표시 */
   teammate: boolean;
   voted: boolean;
