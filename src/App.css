@@ -3,6 +3,7 @@
   margin: 0 auto;
   padding: 0.5rem;
   height: 100vh;
+  height: 100dvh;
   box-sizing: border-box;
   -webkit-user-select: none;
   -moz-user-select: none;

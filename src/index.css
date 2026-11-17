@@ -30,7 +30,9 @@ body {
 body {
   margin: 0;
   min-width: 320px;
+  /* 휴대폰은 100vh가 주소창이 접혔을 때 높이라 실제 화면보다 길다 — 게임 화면(#root 100dvh) 아래에 빈 공간이 생겨 스크롤됐다 */
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: #242424;
   color: rgba(255, 255, 255, 0.87);
 }

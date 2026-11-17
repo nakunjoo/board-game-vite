@@ -151,6 +151,24 @@ export default function RoomLayout({
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  // 휴대폰 키보드가 올라오면 브라우저가 화면 전체를 위로 밀어 올리는데, 키보드가 내려가도 그대로 남아
+  // 아래에 빈 공간이 생기고 스크롤됐다 — 입력이 끝나면(포커스가 빠지거나 화면 높이가 돌아오면) 맨 위로 되돌린다
+  useEffect(() => {
+    const reset = () => {
+      const el = document.activeElement;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      if (window.scrollY !== 0 || document.documentElement.scrollTop !== 0) window.scrollTo(0, 0);
+    };
+    const onFocusOut = () => setTimeout(reset, 100);
+    const vv = window.visualViewport;
+    document.addEventListener("focusout", onFocusOut);
+    vv?.addEventListener("resize", reset);
+    return () => {
+      document.removeEventListener("focusout", onFocusOut);
+      vv?.removeEventListener("resize", reset);
+    };
+  }, []);
+
   return (
     <RoomPage>
       <RoomHeader>
