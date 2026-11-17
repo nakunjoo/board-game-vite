@@ -103,6 +103,7 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   casino: "카지노",
   drawing: "끄적끄적",
   liar: "라이어",
+  mafia: "마피아",
   minesweeper: "지뢰찾기",
   "slide-puzzle": "슬라이드 퍼즐",
 };

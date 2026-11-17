@@ -5,6 +5,7 @@ import SkulkingRoom from "./skulking";
 import CasinoRoom from "./casino";
 import DrawingRoom from "./drawing";
 import LiarRoom from "./liar";
+import MafiaRoom from "./mafia";
 
 interface LocationState {
   gameType?: string;
@@ -35,6 +36,10 @@ export default function Room() {
 
   if (gameType === "liar") {
     return <LiarRoom />;
+  }
+
+  if (gameType === "mafia") {
+    return <MafiaRoom />;
   }
 
   return <GangRoom />;
