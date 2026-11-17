@@ -146,9 +146,14 @@ export const Seat = styled.button<{
   min-height: 48px;
   padding: 5px 2px 4px;
   border-radius: 8px;
-  border: 2px solid ${({ $color, $myVote, $speaking }) => ($myVote ? "#e74c3c" : $speaking ? "#f1c40f" : $color)};
+  border: 2px solid ${({ $color, $myVote, $speaking }) => ($myVote ? "#ff4d3d" : $speaking ? "#f1c40f" : $color)};
   background: ${({ $myVote, $isMe }) =>
-    $myVote ? "rgba(231, 76, 60, 0.22)" : $isMe ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)"};
+    $myVote ? "rgba(231, 76, 60, 0.38)" : $isMe ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.04)"};
+  ${({ $myVote }) =>
+    $myVote &&
+    css`
+      box-shadow: 0 0 0 2px rgba(255, 77, 61, 0.45), 0 0 10px rgba(255, 77, 61, 0.55);
+    `}
   color: #eee;
   font: inherit;
   text-align: center;
@@ -213,8 +218,8 @@ export const SpeakDot = styled.span`
   }
 `;
 
-/** 자리 오른쪽 위 작은 표시 (투표함 · 득표 수 · 라이어) */
-export const SeatTag = styled.span<{ $tone?: "vote" | "liar" | "count" }>`
+/** 자리 오른쪽 위 작은 표시 (투표 완료 · 득표 수 · 라이어) */
+export const SeatTag = styled.span<{ $tone?: "vote" | "liar" | "count" | "done" }>`
   position: absolute;
   top: -7px;
   right: -5px;
@@ -223,8 +228,45 @@ export const SeatTag = styled.span<{ $tone?: "vote" | "liar" | "count" }>`
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 16px;
+  white-space: nowrap;
   color: #fff;
-  background: ${({ $tone }) => ($tone === "liar" ? "#e74c3c" : $tone === "count" ? "#c0392b" : "#555")};
+  background: ${({ $tone }) =>
+    $tone === "liar" ? "#e74c3c" : $tone === "count" ? "#c0392b" : $tone === "done" ? "#27ae60" : "#555"};
+  pointer-events: none;
+`;
+
+/** 내가 투표한 사람 칸 왼쪽 위 "내 표" */
+export const MyVoteTag = styled.span`
+  position: absolute;
+  top: -8px;
+  left: -5px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 16px;
+  white-space: nowrap;
+  color: #fff;
+  background: #ff4d3d;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+`;
+
+/** 투표 시간 안내의 내 투표 상태 한 줄 */
+export const VoteStatus = styled.div<{ $done: boolean }>`
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: ${({ $done }) => ($done ? "#7dffb0" : "#ffd36b")};
+  background: ${({ $done }) => ($done ? "rgba(39, 174, 96, 0.18)" : "rgba(241, 196, 15, 0.14)")};
+  border: 1px solid ${({ $done }) => ($done ? "rgba(39, 174, 96, 0.55)" : "rgba(241, 196, 15, 0.45)")};
 `;
 
 // ── 단계 안내 ─────────────────────────────────────────────

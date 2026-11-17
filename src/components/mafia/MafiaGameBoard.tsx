@@ -18,6 +18,8 @@ import {
   SeatName,
   SeatSub,
   SeatTag,
+  MyVoteTag,
+  VoteStatus,
   StagePanel,
   InlineButton,
   Log,
@@ -29,6 +31,8 @@ import {
 } from "../../styles/game/liar/board";
 import { MafiaLogLine, RoleHint, RoleText, ScopeTag, TeamLine } from "../../styles/game/mafia/board";
 import { useMediaQuery } from "../../utils/useMediaQuery";
+import PhasePopup from "../PhasePopup";
+import type { PhasePopupContent } from "../PhasePopup";
 import { MAFIA_ROLE_EMOJI, MAFIA_ROLE_HINT, MAFIA_ROLE_LABEL } from "../../utils/games/mafia";
 import type { MafiaRole } from "../../utils/games/mafia";
 
@@ -165,7 +169,7 @@ export default function MafiaGameBoard(props: Props) {
         } else if (night && role === "mafia" && killCount(s.playerId) > 0) {
           tag = <SeatTag $tone="liar">🔪{killCount(s.playerId) > 1 ? killCount(s.playerId) : ""}</SeatTag>;
         } else if (voting && s.voted) {
-          tag = <SeatTag $tone="vote">✓</SeatTag>;
+          tag = <SeatTag $tone="done">✓ 투표</SeatTag>;
         }
         return (
           <Seat
@@ -188,6 +192,7 @@ export default function MafiaGameBoard(props: Props) {
             aria-label={clickable ? `${s.nickname} 선택` : s.nickname}
           >
             {tag}
+            {voting && chosen && <MyVoteTag>내 표</MyVoteTag>}
             <SeatName style={{ color: s.color, textDecoration: s.alive ? undefined : "line-through" }}>{s.nickname}</SeatName>
             <SeatSub>{s.left ? "🚪 나감" : s.away ? "⚠︎ 끊김" : !inGame ? " " : s.alive ? "생존" : "💀 사망"}</SeatSub>
           </Seat>
@@ -287,18 +292,102 @@ export default function MafiaGameBoard(props: Props) {
         ☀️ {news}
         <br />
         <small>
-          {amAlive && role
-            ? `의심되는 사람을 눌러 투표 · ${votedCount}/${voterCount}명 투표 · ${secondsLeft}초`
-            : `${votedCount}/${voterCount}명 투표 · ${secondsLeft}초`}
-          {amAlive && myTarget ? ` · 내 선택: ${nameOf(myTarget)}` : ""}
+          {amAlive && role ? "의심되는 사람을 눌러 투표 · " : ""}
+          {votedCount}/{voterCount}명 투표했어요 · {secondsLeft}초
         </small>
-        {amAlive && myTarget && (
-          <InlineButton type="button" onClick={() => onAction(null)}>
-            취소
-          </InlineButton>
+        {amAlive && role && (
+          <VoteStatus $done={!!myTarget}>
+            {myTarget ? (
+              <>
+                ✅ 내 표: {nameOf(myTarget)}
+                <InlineButton type="button" onClick={() => onAction(null)}>
+                  취소
+                </InlineButton>
+              </>
+            ) : (
+              "⏳ 아직 투표하지 않았어요"
+            )}
+          </VoteStatus>
         )}
       </StagePanel>
     );
+  }
+
+  // ── 가운데 팝업: 역할 · 밤 · 아침 · 처형 (단계가 너무 훅훅 지나가서 바뀔 때마다 크게 알린다) ──
+  let popup: PhasePopupContent | null = null;
+  const nightTask: Record<MafiaRole, string> = {
+    mafia: "동료와 상의해 없앨 사람을 누르세요",
+    police: "조사할 사람을 누르세요",
+    doctor: "살릴 사람을 누르세요",
+    citizen: "밤에는 말할 수 없어요. 아침을 기다리세요",
+  };
+  if (phase === "role" && role) {
+    popup = {
+      key: "role",
+      emoji: hideRole ? "🎭" : MAFIA_ROLE_EMOJI[role],
+      tone: role === "mafia" && !hideRole ? "bad" : "neutral",
+      title: hideRole ? "역할이 정해졌어요" : `당신은 ${MAFIA_ROLE_LABEL[role]}!`,
+      body: hideRole ? (
+        "역할 카드를 확인하세요"
+      ) : (
+        <>
+          {MAFIA_ROLE_HINT[role]}
+          {role === "mafia" && team.length > 0 && (
+            <>
+              <br />
+              동료: <b>{team.map((t) => t.nickname).join(", ")}</b>
+            </>
+          )}
+        </>
+      ),
+      countdown: { seconds: secondsLeft, label: "뒤 첫날 밤" },
+    };
+  } else if (night) {
+    popup = {
+      key: `night-${day}`,
+      emoji: "🌙",
+      tone: "night",
+      title: `${day}일째 밤이 되었어요`,
+      body: !role ? "다음 게임부터 참여할 수 있어요" : !amAlive ? "죽은 사람끼리 채팅할 수 있어요" : nightTask[role],
+      autoCloseMs: 3000,
+    };
+  } else if (phase === "day" && execution) {
+    const me = execution.executedId === myPlayerId;
+    popup = {
+      key: `exec-${day}`,
+      emoji: execution.executedId ? (me ? "💀" : "⚖️") : "🤝",
+      tone: execution.executedId ? "bad" : "neutral",
+      title: execution.executedId
+        ? me
+          ? "당신이 처형됐어요"
+          : `${execution.executedNickname || nameOf(execution.executedId)}님이 처형됐어요`
+        : "아무도 처형되지 않았어요",
+      body: execution.executedId ? (me ? "이제 죽은 사람끼리 채팅할 수 있어요" : "역할은 게임이 끝나면 공개돼요") : "표가 갈렸어요",
+      countdown: { seconds: secondsLeft, label: "뒤 밤" },
+    };
+  } else if (phase === "day") {
+    const killed = lastNight?.killedId ?? null;
+    const me = killed === myPlayerId;
+    popup = {
+      key: `day-${day}`,
+      emoji: killed ? (me ? "💀" : "☀️") : "☀️",
+      tone: killed ? (me ? "bad" : "day") : "good",
+      title: `${day}일째 아침이 밝았어요`,
+      body: killed ? (
+        me ? (
+          <>
+            밤사이 <b>당신</b>이 마피아에게 당했어요
+          </>
+        ) : (
+          <>
+            밤사이 <b>{lastNight?.killedNickname || nameOf(killed)}</b>님이 죽었어요
+          </>
+        )
+      ) : (
+        "밤사이 아무도 죽지 않았어요"
+      ),
+      autoCloseMs: 4000,
+    };
   }
 
   // ── 입력 ──
@@ -373,6 +462,7 @@ export default function MafiaGameBoard(props: Props) {
           <ToastWrap>{toast && <Toast>{toast}</Toast>}</ToastWrap>
           {inputBar}
         </WideRight>
+        <PhasePopup content={popup} />
       </WideWrap>
     );
   }
@@ -388,6 +478,7 @@ export default function MafiaGameBoard(props: Props) {
       </BoardBody>
       <ToastWrap>{toast && <Toast>{toast}</Toast>}</ToastWrap>
       {inputBar}
+      <PhasePopup content={popup} />
     </BoardWrap>
   );
 }

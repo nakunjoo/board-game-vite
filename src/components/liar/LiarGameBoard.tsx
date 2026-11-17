@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import LiarDescBoard from "./game/LiarDescBoard";
+import PhasePopup from "../PhasePopup";
+import type { PhasePopupContent } from "../PhasePopup";
+import { PopupRows } from "../../styles/game/phasePopup";
 import type { LiarDescription, LiarLogEntry, LiarPhase, LiarRoundResult, LiarSeat } from "./types";
 import {
   BoardWrap,
@@ -15,6 +18,8 @@ import {
   SeatName,
   SeatSub,
   SeatTag,
+  MyVoteTag,
+  VoteStatus,
   SpeakDot,
   StagePanel,
   ResultTitle,
@@ -201,7 +206,7 @@ export default function LiarGameBoard(props: Props) {
         } else if (phase === "liarGuess" && s.playerId === accusedId) {
           tag = <SeatTag $tone="liar">라이어</SeatTag>;
         } else if (phase === "discuss" && s.voted) {
-          tag = <SeatTag $tone="vote">✓</SeatTag>;
+          tag = <SeatTag $tone="done">✓ 투표</SeatTag>;
         }
         return (
           <Seat
@@ -220,6 +225,7 @@ export default function LiarGameBoard(props: Props) {
             aria-label={clickable ? `${s.nickname}에게 투표` : s.nickname}
           >
             {tag}
+            {isMyVote && <MyVoteTag>내 표</MyVoteTag>}
             {phase === "describe" && speakerId === s.playerId && <SpeakDot aria-label="설명 차례" />}
             <SeatName style={{ color: s.color }}>{s.nickname}</SeatName>
             <SeatSub>
@@ -252,15 +258,19 @@ export default function LiarGameBoard(props: Props) {
       <StagePanel>
         🗳️ 라이어로 의심되는 사람을 눌러 투표하세요 · {time}
         <br />
-        <small>
-          {votedCount}/{voterCount}명 투표
-          {myVote ? ` · 내 선택: ${nicknameOf(myVote)}` : ""}
-        </small>
-        {myVote && (
-          <InlineButton type="button" onClick={() => onVote(null)}>
-            취소
-          </InlineButton>
-        )}
+        <small>{votedCount}/{voterCount}명 투표했어요 (✓ 투표 = 투표를 마친 사람)</small>
+        <VoteStatus $done={!!myVote}>
+          {myVote ? (
+            <>
+              ✅ 내 표: {nicknameOf(myVote)}
+              <InlineButton type="button" onClick={() => onVote(null)}>
+                취소
+              </InlineButton>
+            </>
+          ) : (
+            "⏳ 아직 투표하지 않았어요"
+          )}
+        </VoteStatus>
       </StagePanel>
     );
   } else if (phase === "liarGuess") {
@@ -309,6 +319,76 @@ export default function LiarGameBoard(props: Props) {
         <small>{isLast ? "마지막 판이었어요" : "다음 판"} · {time}</small>
       </StagePanel>
     );
+  }
+
+  // ── 가운데 팝업: 새 판 시작 · 토론 시작 · 라이어 지목 · 판 결과 ──
+  let popup: PhasePopupContent | null = null;
+  if (phase === "word") {
+    popup = {
+      key: `word-${round}`,
+      emoji: "🎲",
+      title: `${round}/${totalRounds}판 시작!`,
+      body: (
+        <>
+          주제는 <b>{topic}</b>
+          <br />
+          내 제시어 <b>{hideWord ? "(가려 둠)" : word}</b>
+          <br />
+          <small>한 명만 다른 단어를 받았어요. 나일 수도 있어요!</small>
+        </>
+      ),
+      countdown: { seconds: secondsLeft, label: "뒤 설명 시작" },
+    };
+  } else if (phase === "discuss") {
+    popup = {
+      key: `discuss-${round}`,
+      emoji: "🗳️",
+      title: "토론·투표 시간!",
+      body: "라이어로 의심되는 사람 칸을 눌러 투표하세요",
+      autoCloseMs: 2500,
+    };
+  } else if (phase === "liarGuess") {
+    popup = {
+      key: `guess-${round}`,
+      emoji: "🎯",
+      tone: "bad",
+      title: iGuess ? "들켰어요!" : `${accusedId ? nicknameOf(accusedId) : ""}님이 라이어였어요!`,
+      body: iGuess ? "시민들의 제시어를 맞히면 역전승이에요" : "라이어가 제시어를 맞히는 중…",
+      autoCloseMs: 2500,
+    };
+  } else if (phase === "result" && result) {
+    const iWasLiar = result.liarId === myPlayerId;
+    const iWon =
+      result.winner !== "none" && (result.winner === "liar") === iWasLiar;
+    const gain = result.gains[myPlayerId] ?? 0;
+    popup = {
+      key: `result-${round}`,
+      emoji: result.winner === "liar" ? "🤥" : result.winner === "citizens" ? "🎉" : "🤷",
+      tone: result.winner === "none" ? "neutral" : iWon ? "good" : "bad",
+      title: result.winner === "liar" ? "라이어 승리!" : result.winner === "citizens" ? "시민 승리!" : "무효",
+      body: (
+        <>
+          {REASON_TEXT[result.reason]}
+          <PopupRows style={{ marginTop: 8 }}>
+            <span>라이어</span>
+            <span>{result.liarNickname}{iWasLiar ? " (나)" : ""}</span>
+            <span>제시어</span>
+            <span>{result.word}</span>
+            <span>라이어 단어</span>
+            <span>{result.liarWord}</span>
+            {result.liarGuess !== null && (
+              <>
+                <span>라이어의 답</span>
+                <span>{result.liarGuess}</span>
+              </>
+            )}
+            <span>내 점수</span>
+            <span>{gain > 0 ? `+${gain}점` : "0점"}</span>
+          </PopupRows>
+        </>
+      ),
+      countdown: { seconds: secondsLeft, label: isLast ? "뒤 최종 결과" : "뒤 다음 판" },
+    };
   }
 
   // ── 입력 (설명 중에도 차례가 아닌 사람은 채팅할 수 있다) ──
@@ -390,6 +470,7 @@ export default function LiarGameBoard(props: Props) {
           <ToastWrap>{toast && <Toast>{toast}</Toast>}</ToastWrap>
           {inputBar}
         </WideRight>
+        <PhasePopup content={popup} />
       </WideWrap>
     );
   }
@@ -407,6 +488,7 @@ export default function LiarGameBoard(props: Props) {
       </BoardBody>
       <ToastWrap>{toast && <Toast>{toast}</Toast>}</ToastWrap>
       {inputBar}
+      <PhasePopup content={popup} />
     </BoardWrap>
   );
 }
